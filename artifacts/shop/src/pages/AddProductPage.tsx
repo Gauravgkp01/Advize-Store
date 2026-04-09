@@ -89,7 +89,7 @@ export function AddProductPage() {
               
               {/* Image Upload Mock */}
               <div className="space-y-2">
-                <FormLabel className="text-base font-semibold">Product Image</FormLabel>
+                <label className="text-base font-semibold">Product Image</label>
                 <div 
                   className="border-2 border-dashed border-muted-foreground/20 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors h-48 relative overflow-hidden"
                   onClick={handleImageClick}
