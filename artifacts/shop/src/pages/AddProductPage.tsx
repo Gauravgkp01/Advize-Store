@@ -22,6 +22,7 @@ import { Navbar } from "@/components/Navbar";
 const formSchema = z.object({
   name: z.string().min(2, { message: "Product name is required." }),
   price: z.coerce.number().min(1, { message: "Price must be greater than 0." }),
+  units: z.coerce.number().int().min(0, { message: "Units cannot be negative." }),
   description: z.string().min(10, { message: "Add a short description." }),
 });
 
@@ -37,6 +38,7 @@ export function AddProductPage() {
     defaultValues: {
       name: "",
       price: undefined,
+      units: 1,
       description: "",
     },
   });
@@ -141,6 +143,20 @@ export function AddProductPage() {
                         <span className="absolute left-4 top-3 text-muted-foreground">₹</span>
                         <Input type="number" placeholder="0" className="pl-8 h-12 rounded-xl" {...field} data-testid="input-product-price" />
                       </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="units"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Units Available</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={0} placeholder="e.g. 50" className="h-12 rounded-xl" {...field} data-testid="input-product-units" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
