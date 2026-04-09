@@ -1,10 +1,12 @@
-import { useParams } from "wouter";
-import { Store } from "lucide-react";
+import { useParams, useLocation } from "wouter";
+import { Store, ArrowLeft } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { MOCK_PRODUCTS, MOCK_STORE_INFO } from "@/lib/mock-data";
+import { Button } from "@/components/ui/button";
 
 export function StorefrontPage() {
   const params = useParams();
+  const [, navigate] = useLocation();
   const slug = params.slug || MOCK_STORE_INFO.slug;
 
   return (
@@ -15,6 +17,18 @@ export function StorefrontPage() {
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
         
         <div className="container max-w-5xl mx-auto relative z-10 flex flex-col items-center text-center">
+          <div className="absolute left-0 top-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
+              data-testid="button-back-to-dashboard"
+              className="text-primary-foreground hover:bg-white/20 hover:text-primary-foreground gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          </div>
           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg text-primary">
             <Store className="w-10 h-10" />
           </div>
