@@ -99,5 +99,6 @@ export const MOCK_STORE_INFO = {
   name: "Priya's Boutique",
   slug: "priya-boutique",
   whatsapp: "+91 98765 43210",
-  category: "Fashion"
+  category: "Fashion",
+  location: "Bandra West, Mumbai, Maharashtra"
 };

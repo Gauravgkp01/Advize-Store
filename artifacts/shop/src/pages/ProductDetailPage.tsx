@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, MessageCircle, Tag, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, Tag, CheckCircle2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -84,8 +84,13 @@ export function ProductDetailPage() {
               )}
             </div>
 
-            <div className="prose prose-sm sm:prose-base text-muted-foreground mb-10">
+            <div className="prose prose-sm sm:prose-base text-muted-foreground mb-6">
               <p>{product.description}</p>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-xl px-4 py-3 mb-6" data-testid="product-location">
+              <MapPin className="h-4 w-4 text-primary shrink-0" />
+              <span>Available at <span className="font-medium text-foreground">{MOCK_STORE_INFO.location}</span></span>
             </div>
 
             {/* Coupon Section */}
