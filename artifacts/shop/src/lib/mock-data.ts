@@ -1,3 +1,8 @@
+export type ProductVariant = {
+  label: string;
+  values: string[];
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -6,6 +11,7 @@ export type Product = {
   imageUrl: string;
   category: string;
   units: number;
+  variants?: ProductVariant[];
 };
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -16,7 +22,11 @@ export const MOCK_PRODUCTS: Product[] = [
     description: "A beautiful, lightweight cotton scarf handwoven by artisans. Perfect for any season and adds a touch of elegance to any outfit.",
     imageUrl: "https://picsum.photos/seed/1/400/400",
     category: "Accessories",
-    units: 14
+    units: 14,
+    variants: [
+      { label: "Size", values: ["S", "M", "L", "Free Size"] },
+      { label: "Colour", values: ["Red", "Beige", "Olive Green", "Navy"] },
+    ]
   },
   {
     id: "2",
@@ -25,7 +35,10 @@ export const MOCK_PRODUCTS: Product[] = [
     description: "Start your morning right with this perfectly sized, handcrafted ceramic mug. Microwave and dishwasher safe.",
     imageUrl: "https://picsum.photos/seed/2/400/400",
     category: "Crafts",
-    units: 0
+    units: 0,
+    variants: [
+      { label: "Colour", values: ["White", "Matte Black", "Terracotta"] },
+    ]
   },
   {
     id: "3",
@@ -34,7 +47,10 @@ export const MOCK_PRODUCTS: Product[] = [
     description: "A refreshing blend of organic green tea leaves and delicate jasmine flowers. Sourced directly from hill gardens.",
     imageUrl: "https://picsum.photos/seed/3/400/400",
     category: "Food",
-    units: 32
+    units: 32,
+    variants: [
+      { label: "Pack Size", values: ["50g", "100g", "250g"] },
+    ]
   },
   {
     id: "4",
@@ -43,7 +59,11 @@ export const MOCK_PRODUCTS: Product[] = [
     description: "Stay cool and comfortable in this breathable linen summer dress. Features a relaxed fit and handy side pockets.",
     imageUrl: "https://picsum.photos/seed/4/400/400",
     category: "Clothes",
-    units: 5
+    units: 5,
+    variants: [
+      { label: "Size", values: ["XS", "S", "M", "L", "XL"] },
+      { label: "Colour", values: ["Off White", "Sky Blue", "Sage Green"] },
+    ]
   },
   {
     id: "5",
@@ -52,7 +72,10 @@ export const MOCK_PRODUCTS: Product[] = [
     description: "A minimalist leather crossbody bag that holds all your essentials. Soft, durable, and gets better with age.",
     imageUrl: "https://picsum.photos/seed/5/400/400",
     category: "Accessories",
-    units: 0
+    units: 0,
+    variants: [
+      { label: "Colour", values: ["Tan", "Black", "Chocolate Brown"] },
+    ]
   },
   {
     id: "6",
@@ -61,7 +84,11 @@ export const MOCK_PRODUCTS: Product[] = [
     description: "Box of 12 handcrafted dark chocolate truffles with rich, creamy centers. Made with premium cocoa.",
     imageUrl: "https://picsum.photos/seed/6/400/400",
     category: "Food",
-    units: 20
+    units: 20,
+    variants: [
+      { label: "Pack", values: ["Box of 6", "Box of 12", "Box of 24"] },
+      { label: "Flavour", values: ["Dark", "Milk", "Mixed"] },
+    ]
   },
   {
     id: "7",
@@ -70,7 +97,10 @@ export const MOCK_PRODUCTS: Product[] = [
     description: "Add texture to your space with this intricately knotted macrame wall hanging. Made with natural cotton cord.",
     imageUrl: "https://picsum.photos/seed/7/400/400",
     category: "Crafts",
-    units: 8
+    units: 8,
+    variants: [
+      { label: "Size", values: ["Small (30cm)", "Medium (60cm)", "Large (90cm)"] },
+    ]
   },
   {
     id: "8",
@@ -79,7 +109,11 @@ export const MOCK_PRODUCTS: Product[] = [
     description: "A classic denim jacket with a comfortable fit. The perfect layering piece for cool evenings.",
     imageUrl: "https://picsum.photos/seed/8/400/400",
     category: "Clothes",
-    units: 3
+    units: 3,
+    variants: [
+      { label: "Size", values: ["S", "M", "L", "XL", "XXL"] },
+      { label: "Wash", values: ["Light Wash", "Dark Wash", "Distressed"] },
+    ]
   }
 ];
 
