@@ -16,6 +16,32 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Artifacts
+
+### Shop (artifacts/shop) — previewPath: /
+A beginner-friendly, mobile-first Shopify-like store builder. Pure frontend with mock data. No backend integration.
+
+**Pages:**
+- `/` — Landing page with hero section and CTA
+- `/onboarding` — 3-step store setup wizard (business name, category, WhatsApp)
+- `/dashboard` — Stats cards (revenue, orders, products) + product grid
+- `/add-product` — Form to add a new product
+- `/store/:slug` — Public-facing storefront page
+- `/product/:id` — Product detail with coupon input and WhatsApp order button
+
+**Tech stack:**
+- React + Vite + Wouter (routing)
+- Tailwind CSS + shadcn/ui
+- react-hook-form + zod for forms
+- framer-motion for animations
+- Mock data in `src/lib/mock-data.ts`
+
+**Key Components:**
+- `Navbar` — Top navigation bar
+- `ProductCard` — Product display with copy/share actions
+- `StatCard` — Dashboard stat display
+- `StepIndicator` — Onboarding progress indicator
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
