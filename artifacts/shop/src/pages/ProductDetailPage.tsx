@@ -1,10 +1,58 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, MessageCircle, Tag, CheckCircle2, MapPin, AlertCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, Tag, CheckCircle2, MapPin, AlertCircle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { MOCK_PRODUCTS, MOCK_STORE_INFO, MOCK_COUPONS } from "@/lib/mock-data";
+import { MOCK_PRODUCTS, MOCK_STORE_INFO, MOCK_COUPONS, MOCK_REVIEWS, type Review } from "@/lib/mock-data";
+
+function StarRating({ value, onChange, size = "md" }: { value: number; onChange?: (v: number) => void; size?: "sm" | "md" }) {
+  const [hovered, setHovered] = useState(0);
+  const active = hovered || value;
+  const px = size === "sm" ? "h-4 w-4" : "h-6 w-6";
+
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange?.(star)}
+          onMouseEnter={() => onChange && setHovered(star)}
+          onMouseLeave={() => onChange && setHovered(0)}
+          className={onChange ? "cursor-pointer" : "cursor-default"}
+          aria-label={`${star} star`}
+        >
+          <Star
+            className={`${px} transition-colors ${
+              star <= active
+                ? "fill-amber-400 text-amber-400"
+                : "fill-muted text-muted-foreground/30"
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AvatarInitials({ name }: { name: string }) {
+  const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  const colors = [
+    "bg-violet-100 text-violet-700",
+    "bg-sky-100 text-sky-700",
+    "bg-amber-100 text-amber-700",
+    "bg-green-100 text-green-700",
+    "bg-rose-100 text-rose-700",
+  ];
+  const color = colors[initials.charCodeAt(0) % colors.length];
+  return (
+    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${color}`}>
+      {initials}
+    </div>
+  );
+}
 
 export function ProductDetailPage() {
   const { id } = useParams();
@@ -13,9 +61,24 @@ export function ProductDetailPage() {
 
   const [couponCode, setCouponCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<number | null>(null);
-
-  // Track one selected value per variant group (keyed by label)
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+
+  const seedReviews: Review[] = MOCK_REVIEWS[product.id] || [];
+  const [reviews, setReviews] = useState<Review[]>(seedReviews);
+
+  const [reviewName, setReviewName] = useState("");
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const avgRating = reviews.length
+    ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+    : 0;
+
+  const ratingCounts = [5, 4, 3, 2, 1].map(star => ({
+    star,
+    count: reviews.filter(r => r.rating === star).length,
+  }));
 
   const handleSelectVariant = (label: string, value: string) => {
     setSelectedVariants(prev => ({
@@ -44,19 +107,42 @@ export function ProductDetailPage() {
       ?.filter(v => selectedVariants[v.label])
       .map(v => `${v.label}: ${selectedVariants[v.label]}`)
       .join(", ");
-
     const variantText = variantSummary ? ` (${variantSummary})` : "";
     const couponText = appliedDiscount ? ` I've applied the ${couponCode.toUpperCase()} coupon.` : "";
     const text = `Hi! I'd like to order: ${product.name}${variantText} (Price: ₹${finalPrice.toLocaleString("en-IN")}).${couponText}`;
+    window.open(`https://wa.me/${MOCK_STORE_INFO.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
-    const encodedText = encodeURIComponent(text);
-    const whatsappUrl = `https://wa.me/${MOCK_STORE_INFO.whatsapp.replace(/[^0-9]/g, '')}?text=${encodedText}`;
-    window.open(whatsappUrl, '_blank');
+  const handleSubmitReview = () => {
+    if (!reviewName.trim()) {
+      toast({ variant: "destructive", title: "Please enter your name." });
+      return;
+    }
+    if (reviewRating === 0) {
+      toast({ variant: "destructive", title: "Please select a star rating." });
+      return;
+    }
+    if (!reviewComment.trim()) {
+      toast({ variant: "destructive", title: "Please write a short review." });
+      return;
+    }
+    const newReview: Review = {
+      id: crypto.randomUUID(),
+      name: reviewName.trim(),
+      rating: reviewRating,
+      comment: reviewComment.trim(),
+      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+    };
+    setReviews(prev => [newReview, ...prev]);
+    setReviewName("");
+    setReviewRating(0);
+    setReviewComment("");
+    setShowForm(false);
+    toast({ title: "Review posted!", description: "Thanks for sharing your feedback." });
   };
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
-      {/* Header */}
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="container max-w-4xl mx-auto px-4 h-16 flex items-center">
           <Button variant="ghost" size="icon" asChild className="rounded-full mr-2">
@@ -68,26 +154,19 @@ export function ProductDetailPage() {
         </div>
       </header>
 
-      <main className="flex-1 container max-w-4xl mx-auto px-0 sm:px-6 py-0 sm:py-8">
+      <main className="flex-1 container max-w-4xl mx-auto px-0 sm:px-6 py-0 sm:py-8 space-y-6">
+
+        {/* Product card */}
         <div className="bg-card sm:border sm:rounded-3xl overflow-hidden shadow-sm flex flex-col md:flex-row">
-          {/* Product Image */}
           <div className="w-full md:w-1/2 aspect-square md:aspect-auto md:min-h-[500px] relative bg-muted">
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
+            <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
           </div>
 
-          {/* Product Details */}
           <div className="w-full md:w-1/2 p-6 sm:p-10 flex flex-col gap-5">
-
-            {/* Category badge */}
             <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium bg-muted/50 text-muted-foreground w-fit">
               {product.category}
             </div>
 
-            {/* Name + Price */}
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
               <div className="flex items-baseline gap-3">
@@ -95,19 +174,21 @@ export function ProductDetailPage() {
                   ₹{finalPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </span>
                 {appliedDiscount && (
-                  <span className="text-lg text-muted-foreground line-through">
-                    ₹{product.price.toLocaleString("en-IN")}
-                  </span>
+                  <span className="text-lg text-muted-foreground line-through">₹{product.price.toLocaleString("en-IN")}</span>
                 )}
               </div>
+              {reviews.length > 0 && (
+                <div className="flex items-center gap-1.5 mt-2">
+                  <StarRating value={Math.round(avgRating)} size="sm" />
+                  <span className="text-sm text-muted-foreground">
+                    {avgRating.toFixed(1)} · {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Description */}
-            <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-              {product.description}
-            </p>
+            <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">{product.description}</p>
 
-            {/* Variants */}
             {product.variants && product.variants.length > 0 && (
               <div className="space-y-4" data-testid="variants-section">
                 {product.variants.map(variant => (
@@ -115,9 +196,7 @@ export function ProductDetailPage() {
                     <p className="text-sm font-semibold mb-2">
                       {variant.label}
                       {selectedVariants[variant.label] && (
-                        <span className="ml-2 font-normal text-muted-foreground">
-                          — {selectedVariants[variant.label]}
-                        </span>
+                        <span className="ml-2 font-normal text-muted-foreground">— {selectedVariants[variant.label]}</span>
                       )}
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -128,7 +207,6 @@ export function ProductDetailPage() {
                             key={value}
                             type="button"
                             onClick={() => handleSelectVariant(variant.label, value)}
-                            data-testid={`variant-${variant.label}-${value}`}
                             className={`h-9 px-4 rounded-full border text-sm font-medium transition-all ${
                               isSelected
                                 ? "bg-primary text-primary-foreground border-primary shadow-sm"
@@ -145,63 +223,44 @@ export function ProductDetailPage() {
               </div>
             )}
 
-            {/* Out of stock notice */}
             {product.units === 0 && (
-              <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 rounded-xl px-4 py-3 border border-amber-200 dark:border-amber-800" data-testid="out-of-stock-notice">
+              <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 rounded-xl px-4 py-3 border border-amber-200 dark:border-amber-800">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>This item is currently out of stock. You can still message the seller.</span>
               </div>
             )}
 
-            {/* Location */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-xl px-4 py-3" data-testid="product-location">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-xl px-4 py-3">
               <MapPin className="h-4 w-4 text-primary shrink-0" />
               <span>Available at <span className="font-medium text-foreground">{MOCK_STORE_INFO.location}</span></span>
             </div>
 
-            {/* Coupon */}
             <div className="pt-4 border-t space-y-3">
               <h3 className="font-semibold flex items-center text-sm">
                 <Tag className="w-4 h-4 mr-2" /> Have a coupon?
               </h3>
-
               {appliedDiscount ? (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 flex items-center justify-between">
                   <div className="flex items-center text-green-700 dark:text-green-400 font-medium">
                     <CheckCircle2 className="w-5 h-5 mr-2" />
                     {couponCode.toUpperCase()} applied ({appliedDiscount}% off)
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-green-700 dark:text-green-400 hover:text-green-800 hover:bg-green-100 dark:hover:bg-green-900/40"
-                    onClick={() => { setAppliedDiscount(null); setCouponCode(""); }}
-                  >
+                  <Button variant="ghost" size="sm" className="text-green-700 dark:text-green-400 hover:text-green-800 hover:bg-green-100"
+                    onClick={() => { setAppliedDiscount(null); setCouponCode(""); }}>
                     Remove
                   </Button>
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="ENTER CODE"
-                    className="h-12 rounded-xl uppercase"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                    data-testid="input-coupon"
-                  />
-                  <Button
-                    variant="secondary"
-                    className="h-12 px-6 rounded-xl"
-                    onClick={handleApplyCoupon}
-                    data-testid="btn-apply-coupon"
-                  >
+                  <Input placeholder="ENTER CODE" className="h-12 rounded-xl uppercase" value={couponCode}
+                    onChange={e => setCouponCode(e.target.value)} data-testid="input-coupon" />
+                  <Button variant="secondary" className="h-12 px-6 rounded-xl" onClick={handleApplyCoupon} data-testid="btn-apply-coupon">
                     Apply
                   </Button>
                 </div>
               )}
             </div>
 
-            {/* WhatsApp Order */}
             <Button
               className="w-full h-14 text-lg rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent"
               onClick={handleOrder}
@@ -212,6 +271,114 @@ export function ProductDetailPage() {
             </Button>
           </div>
         </div>
+
+        {/* ── REVIEWS SECTION ── */}
+        <div className="bg-card sm:border sm:rounded-3xl px-5 sm:px-10 py-8 shadow-sm" data-testid="reviews-section">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold">Customer Reviews</h2>
+            {!showForm && (
+              <Button variant="outline" className="rounded-xl" onClick={() => setShowForm(true)} data-testid="btn-write-review">
+                Write a Review
+              </Button>
+            )}
+          </div>
+
+          {/* Aggregate rating bar */}
+          {reviews.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-6 mb-8 pb-8 border-b">
+              <div className="flex flex-col items-center justify-center gap-1 shrink-0">
+                <span className="text-5xl font-extrabold text-foreground">{avgRating.toFixed(1)}</span>
+                <StarRating value={Math.round(avgRating)} />
+                <span className="text-sm text-muted-foreground">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</span>
+              </div>
+              <div className="flex-1 space-y-1.5">
+                {ratingCounts.map(({ star, count }) => (
+                  <div key={star} className="flex items-center gap-2 text-sm">
+                    <span className="w-4 text-right text-muted-foreground">{star}</span>
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-amber-400 transition-all"
+                        style={{ width: reviews.length ? `${(count / reviews.length) * 100}%` : "0%" }}
+                      />
+                    </div>
+                    <span className="w-4 text-muted-foreground">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Write review form */}
+          {showForm && (
+            <div className="bg-muted/30 border rounded-2xl p-5 mb-8 space-y-4" data-testid="review-form">
+              <h3 className="font-semibold text-base">Share your experience</h3>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Your rating</label>
+                <StarRating value={reviewRating} onChange={setReviewRating} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Your name</label>
+                <Input
+                  placeholder="e.g. Priya S."
+                  className="h-11 rounded-xl"
+                  value={reviewName}
+                  onChange={e => setReviewName(e.target.value)}
+                  data-testid="input-review-name"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Your review</label>
+                <Textarea
+                  placeholder="What did you like or dislike? How was the quality?"
+                  className="rounded-xl resize-none min-h-[100px]"
+                  value={reviewComment}
+                  onChange={e => setReviewComment(e.target.value)}
+                  data-testid="input-review-comment"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <Button className="flex-1 h-11 rounded-xl" onClick={handleSubmitReview} data-testid="btn-submit-review">
+                  Post Review
+                </Button>
+                <Button variant="outline" className="h-11 rounded-xl" onClick={() => { setShowForm(false); setReviewRating(0); setReviewName(""); setReviewComment(""); }}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Review list */}
+          {reviews.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Star className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">No reviews yet</p>
+              <p className="text-sm mt-1">Be the first to share your experience!</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {reviews.map(review => (
+                <div key={review.id} className="flex gap-4" data-testid={`review-${review.id}`}>
+                  <AvatarInitials name={review.name} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="font-semibold text-sm">{review.name}</span>
+                      <StarRating value={review.rating} size="sm" />
+                      <span className="text-xs text-muted-foreground ml-auto">{review.date}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="pb-8" />
       </main>
     </div>
   );

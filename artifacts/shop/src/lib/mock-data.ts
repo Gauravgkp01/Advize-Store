@@ -14,6 +14,14 @@ export type Product = {
   variants?: ProductVariant[];
 };
 
+export type Review = {
+  id: string;
+  name: string;
+  rating: number;
+  comment: string;
+  date: string;
+};
+
 export const MOCK_PRODUCTS: Product[] = [
   {
     id: "1",
@@ -116,6 +124,42 @@ export const MOCK_PRODUCTS: Product[] = [
     ]
   }
 ];
+
+export const MOCK_REVIEWS: Record<string, Review[]> = {
+  "1": [
+    { id: "r1", name: "Ananya S.", rating: 5, comment: "Absolutely love this scarf! The colours are vibrant and it's super soft. Got so many compliments.", date: "12 Mar 2025" },
+    { id: "r2", name: "Ritika M.", rating: 4, comment: "Good quality and fast delivery. The Olive Green looks even better in person.", date: "28 Feb 2025" },
+    { id: "r3", name: "Pooja D.", rating: 5, comment: "Perfect gift! My mom was thrilled. Packaging was also very neat.", date: "5 Jan 2025" },
+  ],
+  "2": [
+    { id: "r4", name: "Karan T.", rating: 5, comment: "The mug is gorgeous. Solid, well-made, and the Terracotta colour is stunning.", date: "18 Mar 2025" },
+    { id: "r5", name: "Sneha R.", rating: 4, comment: "Really happy with it. Holds heat well and looks beautiful on my desk.", date: "2 Mar 2025" },
+  ],
+  "3": [
+    { id: "r6", name: "Divya P.", rating: 5, comment: "The fragrance is amazing! Makes the best morning cup. Will definitely reorder the 250g pack.", date: "20 Mar 2025" },
+    { id: "r7", name: "Meera K.", rating: 4, comment: "Very fresh taste, clearly high quality. Delivery was quick too.", date: "10 Mar 2025" },
+  ],
+  "4": [
+    { id: "r8", name: "Simran A.", rating: 5, comment: "Such a breezy, comfortable dress! Wore it to a beach trip and got so many compliments.", date: "15 Mar 2025" },
+    { id: "r9", name: "Tanya B.", rating: 5, comment: "Perfect summer staple. The pockets are a blessing. True to size.", date: "1 Mar 2025" },
+    { id: "r10", name: "Naina J.", rating: 3, comment: "Fabric is lovely but the sizing ran a bit large for me. Still a nice piece overall.", date: "20 Feb 2025" },
+  ],
+  "5": [
+    { id: "r11", name: "Preet K.", rating: 5, comment: "Worth every rupee! The leather quality is top-notch and it fits a surprising amount.", date: "8 Mar 2025" },
+  ],
+  "6": [
+    { id: "r12", name: "Rohan G.", rating: 5, comment: "Ordered these as a gift and everyone loved them. The Dark flavour is exceptional.", date: "14 Mar 2025" },
+    { id: "r13", name: "Aisha M.", rating: 4, comment: "Creamy, rich, and not too sweet. The box of 24 is great value!", date: "3 Mar 2025" },
+  ],
+  "7": [
+    { id: "r14", name: "Leena S.", rating: 5, comment: "My living room looks so much better with this hanging. The craftsmanship is beautiful.", date: "22 Mar 2025" },
+    { id: "r15", name: "Farah N.", rating: 5, comment: "Perfect size and the natural cotton gives it a lovely texture. Shipping was fast!", date: "9 Mar 2025" },
+  ],
+  "8": [
+    { id: "r16", name: "Vikram P.", rating: 4, comment: "Classic fit, great quality denim. The Light Wash looks very clean and crisp.", date: "17 Mar 2025" },
+    { id: "r17", name: "Aman S.", rating: 5, comment: "Ordered the Distressed version — looks super cool. Very comfortable too.", date: "5 Mar 2025" },
+  ],
+};
 
 export const MOCK_STATS = {
   totalOrders: 24,
