@@ -5,6 +5,7 @@ export type Product = {
   description: string;
   imageUrl: string;
   category: string;
+  units: number;
 };
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -14,7 +15,8 @@ export const MOCK_PRODUCTS: Product[] = [
     price: 1200,
     description: "A beautiful, lightweight cotton scarf handwoven by artisans. Perfect for any season and adds a touch of elegance to any outfit.",
     imageUrl: "https://picsum.photos/seed/1/400/400",
-    category: "Accessories"
+    category: "Accessories",
+    units: 14
   },
   {
     id: "2",
@@ -22,7 +24,8 @@ export const MOCK_PRODUCTS: Product[] = [
     price: 450,
     description: "Start your morning right with this perfectly sized, handcrafted ceramic mug. Microwave and dishwasher safe.",
     imageUrl: "https://picsum.photos/seed/2/400/400",
-    category: "Crafts"
+    category: "Crafts",
+    units: 0
   },
   {
     id: "3",
@@ -30,7 +33,8 @@ export const MOCK_PRODUCTS: Product[] = [
     price: 350,
     description: "A refreshing blend of organic green tea leaves and delicate jasmine flowers. Sourced directly from hill gardens.",
     imageUrl: "https://picsum.photos/seed/3/400/400",
-    category: "Food"
+    category: "Food",
+    units: 32
   },
   {
     id: "4",
@@ -38,7 +42,8 @@ export const MOCK_PRODUCTS: Product[] = [
     price: 2400,
     description: "Stay cool and comfortable in this breathable linen summer dress. Features a relaxed fit and handy side pockets.",
     imageUrl: "https://picsum.photos/seed/4/400/400",
-    category: "Clothes"
+    category: "Clothes",
+    units: 5
   },
   {
     id: "5",
@@ -46,7 +51,8 @@ export const MOCK_PRODUCTS: Product[] = [
     price: 3200,
     description: "A minimalist leather crossbody bag that holds all your essentials. Soft, durable, and gets better with age.",
     imageUrl: "https://picsum.photos/seed/5/400/400",
-    category: "Accessories"
+    category: "Accessories",
+    units: 0
   },
   {
     id: "6",
@@ -54,7 +60,8 @@ export const MOCK_PRODUCTS: Product[] = [
     price: 650,
     description: "Box of 12 handcrafted dark chocolate truffles with rich, creamy centers. Made with premium cocoa.",
     imageUrl: "https://picsum.photos/seed/6/400/400",
-    category: "Food"
+    category: "Food",
+    units: 20
   },
   {
     id: "7",
@@ -62,7 +69,8 @@ export const MOCK_PRODUCTS: Product[] = [
     price: 1800,
     description: "Add texture to your space with this intricately knotted macrame wall hanging. Made with natural cotton cord.",
     imageUrl: "https://picsum.photos/seed/7/400/400",
-    category: "Crafts"
+    category: "Crafts",
+    units: 8
   },
   {
     id: "8",
@@ -70,7 +78,8 @@ export const MOCK_PRODUCTS: Product[] = [
     price: 2800,
     description: "A classic denim jacket with a comfortable fit. The perfect layering piece for cool evenings.",
     imageUrl: "https://picsum.photos/seed/8/400/400",
-    category: "Clothes"
+    category: "Clothes",
+    units: 3
   }
 ];
 
