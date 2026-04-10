@@ -6,6 +6,7 @@ import {
   MousePointerClick, TrendingUp, Award, AlertTriangle,
   Flame, Star, Package, BarChart2,
 } from "lucide-react";
+import { Link } from "wouter";
 import type { AnalyticsSummary } from "@/lib/api";
 
 interface AnalyticsSectionProps {
@@ -150,9 +151,12 @@ export function AnalyticsSection({ liveData }: AnalyticsSectionProps) {
               <Award className="h-4 w-4" />
               <span className="text-xs font-semibold">Most Clicked</span>
             </div>
-            <p className="text-xs sm:text-sm font-bold text-foreground line-clamp-2">
+            <Link
+              href={`/product/${liveData.mostClicked.productId}`}
+              className="text-xs sm:text-sm font-bold text-foreground line-clamp-2 hover:text-primary hover:underline underline-offset-2 transition-colors"
+            >
               {liveData.mostClicked.name}
-            </p>
+            </Link>
             <div className="flex items-center gap-1.5 mt-1">
               <Flame className="h-3.5 w-3.5 text-green-600" />
               <span className="text-sm font-extrabold text-green-700">
@@ -168,9 +172,12 @@ export function AnalyticsSection({ liveData }: AnalyticsSectionProps) {
                 <AlertTriangle className="h-4 w-4" />
                 <span className="text-xs font-semibold">Needs Attention</span>
               </div>
-              <p className="text-xs sm:text-sm font-bold text-foreground line-clamp-2">
+              <Link
+                href={`/product/${liveData.leastClicked.productId}`}
+                className="text-xs sm:text-sm font-bold text-foreground line-clamp-2 hover:text-primary hover:underline underline-offset-2 transition-colors"
+              >
                 {liveData.leastClicked.name}
-              </p>
+              </Link>
               <div className="flex items-center gap-1.5 mt-1">
                 <MousePointerClick className="h-3.5 w-3.5 text-red-500" />
                 <span className="text-sm font-extrabold text-red-600">
@@ -197,9 +204,12 @@ export function AnalyticsSection({ liveData }: AnalyticsSectionProps) {
               return (
                 <div key={p.productId}>
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-[11px] sm:text-xs text-foreground font-medium truncate max-w-[60%]">
+                    <Link
+                      href={`/product/${p.productId}`}
+                      className="text-[11px] sm:text-xs text-foreground font-medium truncate max-w-[60%] hover:text-primary hover:underline underline-offset-2 transition-colors"
+                    >
                       {p.name}
-                    </p>
+                    </Link>
                     <div className="flex items-center gap-1.5">
                       {isTop && (
                         <span className="text-[9px] bg-green-100 text-green-700 font-semibold px-1.5 py-0.5 rounded-full">
