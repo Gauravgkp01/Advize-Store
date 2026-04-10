@@ -7,7 +7,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { AnalyticsSection } from "@/components/AnalyticsSection";
-import { MOCK_REVIEWS } from "@/lib/mock-data";
 import { useStore } from "@/hooks/use-store";
 import { getProducts, getAnalytics, type AnalyticsSummary } from "@/lib/api";
 import type { Product } from "@/lib/mock-data";
@@ -34,11 +33,7 @@ function HomePanel({ products, analytics }: {
   const inStockCount = products.filter(p => p.units > 0).length;
   const outCount = products.filter(p => p.units === 0).length;
   const totalUnits = products.reduce((s, p) => s + p.units, 0);
-
-  const avgStoreRating = (() => {
-    const all = products.flatMap(p => MOCK_REVIEWS[p.id] || []);
-    return all.length ? (all.reduce((s, r) => s + r.rating, 0) / all.length).toFixed(1) : "–";
-  })();
+  const avgStoreRating = analytics?.avgRating ?? "–";
 
   return (
     <div className="p-3 sm:p-6 space-y-4 pb-28">

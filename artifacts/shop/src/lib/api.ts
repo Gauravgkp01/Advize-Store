@@ -138,6 +138,8 @@ export interface AnalyticsSummary {
   productClicks: { productId: string; name: string; clicks: number }[];
   mostClicked: { productId: string; name: string; clicks: number } | null;
   leastClicked: { productId: string; name: string; clicks: number } | null;
+  categoryBreakdown: { category: string; clicks: number; color: string }[];
+  weeklyClicks: { day: string; clicks: number }[];
 }
 
 export const getAnalytics = (store_id: string) =>
