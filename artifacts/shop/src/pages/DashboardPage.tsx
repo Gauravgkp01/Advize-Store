@@ -1,14 +1,17 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
+  QrCode, Download,
 } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { AnalyticsSection } from "@/components/AnalyticsSection";
 import { useStore } from "@/hooks/use-store";
 import { getProducts, getAnalytics, type AnalyticsSummary } from "@/lib/api";
+import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/mock-data";
 
 /* ── helpers ────────────────────────────────────────── */
@@ -24,16 +27,98 @@ function MiniStat({ icon, label, value, color }: {
   );
 }
 
-/* ── panels ─────────────────────────────────────────── */
+/* ── QR Code card (shared) ───────────────────────────── */
+function QrCodeCard({ storeUrl, storeName, compact = false }: {
+  storeUrl: string;
+  storeName: string;
+  compact?: boolean;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
 
-function HomePanel({ products, analytics }: {
+  const handleDownload = () => {
+    const canvas = containerRef.current?.querySelector("canvas");
+    if (!canvas) return;
+    const png = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = png;
+    a.download = `${storeName.toLowerCase().replace(/\s+/g, "-")}-qr-code.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const qrSize = compact ? 96 : 180;
+
+  return (
+    <div className={`bg-card border rounded-2xl p-4 ${compact ? "" : "sm:p-5"}`} data-testid="qr-code-card">
+      <div className="flex items-center gap-2 mb-1">
+        <QrCode className="h-4 w-4 text-primary shrink-0" />
+        <p className="text-sm font-semibold">Store QR Code</p>
+      </div>
+      <p className="text-[11px] text-muted-foreground mb-4">
+        {compact
+          ? "Let customers scan to visit your store."
+          : "Share this with customers — they scan it and land straight on your store."}
+      </p>
+
+      {compact ? (
+        /* Compact layout: QR on left, actions on right */
+        <div className="flex items-center gap-4">
+          <div ref={containerRef} className="p-2 bg-white rounded-xl border shadow-sm shrink-0">
+            <QRCodeCanvas
+              value={storeUrl}
+              size={qrSize}
+              bgColor="#ffffff"
+              fgColor="#1a1a1a"
+              level="M"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-muted-foreground break-all mb-3 leading-relaxed">{storeUrl}</p>
+            <Button onClick={handleDownload} size="sm" className="w-full rounded-full text-xs" data-testid="btn-download-qr">
+              <Download className="h-3 w-3 mr-1.5" />
+              Download PNG
+            </Button>
+          </div>
+        </div>
+      ) : (
+        /* Full layout: centred */
+        <div className="flex flex-col items-center gap-3">
+          <div ref={containerRef} className="p-4 bg-white rounded-2xl border shadow-sm">
+            <QRCodeCanvas
+              value={storeUrl}
+              size={qrSize}
+              bgColor="#ffffff"
+              fgColor="#1a1a1a"
+              level="M"
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center break-all max-w-[240px] leading-relaxed">
+            {storeUrl}
+          </p>
+          <Button onClick={handleDownload} className="w-full rounded-full" size="sm" data-testid="btn-download-qr-full">
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Download QR Code
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── panels ─────────────────────────────────────────── */
+function HomePanel({ products, analytics, store }: {
   products: Product[];
   analytics: AnalyticsSummary | null;
+  store: StoreType | null;
 }) {
   const inStockCount = products.filter(p => p.units > 0).length;
   const outCount = products.filter(p => p.units === 0).length;
   const totalUnits = products.reduce((s, p) => s + p.units, 0);
   const avgStoreRating = analytics?.avgRating ?? "–";
+  const storeUrl = store?.slug
+    ? `${window.location.origin}/store/${store.slug}`
+    : "";
 
   return (
     <div className="p-3 sm:p-6 space-y-4 pb-28">
@@ -86,15 +171,24 @@ function HomePanel({ products, analytics }: {
         </div>
       </div>
 
+      {/* QR code compact card */}
+      {storeUrl && (
+        <QrCodeCard storeUrl={storeUrl} storeName={store?.name ?? "store"} compact />
+      )}
+
       <AnalyticsSection liveData={analytics} />
     </div>
   );
 }
 
 function MyStorePanel({ store, products }: {
-  store: { name: string; category?: string; location?: string } | null;
+  store: StoreType | null;
   products: Product[];
 }) {
+  const storeUrl = store?.slug
+    ? `${window.location.origin}/store/${store.slug}`
+    : "";
+
   return (
     <div className="pb-28">
       <div className="bg-primary text-primary-foreground py-8 px-4 relative overflow-hidden">
@@ -115,17 +209,24 @@ function MyStorePanel({ store, products }: {
         </div>
       </div>
 
-      <div className="px-2.5 pt-5">
-        <div className="flex items-center justify-between mb-3 px-0.5">
-          <p className="text-sm font-bold">All Products</p>
-          <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-            {products.length} items
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          {products.map(product => (
-            <ProductCard key={product.id} product={product} showActions={false} />
-          ))}
+      <div className="px-2.5 pt-4 space-y-4">
+        {/* Full QR code card */}
+        {storeUrl && (
+          <QrCodeCard storeUrl={storeUrl} storeName={store?.name ?? "store"} />
+        )}
+
+        <div>
+          <div className="flex items-center justify-between mb-3 px-0.5">
+            <p className="text-sm font-bold">All Products</p>
+            <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+              {products.length} items
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            {products.map(product => (
+              <ProductCard key={product.id} product={product} showActions={false} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -183,7 +284,7 @@ export function DashboardPage() {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
 
-  const loadData = async (storeId: string) => {
+  const loadData = useCallback(async (storeId: string) => {
     setDataLoading(true);
     try {
       const [prods, anal] = await Promise.all([
@@ -197,11 +298,11 @@ export function DashboardPage() {
     } finally {
       setDataLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (store?.id) loadData(store.id);
-  }, [store?.id]);
+  }, [store?.id, loadData]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -280,7 +381,7 @@ export function DashboardPage() {
             style={{ transform: `translateX(-${active * 100}%)` }}
           >
             <div className="w-full flex-shrink-0 h-full overflow-y-auto">
-              <HomePanel products={products} analytics={analytics} />
+              <HomePanel products={products} analytics={analytics} store={store} />
             </div>
 
             <div className="w-full flex-shrink-0 h-full overflow-y-auto">
