@@ -145,6 +145,14 @@ export interface AnalyticsSummary {
 export const getAnalytics = (store_id: string) =>
   request<AnalyticsSummary>(`/analytics/${store_id}`);
 
+export interface ProductAnalytics {
+  totalClicks: number;
+  weeklyClicks: { day: string; clicks: number }[];
+}
+
+export const getProductAnalytics = (product_id: string) =>
+  request<ProductAnalytics>(`/analytics/product/${product_id}`);
+
 export const trackClick = (product_id: string, store_id: string) =>
   request<void>("/analytics/click", {
     method: "POST",

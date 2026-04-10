@@ -113,4 +113,33 @@ router.get("/analytics/:store_id", async (req, res) => {
   });
 });
 
+// ── Single-product analytics (owner view) ──────────────
+router.get("/analytics/product/:product_id", async (req, res) => {
+  const { product_id } = req.params;
+
+  const { data: clicks } = await supabase
+    .from("product_clicks")
+    .select("clicked_at")
+    .eq("product_id", product_id);
+
+  const allClicks = clicks ?? [];
+  const totalClicks = allClicks.length;
+
+  const now = new Date();
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const weeklyClicks = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - (6 - i));
+    const dayLabel = days[d.getDay()];
+    const dateStr = d.toISOString().slice(0, 10);
+    const count = allClicks.filter(c => {
+      const cd = typeof c.clicked_at === "string" ? c.clicked_at.slice(0, 10) : "";
+      return cd === dateStr;
+    }).length;
+    return { day: dayLabel, clicks: count };
+  });
+
+  return res.json({ totalClicks, weeklyClicks });
+});
+
 export default router;

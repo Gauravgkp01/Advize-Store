@@ -152,7 +152,7 @@ export function AnalyticsSection({ liveData }: AnalyticsSectionProps) {
               <span className="text-xs font-semibold">Most Clicked</span>
             </div>
             <Link
-              href={`/product/${liveData.mostClicked.productId}`}
+              href={`/product/${liveData.mostClicked.productId}?from=dashboard`}
               className="text-xs sm:text-sm font-bold text-foreground line-clamp-2 hover:text-primary hover:underline underline-offset-2 transition-colors"
             >
               {liveData.mostClicked.name}
@@ -173,7 +173,7 @@ export function AnalyticsSection({ liveData }: AnalyticsSectionProps) {
                 <span className="text-xs font-semibold">Needs Attention</span>
               </div>
               <Link
-                href={`/product/${liveData.leastClicked.productId}`}
+                href={`/product/${liveData.leastClicked.productId}?from=dashboard`}
                 className="text-xs sm:text-sm font-bold text-foreground line-clamp-2 hover:text-primary hover:underline underline-offset-2 transition-colors"
               >
                 {liveData.leastClicked.name}
@@ -205,7 +205,7 @@ export function AnalyticsSection({ liveData }: AnalyticsSectionProps) {
                 <div key={p.productId}>
                   <div className="flex items-center justify-between mb-1">
                     <Link
-                      href={`/product/${p.productId}`}
+                      href={`/product/${p.productId}?from=dashboard`}
                       className="text-[11px] sm:text-xs text-foreground font-medium truncate max-w-[60%] hover:text-primary hover:underline underline-offset-2 transition-colors"
                     >
                       {p.name}
