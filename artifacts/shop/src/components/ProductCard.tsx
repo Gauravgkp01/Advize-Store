@@ -7,6 +7,7 @@ import { MOCK_STORE_INFO, MOCK_REVIEWS, type Product } from "@/lib/mock-data";
 interface ProductCardProps {
   product: Product;
   showActions?: boolean;
+  onDelete?: () => void;
 }
 
 function StarRow({ rating, count }: { rating: number; count: number }) {

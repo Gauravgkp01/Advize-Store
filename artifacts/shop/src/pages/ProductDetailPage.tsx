@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, MessageCircle, Tag, CheckCircle2, MapPin, AlertCircle, Star } from "lucide-react";
+import { ArrowLeft, MessageCircle, Tag, CheckCircle2, MapPin, AlertCircle, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { MOCK_PRODUCTS, MOCK_STORE_INFO, MOCK_COUPONS, MOCK_REVIEWS, type Review } from "@/lib/mock-data";
+import { MOCK_COUPONS } from "@/lib/mock-data";
+import { getProduct, getReviews, createReview } from "@/lib/api";
+import type { Product, Review } from "@/lib/mock-data";
+import { getStore } from "@/lib/api";
 
 function StarRating({ value, onChange, size = "md" }: { value: number; onChange?: (v: number) => void; size?: "sm" | "md" }) {
   const [hovered, setHovered] = useState(0);
@@ -57,19 +60,69 @@ function AvatarInitials({ name }: { name: string }) {
 export function ProductDetailPage() {
   const { id } = useParams();
   const { toast } = useToast();
-  const product = MOCK_PRODUCTS.find(p => p.id === id) || MOCK_PRODUCTS[0];
+
+  const [product, setProduct] = useState<Product | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [storeWhatsapp, setStoreWhatsapp] = useState("");
+  const [storeSlug, setStoreSlug] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const [couponCode, setCouponCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<number | null>(null);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
-  const seedReviews: Review[] = MOCK_REVIEWS[product.id] || [];
-  const [reviews, setReviews] = useState<Review[]>(seedReviews);
-
   const [reviewName, setReviewName] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      try {
+        const [prod, revs] = await Promise.all([
+          getProduct(id!),
+          getReviews(id!),
+        ]);
+        if (cancelled) return;
+        setProduct(prod);
+        setReviews(revs);
+
+        // Load store info for WhatsApp + back link
+        const savedSlug = localStorage.getItem("shop_store_slug");
+        if (savedSlug) {
+          setStoreSlug(savedSlug);
+          const s = await getStore(savedSlug);
+          if (!cancelled) setStoreWhatsapp(s.whatsapp ?? "");
+        }
+      } catch {
+        // product not found — leave null
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center text-muted-foreground">
+        <p>Product not found.</p>
+      </div>
+    );
+  }
 
   const avgRating = reviews.length
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
@@ -110,10 +163,11 @@ export function ProductDetailPage() {
     const variantText = variantSummary ? ` (${variantSummary})` : "";
     const couponText = appliedDiscount ? ` I've applied the ${couponCode.toUpperCase()} coupon.` : "";
     const text = `Hi! I'd like to order: ${product.name}${variantText} (Price: ₹${finalPrice.toLocaleString("en-IN")}).${couponText}`;
-    window.open(`https://wa.me/${MOCK_STORE_INFO.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+    const number = storeWhatsapp.replace(/[^0-9]/g, "");
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (!reviewName.trim()) {
       toast({ variant: "destructive", title: "Please enter your name." });
       return;
@@ -126,19 +180,25 @@ export function ProductDetailPage() {
       toast({ variant: "destructive", title: "Please write a short review." });
       return;
     }
-    const newReview: Review = {
-      id: crypto.randomUUID(),
-      name: reviewName.trim(),
-      rating: reviewRating,
-      comment: reviewComment.trim(),
-      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-    };
-    setReviews(prev => [newReview, ...prev]);
-    setReviewName("");
-    setReviewRating(0);
-    setReviewComment("");
-    setShowForm(false);
-    toast({ title: "Review posted!", description: "Thanks for sharing your feedback." });
+    setSubmitting(true);
+    try {
+      const newReview = await createReview({
+        product_id: product.id,
+        name: reviewName.trim(),
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+      setReviews(prev => [newReview, ...prev]);
+      setReviewName("");
+      setReviewRating(0);
+      setReviewComment("");
+      setShowForm(false);
+      toast({ title: "Review posted!", description: "Thanks for sharing your feedback." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Failed to post review", description: e.message });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -146,17 +206,16 @@ export function ProductDetailPage() {
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="container max-w-4xl mx-auto px-4 h-16 flex items-center">
           <Button variant="ghost" size="icon" asChild className="rounded-full mr-2">
-            <Link href={`/store/${MOCK_STORE_INFO.slug}`}>
+            <Link href={storeSlug ? `/store/${storeSlug}` : "/dashboard"}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <span className="font-semibold text-lg">{MOCK_STORE_INFO.name}</span>
+          <span className="font-semibold text-lg">Product Details</span>
         </div>
       </header>
 
       <main className="flex-1 container max-w-4xl mx-auto px-0 sm:px-6 py-0 sm:py-8 space-y-6">
 
-        {/* Product card */}
         <div className="bg-card sm:border sm:rounded-3xl overflow-hidden shadow-sm flex flex-col md:flex-row">
           <div className="w-full md:w-1/2 aspect-square md:aspect-auto md:min-h-[500px] relative bg-muted">
             <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
@@ -230,11 +289,6 @@ export function ProductDetailPage() {
               </div>
             )}
 
-            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-xl px-4 py-3">
-              <MapPin className="h-4 w-4 text-primary shrink-0" />
-              <span>Available at <span className="font-medium text-foreground">{MOCK_STORE_INFO.location}</span></span>
-            </div>
-
             <div className="pt-4 border-t space-y-3">
               <h3 className="font-semibold flex items-center text-sm">
                 <Tag className="w-4 h-4 mr-2" /> Have a coupon?
@@ -283,7 +337,6 @@ export function ProductDetailPage() {
             )}
           </div>
 
-          {/* Aggregate rating bar */}
           {reviews.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-6 mb-8 pb-8 border-b">
               <div className="flex flex-col items-center justify-center gap-1 shrink-0">
@@ -309,7 +362,6 @@ export function ProductDetailPage() {
             </div>
           )}
 
-          {/* Write review form */}
           {showForm && (
             <div className="bg-muted/30 border rounded-2xl p-5 mb-8 space-y-4" data-testid="review-form">
               <h3 className="font-semibold text-base">Share your experience</h3>
@@ -342,7 +394,8 @@ export function ProductDetailPage() {
               </div>
 
               <div className="flex gap-3">
-                <Button className="flex-1 h-11 rounded-xl" onClick={handleSubmitReview} data-testid="btn-submit-review">
+                <Button className="flex-1 h-11 rounded-xl" onClick={handleSubmitReview} disabled={submitting} data-testid="btn-submit-review">
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Post Review
                 </Button>
                 <Button variant="outline" className="h-11 rounded-xl" onClick={() => { setShowForm(false); setReviewRating(0); setReviewName(""); setReviewComment(""); }}>
@@ -352,7 +405,6 @@ export function ProductDetailPage() {
             </div>
           )}
 
-          {/* Review list */}
           {reviews.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Star className="h-10 w-10 mx-auto mb-3 opacity-30" />

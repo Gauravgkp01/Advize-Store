@@ -18,12 +18,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/Navbar";
+import { createProduct } from "@/lib/api";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Product name is required." }),
   price: z.coerce.number().min(1, { message: "Price must be greater than 0." }),
   units: z.coerce.number().int().min(0, { message: "Units cannot be negative." }),
   description: z.string().min(10, { message: "Add a short description." }),
+  category: z.string().optional(),
 });
 
 const PRESET_SIZES = ["S", "M", "L", "XL"];
@@ -42,17 +44,14 @@ export function AddProductPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Size variant state ---
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [customSizeInput, setCustomSizeInput] = useState("");
   const [showCustomSizeInput, setShowCustomSizeInput] = useState(false);
   const customSizeRef = useRef<HTMLInputElement>(null);
 
-  // --- Color variant state ---
   const [colors, setColors] = useState<string[]>([]);
   const [colorInput, setColorInput] = useState("");
 
-  // --- Other custom variants ---
   const [customVariants, setCustomVariants] = useState<CustomVariant[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -62,10 +61,10 @@ export function AddProductPage() {
       price: undefined,
       units: 1,
       description: "",
+      category: "",
     },
   });
 
-  // Size helpers
   const toggleSize = (size: string) => {
     setSelectedSizes(prev =>
       prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
@@ -86,7 +85,6 @@ export function AddProductPage() {
     if (e.key === "Escape") { setShowCustomSizeInput(false); setCustomSizeInput(""); }
   };
 
-  // Color helpers
   const addColor = () => {
     const val = colorInput.trim();
     if (val && !colors.includes(val)) setColors(prev => [...prev, val]);
@@ -97,7 +95,6 @@ export function AddProductPage() {
     if (e.key === "Enter") { e.preventDefault(); addColor(); }
   };
 
-  // Custom variant helpers
   const addCustomVariant = () => {
     setCustomVariants(prev => [
       ...prev,
@@ -138,22 +135,53 @@ export function AddProductPage() {
     if (e.key === "Enter") { e.preventDefault(); addVariantValue(id); }
   };
 
-  // Image helpers
   const handleImageClick = () => fileInputRef.current?.click();
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) setPreviewImage(URL.createObjectURL(file));
   };
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const buildVariants = () => {
+    const variants = [];
+    if (selectedSizes.length > 0) variants.push({ label: "Size", values: selectedSizes });
+    if (colors.length > 0) variants.push({ label: "Colour", values: colors });
+    for (const cv of customVariants) {
+      if (cv.label.trim() && cv.values.length > 0) {
+        variants.push({ label: cv.label.trim(), values: cv.values });
+      }
+    }
+    return variants;
+  };
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const storeId = localStorage.getItem("shop_store_id");
+    if (!storeId) {
+      toast({ variant: "destructive", title: "Store not set up yet", description: "Please wait a moment and try again." });
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      await createProduct({
+        store_id: storeId,
+        name: values.name,
+        price: values.price,
+        description: values.description,
+        category: values.category ?? "",
+        units: values.units,
+        variants: buildVariants(),
+        image_url: previewImage ?? `https://picsum.photos/seed/${encodeURIComponent(values.name)}/400/400`,
+      });
       toast({
         title: "Product saved!",
         description: `${values.name} has been added to your store.`,
       });
       setLocation("/dashboard");
-    }, 800);
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Failed to save product", description: e.message });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -208,6 +236,21 @@ export function AddProductPage() {
                     <FormLabel className="text-base font-semibold">Product Name</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g. Handwoven Cotton Scarf" className="h-12 rounded-xl" {...field} data-testid="input-product-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Category */}
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Category <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Clothes, Food, Crafts..." className="h-12 rounded-xl" {...field} data-testid="input-product-category" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -294,7 +337,6 @@ export function AddProductPage() {
                       </button>
                     ))}
 
-                    {/* Custom sizes already added */}
                     {selectedSizes.filter(s => !PRESET_SIZES.includes(s)).map(size => (
                       <span
                         key={size}
@@ -312,7 +354,6 @@ export function AddProductPage() {
                       </span>
                     ))}
 
-                    {/* Custom size input */}
                     {showCustomSizeInput ? (
                       <input
                         ref={customSizeRef}
@@ -444,7 +485,6 @@ export function AddProductPage() {
                   </div>
                 ))}
 
-                {/* Add another variant type */}
                 <button
                   type="button"
                   onClick={addCustomVariant}
