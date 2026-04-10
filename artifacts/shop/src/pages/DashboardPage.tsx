@@ -224,7 +224,7 @@ function MyStorePanel({ store, products }: {
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             {products.map(product => (
-              <ProductCard key={product.id} product={product} showActions={false} />
+              <ProductCard key={product.id} product={product} showActions={false} productHref={`/product/${product.id}?from=dashboard`} />
             ))}
           </div>
         </div>
@@ -261,7 +261,7 @@ function ListingsPanel({ products, onRefresh }: {
       ) : (
         <div className="grid grid-cols-2 gap-2.5">
           {products.map(product => (
-            <ProductCard key={product.id} product={product} showActions={true} onDelete={onRefresh} />
+            <ProductCard key={product.id} product={product} showActions={true} onDelete={onRefresh} productHref={`/product/${product.id}?from=dashboard`} />
           ))}
         </div>
       )}

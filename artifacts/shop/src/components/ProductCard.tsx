@@ -8,6 +8,7 @@ interface ProductCardProps {
   product: Product;
   showActions?: boolean;
   onDelete?: () => void;
+  productHref?: string;
 }
 
 function StarRow({ rating, count }: { rating: number; count: number }) {
@@ -22,7 +23,7 @@ function StarRow({ rating, count }: { rating: number; count: number }) {
   );
 }
 
-export function ProductCard({ product, showActions = true }: ProductCardProps) {
+export function ProductCard({ product, showActions = true, productHref, onDelete }: ProductCardProps) {
   const { toast } = useToast();
   const inStock = product.units > 0;
 
@@ -47,7 +48,7 @@ export function ProductCard({ product, showActions = true }: ProductCardProps) {
   /* ── STOREFRONT (buyer view) – compact Flipkart-style ── */
   if (!showActions) {
     return (
-      <Link href={`/product/${product.id}`} className="group block" data-testid={`card-product-${product.id}`}>
+      <Link href={productHref ?? `/product/${product.id}`} className="group block" data-testid={`card-product-${product.id}`}>
         <div className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col h-full hover:border-primary/20">
           {/* Image */}
           <div className="aspect-square relative overflow-hidden bg-muted/30">
@@ -98,7 +99,7 @@ export function ProductCard({ product, showActions = true }: ProductCardProps) {
 
   /* ── DASHBOARD (seller view) – compact 2-col friendly ── */
   return (
-    <Link href={`/product/${product.id}`} className="group block" data-testid={`card-product-${product.id}`}>
+    <Link href={productHref ?? `/product/${product.id}`} className="group block" data-testid={`card-product-${product.id}`}>
       <div className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col h-full hover:border-primary/20">
         {/* Image */}
         <div className="aspect-square relative overflow-hidden bg-muted/30">
