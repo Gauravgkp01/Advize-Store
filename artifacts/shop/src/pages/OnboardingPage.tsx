@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Store, Tag, Phone, ArrowRight, ArrowLeft, MapPin } from "lucide-react";
+import { Store, Tag, Phone, ArrowRight, ArrowLeft, MapPin, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { StepIndicator } from "@/components/StepIndicator";
 import { useToast } from "@/hooks/use-toast";
+import { createStore } from "@/lib/api";
 
 const formSchema = z.object({
   businessName: z.string().min(2, { message: "Business name must be at least 2 characters." }),
@@ -34,10 +35,20 @@ const formSchema = z.object({
 
 const TOTAL_STEPS = 4;
 
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    + "-" + Math.random().toString(36).slice(2, 7);
+}
+
 export function OnboardingPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,12 +60,35 @@ export function OnboardingPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    toast({
-      title: "Store Created!",
-      description: `Welcome to Shop, ${values.businessName}! Your store is set up at ${values.shopLocation}.`,
-    });
-    setLocation("/dashboard");
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const slug = slugify(values.businessName);
+      const store = await createStore({
+        name: values.businessName,
+        slug,
+        whatsapp: values.whatsapp,
+        category: values.category,
+        location: values.shopLocation,
+      });
+
+      localStorage.setItem("shop_store_id", store.id);
+      localStorage.setItem("shop_store_slug", store.slug);
+
+      toast({
+        title: "Store Created!",
+        description: `Welcome to Shop, ${values.businessName}! Your store is ready.`,
+      });
+      setLocation("/dashboard");
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "Could not create store",
+        description: e.message ?? "Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const nextStep = async () => {
@@ -132,12 +166,12 @@ export function OnboardingPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="rounded-xl">
-                          <SelectItem value="fashion">Fashion & Clothing</SelectItem>
-                          <SelectItem value="food">Food & Beverages</SelectItem>
-                          <SelectItem value="electronics">Electronics</SelectItem>
-                          <SelectItem value="crafts">Handicrafts</SelectItem>
-                          <SelectItem value="beauty">Beauty & Cosmetics</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="Fashion & Clothing">Fashion & Clothing</SelectItem>
+                          <SelectItem value="Food & Beverages">Food & Beverages</SelectItem>
+                          <SelectItem value="Electronics">Electronics</SelectItem>
+                          <SelectItem value="Handicrafts">Handicrafts</SelectItem>
+                          <SelectItem value="Beauty & Cosmetics">Beauty & Cosmetics</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -207,6 +241,7 @@ export function OnboardingPage() {
                     className="h-12 w-12 rounded-xl shrink-0"
                     onClick={prevStep}
                     data-testid="btn-prev-step"
+                    disabled={isSubmitting}
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
@@ -225,9 +260,14 @@ export function OnboardingPage() {
                   <Button
                     type="submit"
                     className="flex-1 h-12 rounded-xl text-lg shadow-md hover:shadow-lg"
+                    disabled={isSubmitting}
                     data-testid="btn-submit-store"
                   >
-                    Create My Store
+                    {isSubmitting ? (
+                      <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Creating...</>
+                    ) : (
+                      "Create My Store"
+                    )}
                   </Button>
                 )}
               </div>

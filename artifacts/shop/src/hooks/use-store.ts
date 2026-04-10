@@ -1,16 +1,8 @@
 import { useState, useEffect } from "react";
-import { createStore, getStore, type Store } from "@/lib/api";
+import { getStore, type Store } from "@/lib/api";
 
 const STORE_ID_KEY = "shop_store_id";
 const STORE_SLUG_KEY = "shop_store_slug";
-
-const DEFAULT_STORE = {
-  name: "My Shop",
-  slug: `myshop-${Math.random().toString(36).slice(2, 8)}`,
-  whatsapp: "",
-  category: "General",
-  location: "",
-};
 
 export function useStore() {
   const [store, setStore] = useState<Store | null>(null);
@@ -23,19 +15,18 @@ export function useStore() {
     async function init() {
       setLoading(true);
       try {
-        const savedId = localStorage.getItem(STORE_ID_KEY);
         const savedSlug = localStorage.getItem(STORE_SLUG_KEY);
-
-        if (savedId && savedSlug) {
-          const s = await getStore(savedSlug);
-          if (!cancelled) setStore(s);
-        } else {
-          const slug = DEFAULT_STORE.slug;
-          const s = await createStore({ ...DEFAULT_STORE, slug });
-          localStorage.setItem(STORE_ID_KEY, s.id);
-          localStorage.setItem(STORE_SLUG_KEY, s.slug);
-          if (!cancelled) setStore(s);
+        if (savedSlug) {
+          try {
+            const s = await getStore(savedSlug);
+            if (!cancelled) setStore(s);
+          } catch {
+            // Stale slug — clear it so the user can create a fresh store
+            localStorage.removeItem(STORE_ID_KEY);
+            localStorage.removeItem(STORE_SLUG_KEY);
+          }
         }
+        // If no slug, leave store null — dashboard shows empty state
       } catch (e: any) {
         if (!cancelled) setError(e.message ?? "Failed to load store");
       } finally {
@@ -50,8 +41,10 @@ export function useStore() {
   const refreshStore = async () => {
     const slug = localStorage.getItem(STORE_SLUG_KEY);
     if (!slug) return;
-    const s = await getStore(slug);
-    setStore(s);
+    try {
+      const s = await getStore(slug);
+      setStore(s);
+    } catch {}
   };
 
   return { store, loading, error, refreshStore, setStore };
