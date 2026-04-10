@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
-import { Store, Loader2, SlidersHorizontal, ArrowUpDown } from "lucide-react";
+import { Store, Loader2, SlidersHorizontal, ArrowUpDown, ArrowLeft } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { getStore, getProducts, trackClick } from "@/lib/api";
@@ -104,6 +104,18 @@ export function StorefrontPage() {
       <header className="bg-primary text-primary-foreground py-12 px-4 sm:px-6 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
         <div className="container max-w-5xl mx-auto relative z-10 flex flex-col items-center text-center">
+          <div className="absolute left-0 top-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
+              data-testid="button-back-to-dashboard"
+              className="text-primary-foreground hover:bg-white/20 hover:text-primary-foreground gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          </div>
           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg text-primary">
             <Store className="w-10 h-10" />
           </div>
