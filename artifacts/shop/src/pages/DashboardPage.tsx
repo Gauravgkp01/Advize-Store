@@ -1,8 +1,9 @@
 import { Link } from "wouter";
-import { Package, TrendingUp, ShoppingBag, Plus, Boxes, CheckCircle2, XCircle, Store } from "lucide-react";
+import { Package, TrendingUp, ShoppingBag, Plus, Boxes, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { ProductCard } from "@/components/ProductCard";
+import { AnalyticsSection } from "@/components/AnalyticsSection";
 import { MOCK_PRODUCTS, MOCK_STATS } from "@/lib/mock-data";
 
 function MiniStat({ icon, label, value, color }: {
@@ -124,6 +125,9 @@ export function DashboardPage() {
             </Button>
           </div>
         </div>
+
+        {/* Analytics */}
+        <AnalyticsSection />
 
         {/* Products */}
         <div>

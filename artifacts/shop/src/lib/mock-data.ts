@@ -167,6 +167,47 @@ export const MOCK_STATS = {
   productCount: 8
 };
 
+export const MOCK_ANALYTICS = {
+  totalVisitors: 1284,
+  uniqueVisitors: 948,
+  totalClicks: 3872,
+  conversionRate: 18.7,
+  avgSessionMinutes: 3.2,
+  weeklyVisitors: [
+    { day: "Mon", visitors: 142 },
+    { day: "Tue", visitors: 198 },
+    { day: "Wed", visitors: 165 },
+    { day: "Thu", visitors: 210 },
+    { day: "Fri", visitors: 248 },
+    { day: "Sat", visitors: 189 },
+    { day: "Sun", visitors: 132 },
+  ],
+  productClicks: [
+    { productId: "4", name: "Linen Summer Dress",      clicks: 642, views: 890 },
+    { productId: "8", name: "Denim Jacket",            clicks: 521, views: 710 },
+    { productId: "1", name: "Handwoven Cotton Scarf",  clicks: 498, views: 620 },
+    { productId: "6", name: "Artisan Choc. Truffles",  clicks: 387, views: 510 },
+    { productId: "3", name: "Organic Green Tea",       clicks: 312, views: 430 },
+    { productId: "5", name: "Leather Crossbody Bag",   clicks: 241, views: 370 },
+    { productId: "7", name: "Macrame Wall Hanging",    clicks: 186, views: 260 },
+    { productId: "2", name: "Ceramic Coffee Mug",      clicks: 85,  views: 130 },
+  ],
+  categoryBreakdown: [
+    { category: "Clothes",     clicks: 1163, color: "#6366f1" },
+    { category: "Accessories", clicks: 739,  color: "#22c55e" },
+    { category: "Food",        clicks: 699,  color: "#f59e0b" },
+    { category: "Crafts",      clicks: 271,  color: "#ec4899" },
+  ],
+  demandTrend: [
+    { month: "Oct", orders: 8  },
+    { month: "Nov", orders: 14 },
+    { month: "Dec", orders: 22 },
+    { month: "Jan", orders: 18 },
+    { month: "Feb", orders: 26 },
+    { month: "Mar", orders: 24 },
+  ],
+};
+
 export const MOCK_COUPONS = {
   "SAVE10": 10,
   "WELCOME20": 20,
