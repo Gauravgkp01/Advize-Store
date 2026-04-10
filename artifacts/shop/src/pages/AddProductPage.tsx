@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/Navbar";
-import { createProduct } from "@/lib/api";
+import { createProduct, uploadImage } from "@/lib/api";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Product name is required." }),
@@ -41,7 +41,9 @@ export function AddProductPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -138,7 +140,10 @@ export function AddProductPage() {
   const handleImageClick = () => fileInputRef.current?.click();
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setPreviewImage(URL.createObjectURL(file));
+    if (file) {
+      setSelectedFile(file);
+      setPreviewImage(URL.createObjectURL(file));
+    }
   };
 
   const buildVariants = () => {
@@ -162,6 +167,21 @@ export function AddProductPage() {
 
     setIsSubmitting(true);
     try {
+      // Upload image to Supabase Storage if a file was selected
+      let imageUrl = `https://picsum.photos/seed/${encodeURIComponent(values.name)}/400/400`;
+      if (selectedFile) {
+        setUploadingImage(true);
+        try {
+          imageUrl = await uploadImage(selectedFile);
+        } catch (uploadErr: any) {
+          toast({ variant: "destructive", title: "Image upload failed", description: uploadErr.message });
+          setIsSubmitting(false);
+          setUploadingImage(false);
+          return;
+        }
+        setUploadingImage(false);
+      }
+
       await createProduct({
         store_id: storeId,
         name: values.name,
@@ -170,7 +190,7 @@ export function AddProductPage() {
         category: values.category ?? "",
         units: values.units,
         variants: buildVariants(),
-        image_url: previewImage ?? `https://picsum.photos/seed/${encodeURIComponent(values.name)}/400/400`,
+        image_url: imageUrl,
       });
       toast({
         title: "Product saved!",
@@ -504,7 +524,9 @@ export function AddProductPage() {
                   disabled={isSubmitting}
                   data-testid="btn-save-product"
                 >
-                  {isSubmitting ? (
+                  {uploadingImage ? (
+                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Uploading image...</>
+                  ) : isSubmitting ? (
                     <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Saving...</>
                   ) : (
                     "Save Product"

@@ -153,6 +153,18 @@ export interface ProductAnalytics {
 export const getProductAnalytics = (product_id: string) =>
   request<ProductAnalytics>(`/analytics/product/${product_id}`);
 
+export const uploadImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("image", file);
+  const res = await fetch("/api/upload", { method: "POST", body: formData });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? "Image upload failed");
+  }
+  const data = await res.json();
+  return data.url as string;
+};
+
 export const trackClick = (product_id: string, store_id: string) =>
   request<void>("/analytics/click", {
     method: "POST",
