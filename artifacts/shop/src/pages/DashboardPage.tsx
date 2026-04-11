@@ -278,7 +278,10 @@ const TABS = [
 
 export function DashboardPage() {
   const [active, setActive] = useState(0);
+  const prevActive = useRef(0);
   const touchStartX = useRef<number | null>(null);
+  const panelScrollTops = useRef<number[]>([0, 0, 0]);
+  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
   const { store, loading: storeLoading } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
@@ -303,6 +306,22 @@ export function DashboardPage() {
   useEffect(() => {
     if (store?.id) loadData(store.id);
   }, [store?.id, loadData]);
+
+  // Save old tab scroll → restore new tab scroll
+  useEffect(() => {
+    const prev = prevActive.current;
+    if (prev !== active) {
+      // save scroll of the panel we're leaving
+      const leaving = panelRefs.current[prev];
+      if (leaving) panelScrollTops.current[prev] = leaving.scrollTop;
+    }
+    // restore scroll of the panel we're entering (after paint)
+    requestAnimationFrame(() => {
+      const entering = panelRefs.current[active];
+      if (entering) entering.scrollTop = panelScrollTops.current[active];
+    });
+    prevActive.current = active;
+  }, [active]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -380,15 +399,15 @@ export function DashboardPage() {
             className="flex h-full transition-transform duration-300 ease-in-out"
             style={{ transform: `translateX(-${active * 100}%)` }}
           >
-            <div className="w-full flex-shrink-0 h-full overflow-y-auto">
+            <div ref={el => { panelRefs.current[0] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
               <HomePanel products={products} analytics={analytics} store={store} />
             </div>
 
-            <div className="w-full flex-shrink-0 h-full overflow-y-auto">
+            <div ref={el => { panelRefs.current[1] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
               <MyStorePanel store={store} products={products} />
             </div>
 
-            <div className="w-full flex-shrink-0 h-full overflow-y-auto">
+            <div ref={el => { panelRefs.current[2] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
               <ListingsPanel
                 products={products}
                 onRefresh={() => store?.id && loadData(store.id)}
