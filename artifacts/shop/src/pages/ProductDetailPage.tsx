@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { MOCK_COUPONS } from "@/lib/mock-data";
-import { getProduct, getReviews, createReview, getProductAnalytics, getStore } from "@/lib/api";
+import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getProducts } from "@/lib/api";
 import type { Product, Review } from "@/lib/mock-data";
 import type { ProductAnalytics } from "@/lib/api";
 
@@ -46,6 +46,40 @@ function AvatarInitials({ name }: { name: string }) {
   return (
     <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${color}`}>
       {initials}
+    </div>
+  );
+}
+
+function RelatedProducts({ products }: { products: Product[] }) {
+  if (products.length === 0) return null;
+  return (
+    <div className="bg-card sm:border sm:rounded-3xl px-5 sm:px-10 py-6 shadow-sm">
+      <h2 className="text-lg font-bold mb-4">You may also like</h2>
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
+        {products.map(p => (
+          <Link key={p.id} href={`/product/${p.id}`} className="shrink-0 w-36 snap-start group">
+            <div className="rounded-2xl border bg-background overflow-hidden shadow-sm hover:shadow-md transition-all hover:border-primary/30">
+              <div className="aspect-square overflow-hidden bg-muted/30 relative">
+                <img
+                  src={p.imageUrl}
+                  alt={p.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
+                {p.units === 0 && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <span className="text-[9px] font-bold bg-white text-foreground px-2 py-0.5 rounded-full">Out of Stock</span>
+                  </div>
+                )}
+              </div>
+              <div className="p-2.5">
+                <p className="text-xs font-semibold text-foreground line-clamp-2 leading-snug">{p.name}</p>
+                <p className="text-sm font-extrabold text-primary mt-1">₹{p.price.toLocaleString("en-IN")}</p>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
@@ -329,11 +363,12 @@ function OwnerView({ product, reviews, analytics }: {
 }
 
 /* ── Buyer (public) view ──────────────────────────────── */
-function BuyerView({ product, reviews, storeWhatsapp, storeSlug }: {
+function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts }: {
   product: Product;
   reviews: Review[];
   storeWhatsapp: string;
   storeSlug: string;
+  relatedProducts: Product[];
 }) {
   const { toast } = useToast();
   const [couponCode, setCouponCode] = useState("");
@@ -500,6 +535,8 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug }: {
           </div>
         </div>
 
+        <RelatedProducts products={relatedProducts} />
+
         <ReviewsList reviews={localReviews} avgRating={avgRating} ratingCounts={ratingCounts}
           showForm={showForm} setShowForm={setShowForm} reviewName={reviewName} setReviewName={setReviewName}
           reviewRating={reviewRating} setReviewRating={setReviewRating} reviewComment={reviewComment}
@@ -522,6 +559,7 @@ export function ProductDetailPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [storeWhatsapp, setStoreWhatsapp] = useState("");
   const [storeSlug, setStoreSlug] = useState("");
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -541,13 +579,28 @@ export function ProductDetailPage() {
         setReviews(results[1]);
         if (isOwnerView && results[2]) setProductAnalytics(results[2]);
 
-        // Load store info for WhatsApp + back link (buyer view only)
+        // Load store info for WhatsApp + back link + related products (buyer view only)
         if (!isOwnerView) {
           const savedSlug = localStorage.getItem("shop_store_slug");
           if (savedSlug) {
             setStoreSlug(savedSlug);
             const s = await getStore(savedSlug);
-            if (!cancelled) setStoreWhatsapp(s.whatsapp ?? "");
+            if (!cancelled) {
+              setStoreWhatsapp(s.whatsapp ?? "");
+              // Fetch all store products and filter to same category
+              const loadedProduct = results[0] as Product;
+              try {
+                const allProducts = await getProducts(s.id);
+                if (!cancelled) {
+                  const related = allProducts
+                    .filter(p => p.id !== loadedProduct.id && p.category === loadedProduct.category)
+                    .slice(0, 6);
+                  setRelatedProducts(related);
+                }
+              } catch {
+                // non-critical, ignore
+              }
+            }
           }
         }
       } catch {
@@ -581,6 +634,6 @@ export function ProductDetailPage() {
   }
 
   return (
-    <BuyerView product={product} reviews={reviews} storeWhatsapp={storeWhatsapp} storeSlug={storeSlug} />
+    <BuyerView product={product} reviews={reviews} storeWhatsapp={storeWhatsapp} storeSlug={storeSlug} relatedProducts={relatedProducts} />
   );
 }
