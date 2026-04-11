@@ -14,6 +14,14 @@ export function StorefrontPage() {
   const [, navigate] = useLocation();
   const slug = params.slug ?? "";
 
+  // Always show the storefront in light mode regardless of user dark preference
+  useEffect(() => {
+    const html = document.documentElement;
+    const wasDark = html.classList.contains("dark");
+    html.classList.remove("dark");
+    return () => { if (wasDark) html.classList.add("dark"); };
+  }, []);
+
   const [store, setStore] = useState<StoreType | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);

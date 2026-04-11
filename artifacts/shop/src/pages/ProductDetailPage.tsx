@@ -370,6 +370,14 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
   storeSlug: string;
   relatedProducts: Product[];
 }) {
+  // Always show the product/store page in light mode
+  useEffect(() => {
+    const html = document.documentElement;
+    const wasDark = html.classList.contains("dark");
+    html.classList.remove("dark");
+    return () => { if (wasDark) html.classList.add("dark"); };
+  }, []);
+
   const { toast } = useToast();
   const [couponCode, setCouponCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<number | null>(null);

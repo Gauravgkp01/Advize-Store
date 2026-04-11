@@ -3,13 +3,14 @@ import { Link } from "wouter";
 import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
-  QrCode, Download,
+  QrCode, Download, Moon, Sun,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { AnalyticsSection } from "@/components/AnalyticsSection";
 import { useStore } from "@/hooks/use-store";
+import { useTheme } from "@/hooks/use-theme";
 import { getProducts, getAnalytics, type AnalyticsSummary } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/mock-data";
@@ -282,6 +283,7 @@ export function DashboardPage() {
   const touchStartX = useRef<number | null>(null);
   const panelScrollTops = useRef<number[]>([0, 0, 0]);
   const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
+  const { dark, toggle: toggleDark } = useTheme();
   const { store, loading: storeLoading } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
@@ -349,6 +351,14 @@ export function DashboardPage() {
             </div>
             <span className="text-base font-bold text-foreground">Shop</span>
           </Link>
+          <Button
+            variant="ghost" size="icon"
+            onClick={toggleDark}
+            className="sm:hidden rounded-full h-8 w-8"
+            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {dark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+          </Button>
 
           <div className="hidden sm:flex items-center gap-1 bg-muted rounded-full p-1">
             {TABS.map((tab, i) => (
@@ -367,8 +377,16 @@ export function DashboardPage() {
             ))}
           </div>
 
-          <div className="text-xs text-muted-foreground font-medium hidden sm:block">
-            {store?.name ?? "My Shop"}
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-xs text-muted-foreground font-medium">{store?.name ?? "My Shop"}</span>
+            <Button
+              variant="ghost" size="icon"
+              onClick={toggleDark}
+              className="rounded-full h-8 w-8"
+              aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {dark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
 
