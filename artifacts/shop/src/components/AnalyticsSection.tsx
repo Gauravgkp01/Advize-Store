@@ -146,8 +146,8 @@ export function AnalyticsSection({ liveData }: AnalyticsSectionProps) {
       {/* Most / Least clicked highlight */}
       {hasClicks && liveData?.mostClicked && (
         <div className="grid grid-cols-2 gap-2 sm:gap-3">
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-3 sm:p-4 flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-green-700 mb-1">
+          <div className="bg-muted border border-border rounded-2xl p-3 sm:p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 text-primary mb-1">
               <Award className="h-4 w-4" />
               <span className="text-xs font-semibold">Most Clicked</span>
             </div>
@@ -158,8 +158,8 @@ export function AnalyticsSection({ liveData }: AnalyticsSectionProps) {
               {liveData.mostClicked.name}
             </Link>
             <div className="flex items-center gap-1.5 mt-1">
-              <Flame className="h-3.5 w-3.5 text-green-600" />
-              <span className="text-sm font-extrabold text-green-700">
+              <Flame className="h-3.5 w-3.5 text-primary" />
+              <span className="text-sm font-extrabold text-primary">
                 {liveData.mostClicked.clicks.toLocaleString()}
               </span>
               <span className="text-[10px] text-muted-foreground">clicks</span>
