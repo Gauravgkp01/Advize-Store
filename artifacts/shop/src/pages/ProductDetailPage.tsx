@@ -442,7 +442,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="container max-w-4xl mx-auto px-4 h-16 flex items-center">
           <Button variant="ghost" size="icon" asChild className="rounded-full mr-2">
-            <Link href="/dashboard">
+            <Link href="/dashboard?tab=1">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>

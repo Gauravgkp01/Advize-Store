@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
@@ -313,8 +313,10 @@ const TABS = [
 ] as const;
 
 export function DashboardPage() {
-  const [active, setActive] = useState(0);
-  const prevActive = useRef(0);
+  const search = useSearch();
+  const initialTab = Math.min(parseInt(new URLSearchParams(search).get("tab") ?? "0") || 0, TABS.length - 1);
+  const [active, setActive] = useState(initialTab);
+  const prevActive = useRef(initialTab);
   const touchStartX = useRef<number | null>(null);
   const panelScrollTops = useRef<number[]>([0, 0, 0]);
   const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
