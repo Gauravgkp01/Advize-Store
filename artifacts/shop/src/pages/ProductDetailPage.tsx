@@ -370,6 +370,8 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
   storeSlug: string;
   relatedProducts: Product[];
 }) {
+  const isPreview = new URLSearchParams(window.location.search).get("preview") === "1";
+
   // Always show the product/store page in light mode
   useEffect(() => {
     const html = document.documentElement;
@@ -538,7 +540,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
           </div>
         </div>
 
-        <RelatedProducts products={relatedProducts} />
+        {!isPreview && <RelatedProducts products={relatedProducts} />}
 
         <ReviewsList reviews={localReviews} avgRating={avgRating} ratingCounts={ratingCounts}
           showForm={showForm} setShowForm={setShowForm} reviewName={reviewName} setReviewName={setReviewName}
