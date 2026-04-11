@@ -3,10 +3,11 @@ import { Link } from "wouter";
 import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
-  QrCode, Download, Moon, Sun,
+  QrCode, Download, Moon, Sun, Share2, Copy, Check,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { ProductCard } from "@/components/ProductCard";
 import { AnalyticsSection } from "@/components/AnalyticsSection";
 import { useStore } from "@/hooks/use-store";
@@ -35,6 +36,8 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
   compact?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
 
   const handleDownload = () => {
     const canvas = containerRef.current?.querySelector("canvas");
@@ -46,6 +49,28 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${storeName} — Shop Online`,
+          text: `Check out ${storeName}'s store!`,
+          url: storeUrl,
+        });
+        return;
+      } catch {}
+    }
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(storeUrl);
+      setCopied(true);
+      toast({ title: "Link copied!", description: "Share it with your customers." });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ variant: "destructive", title: "Couldn't copy link", description: storeUrl });
+    }
   };
 
   const qrSize = compact ? 96 : 180;
@@ -74,11 +99,15 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
               level="M"
             />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-muted-foreground break-all mb-3 leading-relaxed">{storeUrl}</p>
-            <Button onClick={handleDownload} size="sm" className="w-full rounded-full text-xs" data-testid="btn-download-qr">
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            <p className="text-[10px] text-muted-foreground break-all leading-relaxed">{storeUrl}</p>
+            <Button onClick={handleDownload} size="sm" variant="outline" className="w-full rounded-full text-xs" data-testid="btn-download-qr">
               <Download className="h-3 w-3 mr-1.5" />
               Download PNG
+            </Button>
+            <Button onClick={handleShare} size="sm" className="w-full rounded-full text-xs" data-testid="btn-share-link-qr">
+              {copied ? <Check className="h-3 w-3 mr-1.5" /> : <Share2 className="h-3 w-3 mr-1.5" />}
+              {copied ? "Copied!" : "Share Link"}
             </Button>
           </div>
         </div>
@@ -97,10 +126,16 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
           <p className="text-[10px] text-muted-foreground text-center break-all max-w-[240px] leading-relaxed">
             {storeUrl}
           </p>
-          <Button onClick={handleDownload} className="w-full rounded-full" size="sm" data-testid="btn-download-qr-full">
-            <Download className="h-3.5 w-3.5 mr-1.5" />
-            Download QR Code
-          </Button>
+          <div className="w-full flex gap-2">
+            <Button onClick={handleDownload} variant="outline" className="flex-1 rounded-full" size="sm" data-testid="btn-download-qr-full">
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Download
+            </Button>
+            <Button onClick={handleShare} className="flex-1 rounded-full" size="sm" data-testid="btn-share-link-qr-full">
+              {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Share2 className="h-3.5 w-3.5 mr-1.5" />}
+              {copied ? "Copied!" : "Share Link"}
+            </Button>
+          </div>
         </div>
       )}
     </div>
