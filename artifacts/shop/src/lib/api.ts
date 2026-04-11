@@ -50,6 +50,7 @@ export interface ApiProduct {
 function toProduct(p: ApiProduct): Product {
   return {
     id: p.id,
+    storeId: p.store_id,
     name: p.name,
     price: p.price,
     description: p.description ?? "",

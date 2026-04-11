@@ -582,28 +582,29 @@ export function ProductDetailPage() {
         setReviews(results[1]);
         if (isOwnerView && results[2]) setProductAnalytics(results[2]);
 
-        // Load store info for WhatsApp + back link + related products (buyer view only)
+        // Load store info for WhatsApp + related products (buyer view only)
         if (!isOwnerView) {
-          const savedSlug = localStorage.getItem("shop_store_slug");
-          if (savedSlug) {
-            setStoreSlug(savedSlug);
-            const s = await getStore(savedSlug);
+          const loadedProduct = results[0] as Product;
+          // Fetch related products directly using the product's storeId (works for real visitors too)
+          try {
+            const allProducts = await getProducts(loadedProduct.storeId);
             if (!cancelled) {
-              setStoreWhatsapp(s.whatsapp ?? "");
-              // Fetch all store products and filter to same category
-              const loadedProduct = results[0] as Product;
-              try {
-                const allProducts = await getProducts(s.id);
-                if (!cancelled) {
-                  const related = allProducts
-                    .filter(p => p.id !== loadedProduct.id && p.category === loadedProduct.category)
-                    .slice(0, 6);
-                  setRelatedProducts(related);
-                }
-              } catch {
-                // non-critical, ignore
-              }
+              const related = allProducts
+                .filter(p => p.id !== loadedProduct.id && p.category === loadedProduct.category)
+                .slice(0, 6);
+              setRelatedProducts(related);
             }
+          } catch {
+            // non-critical, ignore
+          }
+          // Also load store slug + WhatsApp from localStorage if available (owner preview)
+          const savedSlug = localStorage.getItem("shop_store_slug");
+          if (savedSlug && !cancelled) {
+            setStoreSlug(savedSlug);
+            try {
+              const s = await getStore(savedSlug);
+              if (!cancelled) setStoreWhatsapp(s.whatsapp ?? "");
+            } catch {}
           }
         }
       } catch {
