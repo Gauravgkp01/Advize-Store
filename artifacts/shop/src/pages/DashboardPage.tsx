@@ -386,7 +386,7 @@ export function DashboardPage() {
             <div className="bg-primary/10 p-1.5 rounded-xl">
               <Store className="h-4 w-4 text-primary" />
             </div>
-            <span className="text-base font-bold text-foreground">Shop</span>
+            <span className="text-base font-bold text-foreground">Advize Store</span>
           </Link>
           <Button
             variant="ghost" size="icon"

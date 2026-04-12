@@ -206,7 +206,7 @@ export function StorefrontPage() {
       </main>
 
       <footer className="py-8 text-center text-muted-foreground border-t bg-muted/20">
-        <p>Powered by <span className="font-bold text-foreground">Shop</span></p>
+        <p>Powered by <span className="font-bold text-foreground">Advize Store</span></p>
       </footer>
     </div>
   );

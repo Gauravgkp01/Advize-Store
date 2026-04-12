@@ -16,7 +16,7 @@ export function Navbar() {
           <div className="bg-primary/10 p-2 rounded-xl group-hover:bg-primary/20 transition-colors">
             <Store className="h-5 w-5 text-primary" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-foreground">Shop</span>
+          <span className="text-xl font-bold tracking-tight text-foreground">Advize Store</span>
         </Link>
 
         {/* Desktop Nav */}
