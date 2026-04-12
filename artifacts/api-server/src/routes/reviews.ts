@@ -1,18 +1,17 @@
 import { Router } from "express";
-import { supabase } from "../lib/supabase.js";
+import { db } from "../lib/firebase.js";
+import { FieldValue } from "firebase-admin/firestore";
 
 const router = Router();
 
 router.get("/reviews", async (req, res) => {
   const { product_id } = req.query;
   if (!product_id) return res.status(400).json({ error: "product_id is required" });
-  const { data, error } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("product_id", product_id)
-    .order("created_at", { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
-  return res.json(data);
+  const snap = await db.collection("reviews")
+    .where("product_id", "==", product_id)
+    .orderBy("created_at", "desc")
+    .get();
+  return res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 });
 
 router.post("/reviews", async (req, res) => {
@@ -23,13 +22,12 @@ router.post("/reviews", async (req, res) => {
   if (rating < 1 || rating > 5) {
     return res.status(400).json({ error: "rating must be between 1 and 5" });
   }
-  const { data, error } = await supabase
-    .from("reviews")
-    .insert({ product_id, name, rating, comment })
-    .select()
-    .single();
-  if (error) return res.status(400).json({ error: error.message });
-  return res.status(201).json(data);
+  const ref = await db.collection("reviews").add({
+    product_id, name, rating, comment,
+    created_at: FieldValue.serverTimestamp(),
+  });
+  const doc = await ref.get();
+  return res.status(201).json({ id: doc.id, ...doc.data() });
 });
 
 export default router;

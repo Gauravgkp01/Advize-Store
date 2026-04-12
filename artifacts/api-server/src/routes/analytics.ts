@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { supabase } from "../lib/supabase.js";
+import { db } from "../lib/firebase.js";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 const router = Router();
 
@@ -10,41 +11,43 @@ router.post("/analytics/click", async (req, res) => {
   if (!product_id || !store_id) {
     return res.status(400).json({ error: "product_id and store_id are required" });
   }
-  const { error } = await supabase
-    .from("product_clicks")
-    .insert({ product_id, store_id });
-  if (error) return res.status(400).json({ error: error.message });
+  await db.collection("product_clicks").add({
+    product_id, store_id,
+    clicked_at: FieldValue.serverTimestamp(),
+  });
   return res.status(201).json({ ok: true });
 });
 
 router.get("/analytics/:store_id", async (req, res) => {
   const { store_id } = req.params;
 
-  const [clicksRes, reviewsRes, productsRes] = await Promise.all([
-    supabase
-      .from("product_clicks")
-      .select("product_id, clicked_at, products(name, category)")
-      .eq("store_id", store_id),
-    supabase
-      .from("reviews")
-      .select("rating, product_id, products!inner(store_id)")
-      .eq("products.store_id", store_id),
-    supabase
-      .from("products")
-      .select("id, name, units, category")
-      .eq("store_id", store_id),
+  const [clicksSnap, productsSnap] = await Promise.all([
+    db.collection("product_clicks").where("store_id", "==", store_id).get(),
+    db.collection("products").where("store_id", "==", store_id).get(),
   ]);
 
-  const clicks = clicksRes.data || [];
-  const reviews = reviewsRes.data || [];
-  const products = productsRes.data || [];
+  const clicks = clicksSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+  const products = productsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
 
-  // ── Product clicks ──────────────────────────────────────
+  // Fetch product names+categories for click enrichment
+  const productMap: Record<string, { name: string; category: string }> = {};
+  for (const p of products) {
+    productMap[p.id] = { name: p.name, category: p.category ?? "Uncategorised" };
+  }
+
+  // Fetch reviews for all products in this store
+  const reviewsSnap = await db.collection("reviews")
+    .where("product_id", "in", products.length > 0 ? products.map(p => p.id) : ["__none__"])
+    .get().catch(() => ({ docs: [] as any[] }));
+  const reviews = reviewsSnap.docs.map((d: any) => d.data()) as any[];
+
+  // Product click counts
   const clicksByProduct: Record<string, { name: string; clicks: number }> = {};
   for (const c of clicks) {
     const pid = c.product_id;
+    const info = productMap[pid];
     if (!clicksByProduct[pid]) {
-      clicksByProduct[pid] = { name: (c.products as any)?.name ?? pid, clicks: 0 };
+      clicksByProduct[pid] = { name: info?.name ?? pid, clicks: 0 };
     }
     clicksByProduct[pid].clicks++;
   }
@@ -55,14 +58,12 @@ router.get("/analytics/:store_id", async (req, res) => {
 
   const totalClicks = productClickList.reduce((s, p) => s + p.clicks, 0);
 
-  // ── Category breakdown from real click data ─────────────
+  // Category breakdown
   const clicksByCategory: Record<string, number> = {};
   for (const c of clicks) {
-    const cat = (c.products as any)?.category ?? "Uncategorised";
+    const cat = productMap[c.product_id]?.category ?? "Uncategorised";
     clicksByCategory[cat] = (clicksByCategory[cat] ?? 0) + 1;
   }
-
-  // Also include categories from products that have 0 clicks
   for (const p of products) {
     const cat = p.category || "Uncategorised";
     if (!(cat in clicksByCategory)) clicksByCategory[cat] = 0;
@@ -71,12 +72,11 @@ router.get("/analytics/:store_id", async (req, res) => {
   const categoryBreakdown = Object.entries(clicksByCategory)
     .sort((a, b) => b[1] - a[1])
     .map(([category, clicks], i) => ({
-      category,
-      clicks,
+      category, clicks,
       color: CHART_COLORS[i % CHART_COLORS.length],
     }));
 
-  // ── Weekly clicks (last 7 days) ─────────────────────────
+  // Weekly clicks (last 7 days)
   const now = new Date();
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const weeklyClicks = Array.from({ length: 7 }, (_, i) => {
@@ -85,17 +85,17 @@ router.get("/analytics/:store_id", async (req, res) => {
     const dayLabel = days[d.getDay()];
     const dateStr = d.toISOString().slice(0, 10);
     const count = clicks.filter(c => {
-      const cd = typeof c.clicked_at === "string" ? c.clicked_at.slice(0, 10) : "";
-      return cd === dateStr;
+      const ts = c.clicked_at instanceof Timestamp ? c.clicked_at.toDate() : new Date(c.clicked_at);
+      return ts.toISOString().slice(0, 10) === dateStr;
     }).length;
     return { day: dayLabel, clicks: count };
   });
 
-  // ── Reviews ──────────────────────────────────────────────
-  const ratingSum = reviews.reduce((s, r) => s + r.rating, 0);
+  // Reviews
+  const ratingSum = reviews.reduce((s: number, r: any) => s + r.rating, 0);
   const avgRating = reviews.length ? (ratingSum / reviews.length).toFixed(1) : null;
 
-  // ── Stock ────────────────────────────────────────────────
+  // Stock
   const inStock = products.filter(p => p.units > 0).length;
   const outOfStock = products.filter(p => p.units === 0).length;
 
@@ -113,16 +113,10 @@ router.get("/analytics/:store_id", async (req, res) => {
   });
 });
 
-// ── Single-product analytics (owner view) ──────────────
 router.get("/analytics/product/:product_id", async (req, res) => {
   const { product_id } = req.params;
-
-  const { data: clicks } = await supabase
-    .from("product_clicks")
-    .select("clicked_at")
-    .eq("product_id", product_id);
-
-  const allClicks = clicks ?? [];
+  const snap = await db.collection("product_clicks").where("product_id", "==", product_id).get();
+  const allClicks = snap.docs.map(d => d.data()) as any[];
   const totalClicks = allClicks.length;
 
   const now = new Date();
@@ -133,8 +127,8 @@ router.get("/analytics/product/:product_id", async (req, res) => {
     const dayLabel = days[d.getDay()];
     const dateStr = d.toISOString().slice(0, 10);
     const count = allClicks.filter(c => {
-      const cd = typeof c.clicked_at === "string" ? c.clicked_at.slice(0, 10) : "";
-      return cd === dateStr;
+      const ts = c.clicked_at instanceof Timestamp ? c.clicked_at.toDate() : new Date(c.clicked_at);
+      return ts.toISOString().slice(0, 10) === dateStr;
     }).length;
     return { day: dayLabel, clicks: count };
   });
