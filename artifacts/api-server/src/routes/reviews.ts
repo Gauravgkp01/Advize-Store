@@ -1,6 +1,17 @@
 import { Router } from "express";
 import { db } from "../lib/firebase.js";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+
+function serializeReview(data: FirebaseFirestore.DocumentData, id: string) {
+  const created = data.created_at;
+  return {
+    ...data,
+    id,
+    created_at: created instanceof Timestamp
+      ? created.toDate().toISOString()
+      : (created ?? new Date().toISOString()),
+  };
+}
 
 const router = Router();
 
@@ -10,12 +21,10 @@ router.get("/reviews", async (req, res) => {
   const snap = await db.collection("reviews")
     .where("product_id", "==", product_id)
     .get();
-  const reviews = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
-  reviews.sort((a, b) => {
-    const aTime = a.created_at?.toMillis?.() ?? 0;
-    const bTime = b.created_at?.toMillis?.() ?? 0;
-    return bTime - aTime;
-  });
+  const reviews = snap.docs.map(d => serializeReview(d.data(), d.id));
+  reviews.sort((a, b) =>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
   return res.json(reviews);
 });
 
@@ -32,7 +41,7 @@ router.post("/reviews", async (req, res) => {
     created_at: FieldValue.serverTimestamp(),
   });
   const doc = await ref.get();
-  return res.status(201).json({ id: doc.id, ...doc.data() });
+  return res.status(201).json(serializeReview(doc.data()!, doc.id));
 });
 
 export default router;
