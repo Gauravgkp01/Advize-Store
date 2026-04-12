@@ -12,7 +12,7 @@ router.get("/products", async (req, res) => {
   const { store_id } = req.query;
   let query: FirebaseFirestore.Query = db.collection("products");
   if (store_id) query = query.where("store_id", "==", store_id);
-  const snap = await query.orderBy("created_at", "desc").get();
+  const snap = await query.get();
   const products = await Promise.all(
     snap.docs.map(async (doc) => {
       const variantsSnap = await doc.ref.collection("variants").get();
@@ -20,6 +20,12 @@ router.get("/products", async (req, res) => {
       return { id: doc.id, ...doc.data(), variants };
     })
   );
+  // Sort newest first in code (avoids needing a Firestore composite index)
+  products.sort((a: any, b: any) => {
+    const aTime = a.created_at?.toMillis?.() ?? 0;
+    const bTime = b.created_at?.toMillis?.() ?? 0;
+    return bTime - aTime;
+  });
   return res.json(products);
 });
 

@@ -9,9 +9,14 @@ router.get("/reviews", async (req, res) => {
   if (!product_id) return res.status(400).json({ error: "product_id is required" });
   const snap = await db.collection("reviews")
     .where("product_id", "==", product_id)
-    .orderBy("created_at", "desc")
     .get();
-  return res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  const reviews = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+  reviews.sort((a, b) => {
+    const aTime = a.created_at?.toMillis?.() ?? 0;
+    const bTime = b.created_at?.toMillis?.() ?? 0;
+    return bTime - aTime;
+  });
+  return res.json(reviews);
 });
 
 router.post("/reviews", async (req, res) => {
