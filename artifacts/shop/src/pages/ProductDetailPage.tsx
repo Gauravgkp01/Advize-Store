@@ -399,10 +399,10 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
   const handleOrder = () => {
     const variantSummary = product.variants?.filter(v => selectedVariants[v.label])
       .map(v => `${v.label}: ${selectedVariants[v.label]}`).join(", ");
-    const variantText = variantSummary ? ` (${variantSummary})` : "";
-    const text = `Hi! I'd like to order: ${product.name}${variantText} (Price: ₹${product.price.toLocaleString("en-IN")}).`;
+    const variantText = variantSummary ? `\n🎨 Variant: ${variantSummary}` : "";
+    const message = `Hello 👋,\n\nI want to order this product:\n\n🛍 Product: ${product.name}${variantText}\n💰 Price: ₹${product.price.toLocaleString("en-IN")}\n\n🔗 Product Link: ${window.location.href}\n\nPlease confirm availability.`;
     const number = storeWhatsapp.replace(/[^0-9]/g, "");
-    window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank");
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   const handleSubmitReview = async () => {
