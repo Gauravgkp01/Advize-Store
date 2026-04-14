@@ -4,6 +4,12 @@ import { FieldValue } from "firebase-admin/firestore";
 
 const router = Router();
 
+router.get("/stores/id/:id", async (req, res) => {
+  const doc = await db.collection("stores").doc(req.params.id).get();
+  if (!doc.exists) return res.status(404).json({ error: "Store not found" });
+  return res.json({ id: doc.id, ...doc.data() });
+});
+
 router.get("/stores/:slug", async (req, res) => {
   const snap = await db.collection("stores").where("slug", "==", req.params.slug).limit(1).get();
   if (snap.empty) return res.status(404).json({ error: "Store not found" });

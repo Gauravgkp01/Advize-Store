@@ -51,6 +51,9 @@ export interface Store {
 export const getStore = (slug: string) =>
   request<Store>(`/stores/${slug}`);
 
+export const getStoreById = (id: string) =>
+  request<Store>(`/stores/id/${id}`);
+
 export const createStore = (body: Omit<Store, "id">) =>
   request<Store>("/stores", { method: "POST", body: JSON.stringify(body) });
 

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getProducts } from "@/lib/api";
+import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts } from "@/lib/api";
 import type { Product, Review } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
 
@@ -545,10 +545,15 @@ export function ProductDetailPage() {
         // Load store info for WhatsApp + related products (buyer view only)
         if (!isOwnerView) {
           const loadedProduct = results[0] as Product;
-          // Fetch related products directly using the product's storeId (works for real visitors too)
+          // Fetch store by ID — works for all visitors, not just the owner
           try {
-            const allProducts = await getProducts(loadedProduct.storeId);
+            const [store, allProducts] = await Promise.all([
+              getStoreById(loadedProduct.storeId),
+              getProducts(loadedProduct.storeId),
+            ]);
             if (!cancelled) {
+              setStoreWhatsapp(store.whatsapp ?? "");
+              setStoreSlug(store.slug ?? "");
               const related = allProducts
                 .filter(p => p.id !== loadedProduct.id && p.category === loadedProduct.category)
                 .slice(0, 6);
@@ -556,15 +561,6 @@ export function ProductDetailPage() {
             }
           } catch {
             // non-critical, ignore
-          }
-          // Also load store slug + WhatsApp from localStorage if available (owner preview)
-          const savedSlug = localStorage.getItem("shop_store_slug");
-          if (savedSlug && !cancelled) {
-            setStoreSlug(savedSlug);
-            try {
-              const s = await getStore(savedSlug);
-              if (!cancelled) setStoreWhatsapp(s.whatsapp ?? "");
-            } catch {}
           }
         }
       } catch {
