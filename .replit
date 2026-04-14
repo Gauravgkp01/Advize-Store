@@ -43,4 +43,4 @@ externalPort = 3001
 [userenv.shared]
 FIREBASE_PROJECT_ID = "studio-1871371743-58ae3"
 FIREBASE_CLIENT_EMAIL = "firebase-adminsdk-fbsvc@studio-1871371743-58ae3.iam.gserviceaccount.com"
-FIREBASE_STORAGE_BUCKET = "studio-1871371743-58ae3.appspot.com"
+FIREBASE_STORAGE_BUCKET = "studio-1871371743-58ae3.firebasestorage.app"
