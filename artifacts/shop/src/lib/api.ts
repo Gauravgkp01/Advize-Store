@@ -1,4 +1,27 @@
-import type { Product, ProductVariant, Review } from "./mock-data";
+export type ProductVariant = {
+  label: string;
+  values: string[];
+};
+
+export type Product = {
+  id: string;
+  storeId: string;
+  name: string;
+  price: number;
+  description: string;
+  imageUrl: string;
+  category: string;
+  units: number;
+  variants?: ProductVariant[];
+};
+
+export type Review = {
+  id: string;
+  name: string;
+  rating: number;
+  comment: string;
+  date: string;
+};
 
 const BASE = `${import.meta.env.BASE_URL}api`;
 
