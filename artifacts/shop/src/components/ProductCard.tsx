@@ -1,8 +1,8 @@
 import { Link } from "wouter";
-import { Copy, Share, Star } from "lucide-react";
+import { Copy, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { MOCK_STORE_INFO, MOCK_REVIEWS, type Product } from "@/lib/mock-data";
+import type { Product } from "@/lib/api";
 
 interface ProductCardProps {
   product: Product;
@@ -11,26 +11,10 @@ interface ProductCardProps {
   productHref?: string;
 }
 
-function StarRow({ rating, count }: { rating: number; count: number }) {
-  return (
-    <div className="flex items-center gap-1">
-      <div className="flex items-center gap-0.5 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-        <span>{rating.toFixed(1)}</span>
-        <Star className="h-2.5 w-2.5 fill-white" />
-      </div>
-      <span className="text-[10px] text-muted-foreground">({count})</span>
-    </div>
-  );
-}
 
 export function ProductCard({ product, showActions = true, productHref, onDelete }: ProductCardProps) {
   const { toast } = useToast();
   const inStock = product.units > 0;
-
-  const reviews = MOCK_REVIEWS[product.id] || [];
-  const avgRating = reviews.length
-    ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-    : 0;
 
   const handleCopyLink = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -81,10 +65,6 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
             <p className="text-sm sm:text-base font-extrabold text-primary leading-tight">
               ₹{product.price.toLocaleString("en-IN")}
             </p>
-
-            {reviews.length > 0 && (
-              <StarRow rating={avgRating} count={reviews.length} />
-            )}
 
             {product.variants && product.variants.length > 0 && (
               <p className="text-[10px] text-muted-foreground line-clamp-1">

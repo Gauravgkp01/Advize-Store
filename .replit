@@ -9,7 +9,6 @@ args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
 [workflows]
-runButton = "Project"
 
 [agent]
 stack = "PNPM_WORKSPACE"
@@ -38,3 +37,10 @@ externalPort = 3000
 [[ports]]
 localPort = 24350
 externalPort = 3001
+
+[userenv]
+
+[userenv.shared]
+FIREBASE_PROJECT_ID = "studio-1871371743-58ae3"
+FIREBASE_CLIENT_EMAIL = "firebase-adminsdk-fbsvc@studio-1871371743-58ae3.iam.gserviceaccount.com"
+FIREBASE_STORAGE_BUCKET = "studio-1871371743-58ae3.firebasestorage.app"

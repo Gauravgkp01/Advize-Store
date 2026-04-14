@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import {
-  ArrowLeft, MessageCircle, Tag, CheckCircle2,
+  ArrowLeft, MessageCircle,
   AlertCircle, Star, Loader2, MousePointerClick,
   Package, BarChart2, TrendingUp,
 } from "lucide-react";
@@ -13,9 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { MOCK_COUPONS } from "@/lib/mock-data";
 import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getProducts } from "@/lib/api";
-import type { Product, Review } from "@/lib/mock-data";
+import type { Product, Review } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
 
 /* ── shared sub-components ────────────────────────────── */
@@ -379,8 +378,6 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
   }, []);
 
   const { toast } = useToast();
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedDiscount, setAppliedDiscount] = useState<number | null>(null);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [reviewName, setReviewName] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
@@ -396,28 +393,14 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
   const ratingCounts = [5, 4, 3, 2, 1].map(star => ({
     star, count: localReviews.filter(r => r.rating === star).length,
   }));
-  const finalPrice = appliedDiscount ? product.price * (1 - appliedDiscount / 100) : product.price;
-
   const handleSelectVariant = (label: string, value: string) =>
     setSelectedVariants(prev => ({ ...prev, [label]: prev[label] === value ? "" : value }));
-
-  const handleApplyCoupon = () => {
-    if (!couponCode.trim()) return;
-    const discount = MOCK_COUPONS[couponCode.toUpperCase() as keyof typeof MOCK_COUPONS];
-    if (discount) {
-      setAppliedDiscount(discount);
-      toast({ title: "Coupon applied!", description: `You got ${discount}% off on this order.` });
-    } else {
-      toast({ variant: "destructive", title: "Invalid coupon", description: "Please check the code and try again." });
-    }
-  };
 
   const handleOrder = () => {
     const variantSummary = product.variants?.filter(v => selectedVariants[v.label])
       .map(v => `${v.label}: ${selectedVariants[v.label]}`).join(", ");
     const variantText = variantSummary ? ` (${variantSummary})` : "";
-    const couponText = appliedDiscount ? ` I've applied the ${couponCode.toUpperCase()} coupon.` : "";
-    const text = `Hi! I'd like to order: ${product.name}${variantText} (Price: ₹${finalPrice.toLocaleString("en-IN")}).${couponText}`;
+    const text = `Hi! I'd like to order: ${product.name}${variantText} (Price: ₹${product.price.toLocaleString("en-IN")}).`;
     const number = storeWhatsapp.replace(/[^0-9]/g, "");
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank");
   };
@@ -458,11 +441,8 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
               <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
               <div className="flex items-baseline gap-3">
                 <span className="text-3xl font-extrabold text-primary">
-                  ₹{finalPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  ₹{product.price.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </span>
-                {appliedDiscount && (
-                  <span className="text-lg text-muted-foreground line-through">₹{product.price.toLocaleString("en-IN")}</span>
-                )}
               </div>
               {localReviews.length > 0 && (
                 <div className="flex items-center gap-1.5 mt-2">
@@ -509,26 +489,6 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
                 <span>This item is currently out of stock. You can still message the seller.</span>
               </div>
             )}
-
-            <div className="pt-4 border-t space-y-3">
-              <h3 className="font-semibold flex items-center text-sm"><Tag className="w-4 h-4 mr-2" /> Have a coupon?</h3>
-              {appliedDiscount ? (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex items-center text-green-700 dark:text-green-400 font-medium">
-                    <CheckCircle2 className="w-5 h-5 mr-2" />
-                    {couponCode.toUpperCase()} applied ({appliedDiscount}% off)
-                  </div>
-                  <Button variant="ghost" size="sm" className="text-green-700 dark:text-green-400 hover:text-green-800 hover:bg-green-100"
-                    onClick={() => { setAppliedDiscount(null); setCouponCode(""); }}>Remove</Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Input placeholder="ENTER CODE" className="h-12 rounded-xl uppercase" value={couponCode}
-                    onChange={e => setCouponCode(e.target.value)} data-testid="input-coupon" />
-                  <Button variant="secondary" className="h-12 px-6 rounded-xl" onClick={handleApplyCoupon} data-testid="btn-apply-coupon">Apply</Button>
-                </div>
-              )}
-            </div>
 
             <Button className="w-full h-14 text-lg rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent"
               onClick={handleOrder} data-testid="btn-order-whatsapp">

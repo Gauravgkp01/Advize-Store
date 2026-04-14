@@ -14,7 +14,7 @@ import { useStore } from "@/hooks/use-store";
 import { useTheme } from "@/hooks/use-theme";
 import { getProducts, getAnalytics, type AnalyticsSummary } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
-import type { Product } from "@/lib/mock-data";
+import type { Product } from "@/lib/api";
 
 /* ── helpers ────────────────────────────────────────── */
 function MiniStat({ icon, label, value, color }: {

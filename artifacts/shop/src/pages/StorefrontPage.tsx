@@ -5,7 +5,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { getStore, getProducts, trackClick } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
-import type { Product } from "@/lib/mock-data";
+import type { Product } from "@/lib/api";
 
 type PriceSort = "none" | "asc" | "desc";
 
