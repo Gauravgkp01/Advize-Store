@@ -1,8 +1,18 @@
 import { Router } from "express";
 import { db } from "../lib/firebase.js";
 import { FieldValue } from "firebase-admin/firestore";
+import { verifyToken } from "../middlewares/verifyToken.js";
 
 const router = Router();
+
+router.get("/stores", async (req, res) => {
+  const { owner_id } = req.query;
+  if (!owner_id) return res.status(400).json({ error: "owner_id is required" });
+  const snap = await db.collection("stores").where("owner_id", "==", owner_id).limit(1).get();
+  if (snap.empty) return res.status(404).json({ error: "Store not found" });
+  const doc = snap.docs[0];
+  return res.json({ id: doc.id, ...doc.data() });
+});
 
 router.get("/stores/id/:id", async (req, res) => {
   const doc = await db.collection("stores").doc(req.params.id).get();
@@ -17,8 +27,9 @@ router.get("/stores/:slug", async (req, res) => {
   return res.json({ id: doc.id, ...doc.data() });
 });
 
-router.post("/stores", async (req, res) => {
-  const { name, slug, whatsapp, category, location, owner_id } = req.body;
+router.post("/stores", verifyToken, async (req, res) => {
+  const owner_id = (req as any).uid;
+  const { name, slug, whatsapp, category, location } = req.body;
   if (!name || !slug || !whatsapp) {
     return res.status(400).json({ error: "name, slug, and whatsapp are required" });
   }

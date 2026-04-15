@@ -3,6 +3,8 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import NotFound from "@/pages/not-found";
 
 import { LandingPage } from "@/pages/LandingPage";
@@ -11,6 +13,8 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { AddProductPage } from "@/pages/AddProductPage";
 import { StorefrontPage } from "@/pages/StorefrontPage";
 import { ProductDetailPage } from "@/pages/ProductDetailPage";
+import { LoginPage } from "@/pages/LoginPage";
+import { SignupPage } from "@/pages/SignupPage";
 
 const queryClient = new QueryClient();
 
@@ -28,9 +32,17 @@ function Router() {
       <ScrollToTop />
       <Switch>
         <Route path="/" component={LandingPage} />
-        <Route path="/onboarding" component={OnboardingPage} />
-        <Route path="/dashboard" component={DashboardPage} />
-        <Route path="/add-product" component={AddProductPage} />
+        <Route path="/login" component={LoginPage} />
+        <Route path="/signup" component={SignupPage} />
+        <Route path="/onboarding">
+          <ProtectedRoute><OnboardingPage /></ProtectedRoute>
+        </Route>
+        <Route path="/dashboard">
+          <ProtectedRoute><DashboardPage /></ProtectedRoute>
+        </Route>
+        <Route path="/add-product">
+          <ProtectedRoute><AddProductPage /></ProtectedRoute>
+        </Route>
         <Route path="/store/:slug" component={StorefrontPage} />
         <Route path="/product/:id" component={ProductDetailPage} />
         <Route component={NotFound} />
@@ -44,7 +56,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
+          <AuthProvider>
+            <Router />
+          </AuthProvider>
         </WouterRouter>
         <Toaster />
       </TooltipProvider>

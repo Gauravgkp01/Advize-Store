@@ -1,0 +1,28 @@
+I have a React + Vite web app called Advize Store (monorepo, artifacts/shop). It uses Firebase (Firestore + Firebase Storage) as the database via an Express API server (artifacts/api-server).
+
+I need to add Firebase Auth (email/password) using the same Firebase project as my main app Advize, so users share the same uid across both platforms.
+
+What to build:
+
+Firebase frontend setup — Initialize Firebase Auth in the shop frontend using VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID, VITE_FIREBASE_APP_ID env vars
+
+AuthContext — A React context that exposes user, loading, signUp(email, password), signIn(email, password), signOut()
+
+Signup flow with OTP email verification:
+
+User fills name, email, password → clicks "Sign Up"
+Backend generates a 6-digit OTP, stores it in Firestore with a 10-minute expiry, and sends it to the user's email (via Nodemailer or similar)
+An OTP input box appears on screen immediately after form submission
+User enters the 6-digit code → backend verifies it against Firestore
+On success → Firebase createUserWithEmailAndPassword is called → user is created and logged in → redirect to /onboarding
+Login page (/login) — Email + password form. On success, check if user has a store (query /api/stores?owner_id=uid). If yes → /dashboard. If no → /onboarding
+
+Protected routes — Wrap /dashboard, /dashboard/*, /onboarding so unauthenticated users are redirected to /login
+
+Update store creation — In OnboardingPage.tsx, when calling createStore(), include owner_id: user.uid in the request body
+
+Update use-store.ts hook — Fetch the store using owner_id = user.uid on auth load instead of reading from localStorage
+
+Update API server — Add POST /api/auth/send-otp and POST /api/auth/verify-otp endpoints. Protect write endpoints with Firebase Admin token verification middleware. GET /api/stores?owner_id=uid and POST /api/stores should use owner_id
+
+Key constraint: Do not change the existing Firestore data structure. The stores collection already has an owner_id field (currently null) — just start populating it. The uid from Firebase Auth is the shared identity between Advize and Advize Store.

@@ -25,6 +25,7 @@ import {
 import { StepIndicator } from "@/components/StepIndicator";
 import { useToast } from "@/hooks/use-toast";
 import { createStore } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   businessName: z.string().min(2, { message: "Business name must be at least 2 characters." }),
@@ -47,6 +48,7 @@ function slugify(name: string): string {
 export function OnboardingPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -70,7 +72,8 @@ export function OnboardingPage() {
         whatsapp: values.whatsapp,
         category: values.category,
         location: values.shopLocation,
-      });
+        owner_id: user?.uid ?? null,
+      } as any);
 
       localStorage.setItem("shop_store_id", store.id);
       localStorage.setItem("shop_store_slug", store.slug);

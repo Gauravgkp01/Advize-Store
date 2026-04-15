@@ -1,3 +1,5 @@
+import { auth } from "@/lib/firebase";
+
 export type ProductVariant = {
   label: string;
   values: string[];
@@ -26,8 +28,17 @@ export type Review = {
 const BASE = `${import.meta.env.BASE_URL}api`;
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+  if (auth.currentUser) {
+    try {
+      const token = await auth.currentUser.getIdToken();
+      headers["Authorization"] = `Bearer ${token}`;
+    } catch {}
+  }
+
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers,
     ...options,
   });
   if (!res.ok) {
@@ -53,6 +64,21 @@ export const getStore = (slug: string) =>
 
 export const getStoreById = (id: string) =>
   request<Store>(`/stores/id/${id}`);
+
+export const getStoreByOwnerId = (owner_id: string) =>
+  request<Store>(`/stores?owner_id=${encodeURIComponent(owner_id)}`);
+
+export const sendOtp = (email: string) =>
+  request<{ message: string }>("/auth/send-otp", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+
+export const verifyOtp = (email: string, otp: string) =>
+  request<{ verified: boolean }>("/auth/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({ email, otp }),
+  });
 
 export const createStore = (body: Omit<Store, "id">) =>
   request<Store>("/stores", { method: "POST", body: JSON.stringify(body) });
