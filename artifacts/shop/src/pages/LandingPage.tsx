@@ -1,9 +1,12 @@
 import { Link } from "wouter";
-import { ArrowRight, Store, Share2, MessageCircle } from "lucide-react";
+import { ArrowRight, Store, Share2, MessageCircle, LogIn, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function LandingPage() {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
       <Navbar />
@@ -29,11 +32,28 @@ export function LandingPage() {
             No website, no coding, no complexity. Just a beautiful storefront that connects directly to your WhatsApp.
           </p>
           
-          <Button asChild size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-1" data-testid="btn-hero-create">
-            <Link href="/onboarding">
-              Create Your Store <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
+          {user ? (
+            <Button asChild size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-1" data-testid="btn-hero-dashboard">
+              <Link href="/dashboard">
+                Go to Dashboard <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <Button asChild size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 w-full sm:w-auto" data-testid="btn-hero-signup">
+                <Link href="/signup">
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  Get Started Free
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full w-full sm:w-auto" data-testid="btn-hero-signin">
+                <Link href="/login">
+                  <LogIn className="mr-2 h-5 w-5" />
+                  Sign In
+                </Link>
+              </Button>
+            </div>
+          )}
           <p className="mt-4 text-sm text-muted-foreground">100% free to set up. No credit card required.</p>
         </section>
 

@@ -27,6 +27,7 @@ export function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +57,11 @@ export function SignupPage() {
       toast({ title: "Account created!", description: "Welcome to Advize Store." });
       setLocation("/onboarding");
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Verification failed", description: e.message });
+      if (e?.code === "auth/email-already-in-use") {
+        setAlreadyRegistered(true);
+      } else {
+        toast({ variant: "destructive", title: "Verification failed", description: e.message });
+      }
     } finally {
       setLoading(false);
     }
@@ -87,7 +92,27 @@ export function SignupPage() {
         </div>
 
         <div className="bg-card p-6 rounded-3xl border shadow-sm space-y-5">
-          {stage === "form" ? (
+          {alreadyRegistered ? (
+            <div className="text-center space-y-4 py-2">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-yellow-100 dark:bg-yellow-900/30 mb-1">
+                <ShieldCheck className="w-7 h-7 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <p className="font-semibold text-foreground text-base">This email is already registered</p>
+              <p className="text-sm text-muted-foreground">
+                Looks like <span className="font-medium text-foreground">{email}</span> already has an Advize Store account.
+              </p>
+              <Button asChild className="w-full h-11 rounded-xl">
+                <Link href="/login">Sign in instead</Link>
+              </Button>
+              <button
+                type="button"
+                className="text-sm text-muted-foreground hover:text-foreground w-full"
+                onClick={() => { setAlreadyRegistered(false); setStage("form"); setOtp(""); }}
+              >
+                Use a different email
+              </button>
+            </div>
+          ) : stage === "form" ? (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="name">Full name</Label>
@@ -190,12 +215,14 @@ export function SignupPage() {
             </div>
           )}
 
-          <div className="text-center text-sm text-muted-foreground pt-2">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary font-medium hover:underline">
-              Sign in
-            </Link>
-          </div>
+          {!alreadyRegistered && (
+            <div className="text-center text-sm text-muted-foreground pt-2">
+              Already have an account?{" "}
+              <Link href="/login" className="text-primary font-medium hover:underline">
+                Sign in
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
