@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link, useSearch } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
-  QrCode, Download, Moon, Sun, Share2, Copy, Check,
+  QrCode, Download, Moon, Sun, Share2, Copy, Check, LogOut,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { AnalyticsSection } from "@/components/AnalyticsSection";
 import { useStore } from "@/hooks/use-store";
 import { useTheme } from "@/hooks/use-theme";
+import { useAuth } from "@/contexts/AuthContext";
 import { getProducts, getAnalytics, type AnalyticsSummary } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
@@ -322,6 +323,13 @@ export function DashboardPage() {
   const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
   const { dark, toggle: toggleDark } = useTheme();
   const { store, loading: storeLoading } = useStore();
+  const { signOut } = useAuth();
+  const [, setLocation] = useLocation();
+
+  const handleSignOut = async () => {
+    await signOut();
+    setLocation("/");
+  };
   const [products, setProducts] = useState<Product[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -388,14 +396,24 @@ export function DashboardPage() {
             </div>
             <span className="text-base font-bold text-foreground">Advize Store</span>
           </Link>
-          <Button
-            variant="ghost" size="icon"
-            onClick={toggleDark}
-            className="sm:hidden rounded-full h-8 w-8"
-            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {dark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
-          </Button>
+          <div className="sm:hidden flex items-center gap-1">
+            <Button
+              variant="ghost" size="icon"
+              onClick={toggleDark}
+              className="rounded-full h-8 w-8"
+              aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {dark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost" size="icon"
+              onClick={handleSignOut}
+              className="rounded-full h-8 w-8 text-muted-foreground hover:text-destructive"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
 
           <div className="hidden sm:flex items-center gap-1 bg-muted rounded-full p-1">
             {TABS.map((tab, i) => (
@@ -423,6 +441,15 @@ export function DashboardPage() {
               aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
             >
               {dark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost" size="icon"
+              onClick={handleSignOut}
+              className="rounded-full h-8 w-8 text-muted-foreground hover:text-destructive"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
