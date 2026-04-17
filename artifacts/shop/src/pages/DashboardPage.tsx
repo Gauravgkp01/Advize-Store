@@ -38,19 +38,55 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
 }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const qrRef = useRef<HTMLDivElement>(null);
+
+  /* Extract the rendered QR canvas as a PNG File */
+  const getQrFile = (): File | null => {
+    const canvas = qrRef.current?.querySelector("canvas");
+    if (!canvas) return null;
+    // Render onto a larger canvas with padding so it looks clean when shared
+    const pad = 24;
+    const out = document.createElement("canvas");
+    out.width = canvas.width + pad * 2;
+    out.height = canvas.height + pad * 2;
+    const ctx = out.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(canvas, pad, pad);
+    const dataUrl = out.toDataURL("image/png");
+    const arr = dataUrl.split(",");
+    const mime = arr[0].match(/:(.*?);/)![1];
+    const bstr = atob(arr[1]);
+    const bytes = new Uint8Array(bstr.length);
+    for (let i = 0; i < bstr.length; i++) bytes[i] = bstr.charCodeAt(i);
+    return new File([bytes], `${storeName.toLowerCase().replace(/\s+/g, "-")}-qr.png`, { type: mime });
+  };
 
   const handleShare = async () => {
+    const file = getQrFile();
+    const shareData = {
+      title: `${storeName} — Shop Online`,
+      text: `Scan this QR code or tap the link to visit ${storeName}'s store! 🛍️\n${storeUrl}`,
+      url: storeUrl,
+      ...(file ? { files: [file] } : {}),
+    };
+
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: `${storeName} — Shop Online`,
-          text: `Check out ${storeName}'s store!`,
-          url: storeUrl,
-        });
+        /* Try sharing with QR image file first */
+        if (file && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ title: shareData.title, text: shareData.text, files: [file] });
+        } else {
+          await navigator.share({ title: shareData.title, text: shareData.text, url: storeUrl });
+        }
         return;
-      } catch {}
+      } catch (e: any) {
+        if (e?.name === "AbortError") return; // user cancelled — don't fall through
+      }
     }
-    // Fallback: copy to clipboard
+
+    // Fallback: copy link to clipboard
     try {
       await navigator.clipboard.writeText(storeUrl);
       setCopied(true);
@@ -61,7 +97,7 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
     }
   };
 
-  const qrSize = compact ? 96 : 180;
+  const qrSize = compact ? 96 : 200;
 
   return (
     <div className={`bg-card border rounded-2xl p-4 ${compact ? "" : "sm:p-5"}`} data-testid="qr-code-card">
@@ -71,14 +107,14 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
       </div>
       <p className="text-[11px] text-muted-foreground mb-4">
         {compact
-          ? "Let customers scan to visit your store."
+          ? "Share the QR code — customers scan it to visit your store."
           : "Share this with customers — they scan it and land straight on your store."}
       </p>
 
       {compact ? (
         /* Compact layout: QR on left, actions on right */
         <div className="flex items-center gap-4">
-          <div className="p-2 bg-white rounded-xl border shadow-sm shrink-0">
+          <div ref={qrRef} className="p-2 bg-white rounded-xl border shadow-sm shrink-0">
             <QRCodeCanvas
               value={storeUrl}
               size={qrSize}
@@ -91,14 +127,14 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
             <p className="text-[10px] text-muted-foreground break-all leading-relaxed">{storeUrl}</p>
             <Button onClick={handleShare} size="sm" className="w-full rounded-full text-xs" data-testid="btn-share-link-qr">
               {copied ? <Check className="h-3 w-3 mr-1.5" /> : <Share2 className="h-3 w-3 mr-1.5" />}
-              {copied ? "Copied!" : "Share Store Link"}
+              {copied ? "Copied!" : "Share QR Code"}
             </Button>
           </div>
         </div>
       ) : (
         /* Full layout: centred */
         <div className="flex flex-col items-center gap-3">
-          <div className="p-4 bg-white rounded-2xl border shadow-sm">
+          <div ref={qrRef} className="p-4 bg-white rounded-2xl border shadow-sm">
             <QRCodeCanvas
               value={storeUrl}
               size={qrSize}
@@ -112,7 +148,7 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
           </p>
           <Button onClick={handleShare} className="w-full rounded-full" size="sm" data-testid="btn-share-link-qr-full">
             {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Share2 className="h-3.5 w-3.5 mr-1.5" />}
-            {copied ? "Copied!" : "Share Store Link"}
+            {copied ? "Copied!" : "Share QR Code"}
           </Button>
         </div>
       )}
