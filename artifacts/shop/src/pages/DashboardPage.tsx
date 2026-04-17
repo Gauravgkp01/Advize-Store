@@ -3,7 +3,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
-  QrCode, Download, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
+  QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -36,21 +36,8 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
   storeName: string;
   compact?: boolean;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-
-  const handleDownload = () => {
-    const canvas = containerRef.current?.querySelector("canvas");
-    if (!canvas) return;
-    const png = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = png;
-    a.download = `${storeName.toLowerCase().replace(/\s+/g, "-")}-qr-code.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -91,7 +78,7 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
       {compact ? (
         /* Compact layout: QR on left, actions on right */
         <div className="flex items-center gap-4">
-          <div ref={containerRef} className="p-2 bg-white rounded-xl border shadow-sm shrink-0">
+          <div className="p-2 bg-white rounded-xl border shadow-sm shrink-0">
             <QRCodeCanvas
               value={storeUrl}
               size={qrSize}
@@ -102,20 +89,16 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
           </div>
           <div className="flex-1 min-w-0 flex flex-col gap-2">
             <p className="text-[10px] text-muted-foreground break-all leading-relaxed">{storeUrl}</p>
-            <Button onClick={handleDownload} size="sm" variant="outline" className="w-full rounded-full text-xs" data-testid="btn-download-qr">
-              <Download className="h-3 w-3 mr-1.5" />
-              Download PNG
-            </Button>
             <Button onClick={handleShare} size="sm" className="w-full rounded-full text-xs" data-testid="btn-share-link-qr">
               {copied ? <Check className="h-3 w-3 mr-1.5" /> : <Share2 className="h-3 w-3 mr-1.5" />}
-              {copied ? "Copied!" : "Share Link"}
+              {copied ? "Copied!" : "Share Store Link"}
             </Button>
           </div>
         </div>
       ) : (
         /* Full layout: centred */
         <div className="flex flex-col items-center gap-3">
-          <div ref={containerRef} className="p-4 bg-white rounded-2xl border shadow-sm">
+          <div className="p-4 bg-white rounded-2xl border shadow-sm">
             <QRCodeCanvas
               value={storeUrl}
               size={qrSize}
@@ -127,16 +110,10 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
           <p className="text-[10px] text-muted-foreground text-center break-all max-w-[240px] leading-relaxed">
             {storeUrl}
           </p>
-          <div className="w-full flex gap-2">
-            <Button onClick={handleDownload} variant="outline" className="flex-1 rounded-full" size="sm" data-testid="btn-download-qr-full">
-              <Download className="h-3.5 w-3.5 mr-1.5" />
-              Download
-            </Button>
-            <Button onClick={handleShare} className="flex-1 rounded-full" size="sm" data-testid="btn-share-link-qr-full">
-              {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Share2 className="h-3.5 w-3.5 mr-1.5" />}
-              {copied ? "Copied!" : "Share Link"}
-            </Button>
-          </div>
+          <Button onClick={handleShare} className="w-full rounded-full" size="sm" data-testid="btn-share-link-qr-full">
+            {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Share2 className="h-3.5 w-3.5 mr-1.5" />}
+            {copied ? "Copied!" : "Share Store Link"}
+          </Button>
         </div>
       )}
     </div>
