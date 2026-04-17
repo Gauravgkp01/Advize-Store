@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Copy, Share } from "lucide-react";
+import { Copy, Share, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/lib/api";
@@ -9,10 +9,11 @@ interface ProductCardProps {
   showActions?: boolean;
   onDelete?: () => void;
   productHref?: string;
+  reviewSummary?: { avg: number; count: number };
 }
 
 
-export function ProductCard({ product, showActions = true, productHref, onDelete }: ProductCardProps) {
+export function ProductCard({ product, showActions = true, productHref, onDelete, reviewSummary }: ProductCardProps) {
   const { toast } = useToast();
   const inStock = product.units > 0;
 
@@ -62,15 +63,27 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
               {product.name}
             </h3>
 
-            <p className="text-sm sm:text-base font-extrabold text-primary leading-tight">
-              ₹{product.price.toLocaleString("en-IN")}
-            </p>
-
-            {product.variants && product.variants.length > 0 && (
-              <p className="text-[10px] text-muted-foreground line-clamp-1">
-                {product.variants.map(v => v.label).join(" · ")}
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-sm sm:text-base font-extrabold text-primary leading-tight">
+                ₹{product.price.toLocaleString("en-IN")}
               </p>
-            )}
+              {reviewSummary && reviewSummary.count > 0 ? (
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  <span className="text-[10px] font-semibold text-foreground leading-none">
+                    {reviewSummary.avg.toFixed(1)}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground leading-none">
+                    ({reviewSummary.count})
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Star className="w-3 h-3 text-muted-foreground/30" />
+                  <span className="text-[9px] text-muted-foreground leading-none">No reviews</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </Link>

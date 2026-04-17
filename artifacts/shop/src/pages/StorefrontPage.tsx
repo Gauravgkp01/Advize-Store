@@ -148,6 +148,19 @@ export function StorefrontPage() {
     return (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1);
   }, [reviews]);
 
+  const productReviewMap = useMemo(() => {
+    const map: Record<string, { avg: number; count: number }> = {};
+    for (const r of reviews) {
+      if (!map[r.product_id]) map[r.product_id] = { avg: 0, count: 0 };
+      map[r.product_id].count++;
+      map[r.product_id].avg += r.rating;
+    }
+    for (const pid in map) {
+      map[pid].avg = map[pid].avg / map[pid].count;
+    }
+    return map;
+  }, [reviews]);
+
   const cyclePriceSort = () => {
     setPriceSort(prev =>
       prev === "none" ? "asc" : prev === "asc" ? "desc" : "none"
@@ -298,7 +311,11 @@ export function StorefrontPage() {
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-10">
             {filteredProducts.map((product) => (
               <div key={product.id} onClick={() => handleProductClick(product)}>
-                <ProductCard product={product} showActions={false} />
+                <ProductCard
+                  product={product}
+                  showActions={false}
+                  reviewSummary={productReviewMap[product.id]}
+                />
               </div>
             ))}
           </div>

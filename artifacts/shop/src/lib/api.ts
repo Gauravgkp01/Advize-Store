@@ -19,6 +19,7 @@ export type Product = {
 
 export type Review = {
   id: string;
+  product_id: string;
   name: string;
   rating: number;
   comment: string;
@@ -158,6 +159,7 @@ export interface ApiReview {
 function toReview(r: ApiReview): Review {
   return {
     id: r.id,
+    product_id: r.product_id,
     name: r.name,
     rating: r.rating,
     comment: r.comment,
