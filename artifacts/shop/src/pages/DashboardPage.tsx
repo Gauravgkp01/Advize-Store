@@ -3,7 +3,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
-  QrCode, Download, Moon, Sun, Share2, Copy, Check, LogOut,
+  QrCode, Download, Moon, Sun, Share2, Copy, Check, LogOut, Flame,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { AnalyticsSection } from "@/components/AnalyticsSection";
 import { useStore } from "@/hooks/use-store";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { getProducts, getAnalytics, type AnalyticsSummary } from "@/lib/api";
+import { getProducts, getAnalytics, updateProduct, type AnalyticsSummary } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
 
@@ -270,10 +270,29 @@ function MyStorePanel({ store, products }: {
   );
 }
 
-function ListingsPanel({ products, onRefresh }: {
+function ListingsPanel({ products, onRefresh, onProductsChange }: {
   products: Product[];
   onRefresh: () => void;
+  onProductsChange: (updated: Product) => void;
 }) {
+  const { toast } = useToast();
+
+  const handleToggleTrending = async (product: Product) => {
+    const newVal = !product.trending;
+    try {
+      await updateProduct(product.id, { trending: newVal } as any);
+      onProductsChange({ ...product, trending: newVal });
+      toast({
+        title: newVal ? "Added to Trending 🔥" : "Removed from Trending",
+        description: newVal
+          ? `"${product.name}" will appear in the Trending section.`
+          : `"${product.name}" removed from Trending.`,
+      });
+    } catch {
+      toast({ variant: "destructive", title: "Failed to update", description: "Please try again." });
+    }
+  };
+
   return (
     <div className="p-3 pb-28">
       <div className="flex items-center justify-between mb-4 pt-1">
@@ -296,11 +315,23 @@ function ListingsPanel({ products, onRefresh }: {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5">
-          {products.map(product => (
-            <ProductCard key={product.id} product={product} showActions={true} onDelete={onRefresh} productHref={`/product/${product.id}?from=dashboard`} />
-          ))}
-        </div>
+        <>
+          <p className="text-[10px] text-muted-foreground mb-3 flex items-center gap-1">
+            Tap <span className="inline-flex items-center gap-0.5 text-orange-500 font-semibold"><Flame className="h-3 w-3" /> flame</span> to pin a product to the Trending section on your store.
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {products.map(product => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                showActions={true}
+                onDelete={onRefresh}
+                onToggleTrending={() => handleToggleTrending(product)}
+                productHref={`/product/${product.id}?from=dashboard`}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -493,6 +524,9 @@ export function DashboardPage() {
               <ListingsPanel
                 products={products}
                 onRefresh={() => store?.id && loadData(store.id)}
+                onProductsChange={(updated) =>
+                  setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))
+                }
               />
             </div>
           </div>

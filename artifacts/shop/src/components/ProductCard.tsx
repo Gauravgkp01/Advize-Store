@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Copy, Share, Star } from "lucide-react";
+import { Copy, Share, Star, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/lib/api";
@@ -8,12 +8,13 @@ interface ProductCardProps {
   product: Product;
   showActions?: boolean;
   onDelete?: () => void;
+  onToggleTrending?: () => void;
   productHref?: string;
   reviewSummary?: { avg: number; count: number };
 }
 
 
-export function ProductCard({ product, showActions = true, productHref, onDelete, reviewSummary }: ProductCardProps) {
+export function ProductCard({ product, showActions = true, productHref, onDelete, onToggleTrending, reviewSummary }: ProductCardProps) {
   const { toast } = useToast();
   const inStock = product.units > 0;
 
@@ -138,16 +139,22 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
             <Copy className="h-3 w-3 mr-1" />
             Copy
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 rounded-lg h-7 sm:h-8 text-[10px] sm:text-xs px-1 bg-background hover:bg-muted"
-            onClick={handleShare}
-            data-testid={`btn-share-${product.id}`}
-          >
-            <Share className="h-3 w-3 mr-1" />
-            Share
-          </Button>
+          {onToggleTrending && (
+            <Button
+              variant={product.trending ? "default" : "outline"}
+              size="sm"
+              className={`rounded-lg h-7 sm:h-8 text-[10px] sm:text-xs px-2 shrink-0 transition-all ${
+                product.trending
+                  ? "bg-orange-500 hover:bg-orange-600 border-orange-500 text-white"
+                  : "bg-background hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600"
+              }`}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleTrending(); }}
+              data-testid={`btn-trending-${product.id}`}
+              title={product.trending ? "Remove from Trending" : "Add to Trending"}
+            >
+              <Flame className={`h-3 w-3 ${product.trending ? "fill-white" : ""}`} />
+            </Button>
+          )}
         </div>
       </div>
     </Link>

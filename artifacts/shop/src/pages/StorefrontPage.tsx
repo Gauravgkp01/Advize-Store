@@ -182,8 +182,10 @@ export function StorefrontPage() {
     return map;
   }, [reviews]);
 
-  /* Trending = top-rated reviewed products first, then fill with rest */
+  /* Trending = merchant-pinned products first; if none pinned, fall back to review-sorted */
   const trendingProducts = useMemo(() => {
+    const pinned = products.filter(p => p.trending);
+    if (pinned.length > 0) return pinned;
     const withReviews = products
       .filter(p => productReviewMap[p.id])
       .sort((a, b) => (productReviewMap[b.id]?.avg ?? 0) - (productReviewMap[a.id]?.avg ?? 0));

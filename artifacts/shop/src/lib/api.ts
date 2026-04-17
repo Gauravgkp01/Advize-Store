@@ -14,6 +14,7 @@ export type Product = {
   imageUrl: string;
   category: string;
   units: number;
+  trending?: boolean;
   variants?: ProductVariant[];
 };
 
@@ -97,6 +98,7 @@ export interface ApiProduct {
   image_url: string;
   category: string;
   units: number;
+  trending?: boolean;
   variants: { id: string; label: string; values: string[] }[];
 }
 
@@ -110,6 +112,7 @@ function toProduct(p: ApiProduct): Product {
     imageUrl: p.image_url ?? "",
     category: p.category ?? "",
     units: p.units ?? 0,
+    trending: p.trending ?? false,
     variants: (p.variants ?? []).map(v => ({ label: v.label, values: v.values })),
   };
 }
@@ -140,6 +143,7 @@ export const updateProduct = (id: string, body: Partial<{
   image_url: string;
   category: string;
   units: number;
+  trending: boolean;
   variants: ProductVariant[];
 }>) => request<ApiProduct>(`/products/${id}`, { method: "PATCH", body: JSON.stringify(body) }).then(toProduct);
 
