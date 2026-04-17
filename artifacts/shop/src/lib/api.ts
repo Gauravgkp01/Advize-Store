@@ -59,6 +59,7 @@ export interface Store {
   whatsapp: string;
   category?: string;
   location?: string;
+  logo_url?: string;
 }
 
 export const getStore = (slug: string) =>

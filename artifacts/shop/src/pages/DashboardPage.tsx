@@ -3,7 +3,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
-  QrCode, Download, Moon, Sun, Share2, Copy, Check, LogOut, Flame,
+  QrCode, Download, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { AnalyticsSection } from "@/components/AnalyticsSection";
 import { useStore } from "@/hooks/use-store";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { getProducts, getAnalytics, updateProduct, type AnalyticsSummary } from "@/lib/api";
+import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, type AnalyticsSummary } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
 
@@ -218,22 +218,75 @@ function HomePanel({ products, analytics, store }: {
   );
 }
 
-function MyStorePanel({ store, products }: {
+function MyStorePanel({ store, products, onLogoChange }: {
   store: StoreType | null;
   products: Product[];
+  onLogoChange: (url: string) => void;
 }) {
+  const { toast } = useToast();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+
   const storeUrl = store?.slug
     ? `${window.location.origin}/store/${store.slug}`
     : "";
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !store?.id) return;
+    setLogoUploading(true);
+    try {
+      const url = await uploadImage(file);
+      await updateStore(store.id, { logo_url: url } as any);
+      onLogoChange(url);
+      toast({ title: "Logo updated!", description: "Your store logo has been saved." });
+    } catch {
+      toast({ variant: "destructive", title: "Upload failed", description: "Please try again." });
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
 
   return (
     <div className="pb-28">
       <div className="bg-primary text-primary-foreground py-8 px-4 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
         <div className="flex flex-col items-center text-center relative z-10">
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-3 shadow-lg text-primary">
-            <Store className="w-8 h-8" />
-          </div>
+
+          {/* Tappable logo */}
+          <button
+            onClick={() => logoInputRef.current?.click()}
+            disabled={logoUploading}
+            className="relative w-20 h-20 mb-3 group"
+            title="Change store logo"
+          >
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-white shadow-lg border-2 border-white/40 flex items-center justify-center text-primary">
+              {store?.logo_url ? (
+                <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
+              ) : (
+                <Store className="w-9 h-9" />
+              )}
+            </div>
+            {/* Overlay hint */}
+            <div className={`absolute inset-0 rounded-full bg-black/40 flex items-center justify-center transition-opacity ${
+              logoUploading ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            }`}>
+              {logoUploading
+                ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+                : <Camera className="w-5 h-5 text-white" />
+              }
+            </div>
+          </button>
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleLogoChange}
+          />
+          <p className="text-primary-foreground/60 text-[10px] mb-2">Tap logo to change</p>
+
           <h2 className="text-2xl font-bold">{store?.name ?? "My Shop"}</h2>
           {store?.category && (
             <p className="text-primary-foreground/80 bg-black/10 px-3 py-0.5 rounded-full text-xs font-medium mt-1.5">
@@ -353,7 +406,7 @@ export function DashboardPage() {
   const panelScrollTops = useRef<number[]>([0, 0, 0]);
   const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
   const { dark, toggle: toggleDark } = useTheme();
-  const { store, loading: storeLoading } = useStore();
+  const { store, loading: storeLoading, setStore } = useStore();
   const { signOut } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -517,7 +570,11 @@ export function DashboardPage() {
             </div>
 
             <div ref={el => { panelRefs.current[1] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-              <MyStorePanel store={store} products={products} />
+              <MyStorePanel
+                store={store}
+                products={products}
+                onLogoChange={(url) => setStore(prev => prev ? { ...prev, logo_url: url } : prev)}
+              />
             </div>
 
             <div ref={el => { panelRefs.current[2] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">

@@ -252,8 +252,12 @@ export function StorefrontPage() {
       <header className="bg-primary text-primary-foreground py-4 px-4 sm:px-6 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
         <div className="container max-w-5xl mx-auto relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0 backdrop-blur-sm">
-            <Store className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border-2 border-white/30 bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            {store.logo_url ? (
+              <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
+            ) : (
+              <Store className="w-5 h-5 text-white" />
+            )}
           </div>
           <div className="min-w-0">
             <h1 className="text-base sm:text-lg font-bold leading-tight truncate">{store.name}</h1>
