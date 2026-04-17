@@ -73,7 +73,7 @@ function TrendingCard({
   return (
     <Link
       href={`/product/${product.id}`}
-      className="block shrink-0 w-36 sm:w-40"
+      className="block shrink-0 w-28 sm:w-32"
       onClick={onClick}
     >
       <div className="bg-card border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all hover:border-primary/30">
@@ -188,7 +188,7 @@ export function StorefrontPage() {
       .filter(p => productReviewMap[p.id])
       .sort((a, b) => (productReviewMap[b.id]?.avg ?? 0) - (productReviewMap[a.id]?.avg ?? 0));
     const withoutReviews = products.filter(p => !productReviewMap[p.id]);
-    return [...withReviews, ...withoutReviews].slice(0, 8);
+    return [...withReviews, ...withoutReviews];
   }, [products, productReviewMap]);
 
   const filteredProducts = useMemo(() => {
@@ -301,15 +301,21 @@ export function StorefrontPage() {
               <TrendingUp className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-bold text-foreground">Trending Now</h2>
             </div>
-            <div className="flex gap-3 overflow-x-auto px-2.5 sm:px-0 pb-1 scrollbar-none">
-              {trendingProducts.map(product => (
-                <TrendingCard
-                  key={product.id}
-                  product={product}
-                  reviewSummary={productReviewMap[product.id]}
-                  onClick={() => handleProductClick(product)}
-                />
-              ))}
+            <div className="relative">
+              <div className="flex gap-2.5 overflow-x-auto px-2.5 sm:px-0 pb-2 scrollbar-none">
+                {trendingProducts.map(product => (
+                  <TrendingCard
+                    key={product.id}
+                    product={product}
+                    reviewSummary={productReviewMap[product.id]}
+                    onClick={() => handleProductClick(product)}
+                  />
+                ))}
+                {/* trailing spacer */}
+                <div className="shrink-0 w-1" />
+              </div>
+              {/* right fade hint */}
+              <div className="pointer-events-none absolute right-0 top-0 bottom-2 w-10 bg-gradient-to-l from-background to-transparent sm:hidden" />
             </div>
           </div>
         )}
