@@ -174,6 +174,11 @@ export const getReviews = (product_id: string) =>
     list.map(toReview)
   );
 
+export const getStoreReviews = (store_id: string) =>
+  request<ApiReview[]>(`/reviews?store_id=${store_id}`).then(list =>
+    list.map(toReview)
+  );
+
 export const createReview = (body: {
   product_id: string;
   name: string;
