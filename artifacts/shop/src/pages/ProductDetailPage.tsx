@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "wouter";
 import {
   ArrowLeft, MessageCircle,
   AlertCircle, Star, Loader2, MousePointerClick,
-  Package, BarChart2, TrendingUp,
+  Package, BarChart2, TrendingUp, ZoomIn, ZoomOut, X, RotateCcw,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -361,6 +361,154 @@ function OwnerView({ product, reviews, analytics }: {
   );
 }
 
+/* ── Zoomable image lightbox ──────────────────────────── */
+function ZoomableImage({ src, alt }: { src: string; alt: string }) {
+  const [open, setOpen] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const lastDist = useRef<number | null>(null);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
+  const dragging = useRef(false);
+
+  const clampScale = (s: number) => Math.min(5, Math.max(1, s));
+
+  const reset = () => { setScale(1); setTranslate({ x: 0, y: 0 }); };
+  const close = () => { setOpen(false); reset(); };
+  const zoomIn  = () => setScale(s => clampScale(s + 0.5));
+  const zoomOut = () => setScale(s => {
+    const next = clampScale(s - 0.5);
+    if (next === 1) setTranslate({ x: 0, y: 0 });
+    return next;
+  });
+
+  const onWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    setScale(s => clampScale(s - e.deltaY * 0.005));
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastDist.current = Math.hypot(dx, dy);
+    } else {
+      lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      dragging.current = true;
+    }
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (e.touches.length === 2 && lastDist.current !== null) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      setScale(s => clampScale(s * (dist / lastDist.current!)));
+      lastDist.current = dist;
+    } else if (e.touches.length === 1 && lastPos.current && dragging.current) {
+      const dx = e.touches[0].clientX - lastPos.current.x;
+      const dy = e.touches[0].clientY - lastPos.current.y;
+      setTranslate(t => ({ x: t.x + dx, y: t.y + dy }));
+      lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  };
+
+  const onTouchEnd = () => {
+    lastDist.current = null;
+    lastPos.current = null;
+    dragging.current = false;
+  };
+
+  return (
+    <>
+      {/* Main image – click to open lightbox */}
+      <div
+        className="relative w-full cursor-zoom-in select-none bg-muted/20"
+        onClick={() => setOpen(true)}
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="w-full object-contain object-top max-h-[70vw] sm:max-h-[460px]"
+          draggable={false}
+        />
+        <div className="absolute bottom-2 right-2 bg-black/40 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm flex items-center gap-1 pointer-events-none">
+          <ZoomIn className="w-3 h-3" /> Tap to zoom
+        </div>
+      </div>
+
+      {/* Lightbox */}
+      {open && (
+        <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col touch-none" style={{ userSelect: "none" }}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 shrink-0">
+            <span className="text-white/60 text-sm truncate max-w-[70%]">{alt}</span>
+            <button
+              onClick={close}
+              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Zoomable image area */}
+          <div
+            className="flex-1 overflow-hidden flex items-center justify-center"
+            onWheel={onWheel}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            <img
+              src={src}
+              alt={alt}
+              draggable={false}
+              className="select-none"
+              style={{
+                maxWidth: "100vw",
+                maxHeight: "100%",
+                objectFit: "contain",
+                transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
+                transition: dragging.current ? "none" : "transform 0.15s ease",
+              }}
+            />
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center justify-center gap-3 py-4 shrink-0">
+            <button
+              onClick={zoomOut}
+              disabled={scale <= 1}
+              className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ZoomOut className="w-5 h-5" />
+            </button>
+            <span className="text-white text-sm font-semibold w-14 text-center tabular-nums">
+              {Math.round(scale * 100)}%
+            </span>
+            <button
+              onClick={zoomIn}
+              disabled={scale >= 5}
+              className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ZoomIn className="w-5 h-5" />
+            </button>
+            {scale > 1 && (
+              <button
+                onClick={reset}
+                className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                title="Reset zoom"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ── Buyer (public) view ──────────────────────────────── */
 function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts }: {
   product: Product;
@@ -430,8 +578,8 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
 
       <main className="flex-1 container max-w-4xl mx-auto px-0 sm:px-6 py-0 sm:py-8 space-y-6">
         <div className="bg-card sm:border sm:rounded-3xl overflow-hidden shadow-sm flex flex-col md:flex-row">
-          <div className="w-full md:w-1/2 aspect-square md:aspect-auto md:min-h-[500px] relative bg-muted">
-            <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
+          <div className="w-full md:w-1/2 md:min-h-[500px] bg-muted/10 flex items-start">
+            <ZoomableImage src={product.imageUrl} alt={product.name} />
           </div>
           <div className="w-full md:w-1/2 p-6 sm:p-10 flex flex-col gap-5">
             <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium bg-muted/50 text-muted-foreground w-fit">
