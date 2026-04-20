@@ -289,7 +289,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
     setLogoUploading(true);
     try {
       const url = await uploadImage(file);
-      await updateStore(store.id, { logo_url: url } as any);
+      await updateStore(store.id, { logo_url: url });
       onLogoChange(url);
       toast({ title: "Logo updated!", description: "Your store logo has been saved." });
     } catch {
