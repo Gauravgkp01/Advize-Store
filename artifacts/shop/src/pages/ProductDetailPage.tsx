@@ -526,6 +526,8 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
   }, []);
 
   const { toast } = useToast();
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const images = product.imageUrls.length > 0 ? product.imageUrls : [product.imageUrl];
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [reviewName, setReviewName] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
@@ -578,8 +580,24 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
 
       <main className="flex-1 container max-w-4xl mx-auto px-0 sm:px-6 py-0 sm:py-8 space-y-6">
         <div className="bg-card sm:border sm:rounded-3xl overflow-hidden shadow-sm flex flex-col md:flex-row">
-          <div className="w-full md:w-1/2 md:min-h-[500px] bg-muted/10 flex items-start">
-            <ZoomableImage src={product.imageUrl} alt={product.name} />
+          <div className="w-full md:w-1/2 md:min-h-[500px] bg-muted/10 flex flex-col">
+            <ZoomableImage src={images[activeImageIdx] ?? product.imageUrl} alt={product.name} />
+            {/* Thumbnail strip — only when multiple images */}
+            {images.length > 1 && (
+              <div className="flex gap-2 px-3 py-2 overflow-x-auto scrollbar-hide">
+                {images.map((url, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImageIdx(idx)}
+                    className={`w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+                      idx === activeImageIdx ? "border-primary shadow-md" : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="w-full md:w-1/2 p-6 sm:p-10 flex flex-col gap-5">
             <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium bg-muted/50 text-muted-foreground w-fit">

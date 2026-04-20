@@ -12,6 +12,7 @@ export type Product = {
   price: number;
   description: string;
   imageUrl: string;
+  imageUrls: string[];
   category: string;
   units: number;
   trending?: boolean;
@@ -97,6 +98,7 @@ export interface ApiProduct {
   price: number;
   description: string;
   image_url: string;
+  image_urls?: string[];
   category: string;
   units: number;
   trending?: boolean;
@@ -104,13 +106,20 @@ export interface ApiProduct {
 }
 
 function toProduct(p: ApiProduct): Product {
+  const imageUrls =
+    p.image_urls && p.image_urls.length > 0
+      ? p.image_urls
+      : p.image_url
+      ? [p.image_url]
+      : [];
   return {
     id: p.id,
     storeId: p.store_id,
     name: p.name,
     price: p.price,
     description: p.description ?? "",
-    imageUrl: p.image_url ?? "",
+    imageUrl: imageUrls[0] ?? "",
+    imageUrls,
     category: p.category ?? "",
     units: p.units ?? 0,
     trending: p.trending ?? false,
@@ -132,6 +141,7 @@ export const createProduct = (body: {
   price: number;
   description?: string;
   image_url?: string;
+  image_urls?: string[];
   category?: string;
   units?: number;
   variants?: ProductVariant[];
@@ -142,6 +152,7 @@ export const updateProduct = (id: string, body: Partial<{
   price: number;
   description: string;
   image_url: string;
+  image_urls: string[];
   category: string;
   units: number;
   trending: boolean;

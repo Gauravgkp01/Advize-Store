@@ -38,13 +38,16 @@ router.get("/products/:id", async (req, res) => {
 });
 
 router.post("/products", async (req, res) => {
-  const { store_id, name, price, description, image_url, category, units, variants } = req.body;
+  const { store_id, name, price, description, image_url, image_urls, category, units, variants } = req.body;
   if (!store_id || !name || !price) {
     return res.status(400).json({ error: "store_id, name, and price are required" });
   }
+  const primaryUrl = (image_urls && image_urls.length > 0) ? image_urls[0] : (image_url ?? "");
   const ref = await db.collection("products").add({
     store_id, name, price, description: description ?? "",
-    image_url: image_url ?? "", category: category ?? "",
+    image_url: primaryUrl,
+    image_urls: image_urls ?? (primaryUrl ? [primaryUrl] : []),
+    category: category ?? "",
     units: units ?? 0,
     created_at: FieldValue.serverTimestamp(),
   });

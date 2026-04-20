@@ -4,6 +4,7 @@ import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
+  Pencil, Phone, MapPin, Tag,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { AnalyticsSection } from "@/components/AnalyticsSection";
 import { useStore } from "@/hooks/use-store";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { Input } from "@/components/ui/input";
 import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, type AnalyticsSummary } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
@@ -231,14 +233,51 @@ function HomePanel({ products, analytics, store }: {
   );
 }
 
-function MyStorePanel({ store, products, onLogoChange }: {
+function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
   store: StoreType | null;
   products: Product[];
   onLogoChange: (url: string) => void;
+  onStoreChange: (updated: StoreType) => void;
 }) {
   const { toast } = useToast();
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [logoUploading, setLogoUploading] = useState(false);
+
+  /* ── edit store state ── */
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const openEdit = () => {
+    setEditName(store?.name ?? "");
+    setEditPhone(store?.whatsapp ?? "");
+    setEditLocation(store?.location ?? "");
+    setEditCategory(store?.category ?? "");
+    setEditing(true);
+  };
+
+  const handleSaveStore = async () => {
+    if (!store?.id) return;
+    setSaving(true);
+    try {
+      const updated = await updateStore(store.id, {
+        name: editName.trim() || store.name,
+        whatsapp: editPhone.trim(),
+        location: editLocation.trim(),
+        category: editCategory.trim(),
+      });
+      onStoreChange(updated);
+      setEditing(false);
+      toast({ title: "Store updated!", description: "Your store details have been saved." });
+    } catch {
+      toast({ variant: "destructive", title: "Failed to update store", description: "Please try again." });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const storeUrl = store?.slug
     ? `${window.location.origin}/store/${store.slug}`
@@ -265,6 +304,16 @@ function MyStorePanel({ store, products, onLogoChange }: {
     <div className="pb-28">
       <div className="bg-primary text-primary-foreground py-8 px-4 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
+
+        {/* Edit button */}
+        <button
+          onClick={openEdit}
+          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+          title="Edit store details"
+        >
+          <Pencil className="w-3.5 h-3.5 text-white" />
+        </button>
+
         <div className="flex flex-col items-center text-center relative z-10">
 
           {/* Tappable logo */}
@@ -312,6 +361,39 @@ function MyStorePanel({ store, products, onLogoChange }: {
         </div>
       </div>
 
+      {/* ── Inline edit store form ── */}
+      {editing && (
+        <div className="mx-2.5 mt-4 bg-card border rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-bold">Edit Store Details</p>
+            <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground text-xs underline">Cancel</button>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Store className="h-3.5 w-3.5" /> Store Name</label>
+            <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="e.g. My Boutique" className="h-11 rounded-xl" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> WhatsApp Number</label>
+            <Input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="e.g. 919876543210" className="h-11 rounded-xl" type="tel" />
+            <p className="text-[11px] text-muted-foreground">Include country code, no + or spaces (e.g. 919876543210)</p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Tag className="h-3.5 w-3.5" /> Category</label>
+            <Input value={editCategory} onChange={e => setEditCategory(e.target.value)} placeholder="e.g. Clothes, Food, Crafts" className="h-11 rounded-xl" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Location</label>
+            <Input value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="e.g. Mumbai, Maharashtra" className="h-11 rounded-xl" />
+          </div>
+
+          <Button onClick={handleSaveStore} disabled={saving} className="w-full h-11 rounded-xl">
+            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      )}
+
       <div className="px-2.5 pt-4 space-y-4">
         {/* Full QR code card */}
         {storeUrl && (
@@ -336,10 +418,11 @@ function MyStorePanel({ store, products, onLogoChange }: {
   );
 }
 
-function ListingsPanel({ products, onRefresh, onProductsChange }: {
+function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct }: {
   products: Product[];
   onRefresh: () => void;
   onProductsChange: (updated: Product) => void;
+  onDeleteProduct: (id: string) => void;
 }) {
   const { toast } = useToast();
 
@@ -391,7 +474,7 @@ function ListingsPanel({ products, onRefresh, onProductsChange }: {
                 key={product.id}
                 product={product}
                 showActions={true}
-                onDelete={onRefresh}
+                onDelete={() => onDeleteProduct(product.id)}
                 onToggleTrending={() => handleToggleTrending(product)}
                 productHref={`/product/${product.id}?from=dashboard`}
               />
@@ -587,6 +670,7 @@ export function DashboardPage() {
                 store={store}
                 products={products}
                 onLogoChange={(url) => setStore(prev => prev ? { ...prev, logo_url: url } : prev)}
+                onStoreChange={(updated) => setStore(updated)}
               />
             </div>
 
@@ -596,6 +680,9 @@ export function DashboardPage() {
                 onRefresh={() => store?.id && loadData(store.id)}
                 onProductsChange={(updated) =>
                   setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))
+                }
+                onDeleteProduct={(id) =>
+                  setProducts(prev => prev.filter(p => p.id !== id))
                 }
               />
             </div>

@@ -11,6 +11,7 @@ import { LandingPage } from "@/pages/LandingPage";
 import { OnboardingPage } from "@/pages/OnboardingPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { AddProductPage } from "@/pages/AddProductPage";
+import { EditProductPage } from "@/pages/EditProductPage";
 import { StorefrontPage } from "@/pages/StorefrontPage";
 import { ProductDetailPage } from "@/pages/ProductDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -42,6 +43,9 @@ function Router() {
         </Route>
         <Route path="/add-product">
           <ProtectedRoute><AddProductPage /></ProtectedRoute>
+        </Route>
+        <Route path="/edit-product/:id">
+          <ProtectedRoute><EditProductPage /></ProtectedRoute>
         </Route>
         <Route path="/store/:slug" component={StorefrontPage} />
         <Route path="/product/:id" component={ProductDetailPage} />
