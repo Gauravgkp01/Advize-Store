@@ -38,7 +38,7 @@ router.get("/products/:id", async (req, res) => {
 });
 
 router.post("/products", async (req, res) => {
-  const { store_id, name, price, description, image_url, image_urls, category, units, variants } = req.body;
+  const { store_id, name, price, description, image_url, image_urls, category, units, discount_percent, variants } = req.body;
   if (!store_id || !name || !price) {
     return res.status(400).json({ error: "store_id, name, and price are required" });
   }
@@ -49,6 +49,7 @@ router.post("/products", async (req, res) => {
     image_urls: image_urls ?? (primaryUrl ? [primaryUrl] : []),
     category: category ?? "",
     units: units ?? 0,
+    discount_percent: discount_percent ?? 0,
     created_at: FieldValue.serverTimestamp(),
   });
 

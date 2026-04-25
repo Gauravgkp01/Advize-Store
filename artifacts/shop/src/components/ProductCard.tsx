@@ -65,6 +65,13 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
 
   /* ── STOREFRONT (buyer view) – compact Flipkart-style ── */
   if (!showActions) {
+    const discount = product.discountPercent ?? 0;
+    const hasDiscount = discount > 0;
+    const discountedPrice = hasDiscount
+      ? Math.round(product.price * (1 - discount / 100))
+      : product.price;
+    const savings = product.price - discountedPrice;
+
     return (
       <Link href={productHref ?? `/product/${product.id}`} className="group block" data-testid={`card-product-${product.id}`}>
         <div className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col h-full hover:border-primary/20">
@@ -76,10 +83,16 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
               className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
               loading="lazy"
             />
-            {/* Category badge */}
-            <div className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full text-[9px] font-semibold text-foreground shadow-sm leading-tight">
-              {product.category}
-            </div>
+            {/* Sale / category badge */}
+            {hasDiscount ? (
+              <div className="absolute top-1.5 left-1.5 bg-red-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-sm leading-tight tracking-wide">
+                SALE {discount}% OFF
+              </div>
+            ) : (
+              <div className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full text-[9px] font-semibold text-foreground shadow-sm leading-tight">
+                Sale
+              </div>
+            )}
             {/* Out-of-stock overlay */}
             {!inStock && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -96,26 +109,43 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
               {product.name}
             </h3>
 
-            <div className="flex items-center justify-between gap-1 mt-auto">
-              <p className="text-base sm:text-lg font-extrabold text-primary leading-tight">
-                ₹{product.price.toLocaleString("en-IN")}
-              </p>
-              {reviewSummary && reviewSummary.count > 0 ? (
-                <div className="flex items-center gap-0.5 shrink-0">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span className="text-xs font-semibold text-foreground leading-none">
-                    {reviewSummary.avg.toFixed(1)}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground leading-none">
-                    ({reviewSummary.count})
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-0.5 shrink-0">
-                  <Star className="w-3 h-3 text-muted-foreground/30" />
-                  <span className="text-[10px] text-muted-foreground leading-none">No reviews</span>
-                </div>
+            <div className="mt-auto space-y-0.5">
+              {/* Price row */}
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <p className="text-base sm:text-lg font-extrabold text-primary leading-tight">
+                  ₹{discountedPrice.toLocaleString("en-IN")}
+                </p>
+                {hasDiscount && (
+                  <p className="text-xs text-muted-foreground line-through leading-tight">
+                    ₹{product.price.toLocaleString("en-IN")}
+                  </p>
+                )}
+              </div>
+              {/* Savings row */}
+              {hasDiscount && (
+                <p className="text-[10px] sm:text-xs font-semibold text-green-600 leading-tight">
+                  You save ₹{savings.toLocaleString("en-IN")}
+                </p>
               )}
+              {/* Rating row */}
+              <div className="flex items-center gap-0.5 pt-0.5">
+                {reviewSummary && reviewSummary.count > 0 ? (
+                  <>
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    <span className="text-[10px] font-semibold text-foreground leading-none">
+                      {reviewSummary.avg.toFixed(1)}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground leading-none ml-0.5">
+                      ({reviewSummary.count})
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Star className="w-3 h-3 text-muted-foreground/30" />
+                    <span className="text-[10px] text-muted-foreground leading-none">No reviews</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

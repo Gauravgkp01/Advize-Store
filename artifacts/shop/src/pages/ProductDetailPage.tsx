@@ -605,11 +605,38 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
-              <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-extrabold text-primary">
-                  ₹{product.price.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </span>
-              </div>
+              {(() => {
+                const discount = product.discountPercent ?? 0;
+                const hasDiscount = discount > 0;
+                const discountedPrice = hasDiscount
+                  ? Math.round(product.price * (1 - discount / 100))
+                  : product.price;
+                const savings = product.price - discountedPrice;
+                return (
+                  <div className="space-y-1">
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <span className="text-3xl font-extrabold text-primary">
+                        ₹{discountedPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                      </span>
+                      {hasDiscount && (
+                        <>
+                          <span className="text-lg text-muted-foreground line-through">
+                            ₹{product.price.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                          </span>
+                          <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+                            {discount}% OFF
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {hasDiscount && (
+                      <p className="text-sm font-semibold text-green-600">
+                        You save ₹{savings.toLocaleString("en-IN", { maximumFractionDigits: 0 })} on this order
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
               {localReviews.length > 0 && (
                 <div className="flex items-center gap-1.5 mt-2">
                   <StarRating value={Math.round(avgRating)} size="sm" />

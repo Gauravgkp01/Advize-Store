@@ -18,6 +18,7 @@ import { createProduct, uploadImage } from "@/lib/api";
 const formSchema = z.object({
   name: z.string().min(2, { message: "Product name is required." }),
   price: z.coerce.number().min(1, { message: "Price must be greater than 0." }),
+  discountPercent: z.coerce.number().int().min(0).max(99).optional(),
   units: z.coerce.number().int().min(0, { message: "Units cannot be negative." }),
   description: z.string().min(10, { message: "Add a short description." }),
   category: z.string().optional(),
@@ -55,7 +56,7 @@ export function AddProductPage() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "", price: undefined, units: 1, description: "", category: "" },
+    defaultValues: { name: "", price: undefined, discountPercent: 0, units: 1, description: "", category: "" },
   });
 
   const toggleSize = (size: string) =>
@@ -162,6 +163,7 @@ export function AddProductPage() {
         variants: buildVariants(),
         image_url: imageUrls[0],
         image_urls: imageUrls,
+        discount_percent: values.discountPercent ?? 0,
       });
       toast({ title: "Product saved!", description: `${values.name} has been added to your store.` });
       setLocation("/dashboard");
@@ -252,7 +254,7 @@ export function AddProductPage() {
               {/* Price */}
               <FormField control={form.control} name="price" render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base font-semibold">Price (₹)</FormLabel>
+                  <FormLabel className="text-base font-semibold">Price (₹) <span className="text-muted-foreground font-normal text-sm">— original / MRP</span></FormLabel>
                   <FormControl>
                     <div className="relative">
                       <span className="absolute left-4 top-3 text-muted-foreground">₹</span>
@@ -262,6 +264,32 @@ export function AddProductPage() {
                   <FormMessage />
                 </FormItem>
               )} />
+
+              {/* Discount */}
+              <FormField control={form.control} name="discountPercent" render={({ field }) => {
+                const price = form.watch("price");
+                const disc = Number(field.value) || 0;
+                const final = disc > 0 && price > 0 ? Math.round(price * (1 - disc / 100)) : null;
+                return (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">
+                      Discount % <span className="text-muted-foreground font-normal text-sm">(optional — leave 0 for no sale)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input type="number" min={0} max={99} placeholder="0" className="pr-10 h-12 rounded-xl" {...field} data-testid="input-product-discount" />
+                        <span className="absolute right-4 top-3.5 text-muted-foreground font-semibold text-sm">%</span>
+                      </div>
+                    </FormControl>
+                    {final !== null && (
+                      <p className="text-sm text-green-600 font-semibold mt-1">
+                        Customer pays ₹{final.toLocaleString("en-IN")} · saves ₹{(price - final).toLocaleString("en-IN")}
+                      </p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }} />
 
               {/* Units */}
               <FormField control={form.control} name="units" render={({ field }) => (
