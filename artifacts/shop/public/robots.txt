@@ -5,4 +5,3 @@ Disallow: /dashboard
 Disallow: /onboarding
 
 Sitemap: https://store.advize.in/sitemap.xml
-Sitemap: https://store.advize.in/api/sitemap-stores.xml
