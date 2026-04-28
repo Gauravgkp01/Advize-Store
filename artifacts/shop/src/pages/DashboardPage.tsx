@@ -890,10 +890,14 @@ export function DashboardPage() {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
         <div className="container max-w-5xl mx-auto flex h-14 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="bg-primary/10 p-1.5 rounded-xl">
-              <Store className="h-4 w-4 text-primary" />
+            <div className="bg-primary/10 p-1.5 rounded-xl overflow-hidden w-7 h-7 flex items-center justify-center">
+              {store?.logo_url
+                ? <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
+                : <Store className="h-4 w-4 text-primary" />}
             </div>
-            <span className="text-base font-bold text-foreground">Advize Store</span>
+            <span className="text-base font-bold text-foreground">
+              {store?.name ?? "My Shop"}
+            </span>
           </Link>
           <div className="sm:hidden flex items-center gap-1">
             <Button
