@@ -2,13 +2,10 @@ import { Router } from "express";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import { db } from "../lib/firebase.js";
-import { verifyToken } from "../middlewares/verifyToken.js";
-
 const router = Router();
 
-router.post("/payments/razorpay/create-order", verifyToken, async (req, res) => {
+router.post("/payments/razorpay/create-order", async (req, res) => {
   try {
-    const uid = (req as any).uid as string;
     const { store_id, amount_paise, receipt } = req.body as {
       store_id: string;
       amount_paise: number;
