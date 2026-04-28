@@ -92,7 +92,12 @@ export function LandingPage() {
       </main>
       
       <footer className="bg-background py-8 border-t text-center text-muted-foreground">
-        <p>© {new Date().getFullYear()} Shop. Crafted with care for small businesses.</p>
+        <p>© {new Date().getFullYear()} Advize Technology Private Limited. All rights reserved.</p>
+        <p className="mt-2 text-xs">
+          <Link href="/terms" className="underline underline-offset-2 hover:text-foreground transition-colors">
+            Terms and Conditions
+          </Link>
+        </p>
       </footer>
     </div>
   );

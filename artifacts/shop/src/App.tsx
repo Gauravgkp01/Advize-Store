@@ -16,6 +16,7 @@ import { StorefrontPage } from "@/pages/StorefrontPage";
 import { ProductDetailPage } from "@/pages/ProductDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
+import { TermsPage } from "@/pages/TermsPage";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ function Router() {
         </Route>
         <Route path="/store/:slug" component={StorefrontPage} />
         <Route path="/product/:id" component={ProductDetailPage} />
+        <Route path="/terms" component={TermsPage} />
         <Route component={NotFound} />
       </Switch>
     </>
