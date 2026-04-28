@@ -5,6 +5,7 @@ import {
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
   Pencil, Phone, MapPin, Tag,
+  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -486,11 +487,138 @@ function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct 
   );
 }
 
+/* ── Plugins Panel ───────────────────────────────────── */
+type PluginStatus = "available" | "coming-soon";
+
+interface Plugin {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  status: PluginStatus;
+  color: string;
+  bgColor: string;
+  badge: string;
+  badgeColor: string;
+}
+
+const PLUGINS: Plugin[] = [
+  {
+    icon: CreditCard,
+    title: "Payment Integration",
+    description: "Accept online payments directly in your store — Razorpay, UPI, credit/debit cards, and more.",
+    status: "coming-soon",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50 dark:bg-blue-950/40",
+    badge: "Coming Soon",
+    badgeColor: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
+  },
+  {
+    icon: Globe,
+    title: "Custom Domain",
+    description: "Use your own branded domain like mystore.com instead of the default Advize link.",
+    status: "coming-soon",
+    color: "text-violet-600",
+    bgColor: "bg-violet-50 dark:bg-violet-950/40",
+    badge: "Coming Soon",
+    badgeColor: "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300",
+  },
+  {
+    icon: Truck,
+    title: "Import Dropshipping Products",
+    description: "Source and import products from suppliers — sell without holding any inventory.",
+    status: "coming-soon",
+    color: "text-amber-600",
+    bgColor: "bg-amber-50 dark:bg-amber-950/40",
+    badge: "Coming Soon",
+    badgeColor: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
+  },
+];
+
+function PluginsPanel() {
+  return (
+    <div className="container max-w-2xl mx-auto px-4 py-6 pb-28">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="bg-primary/10 p-1.5 rounded-xl">
+            <Puzzle className="h-5 w-5 text-primary" />
+          </div>
+          <h1 className="text-xl font-bold text-foreground">Plugins</h1>
+        </div>
+        <p className="text-sm text-muted-foreground ml-10">
+          Extend your store with powerful add-ons. More plugins launching soon.
+        </p>
+      </div>
+
+      {/* Coming soon banner */}
+      <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-2xl px-4 py-3 mb-6">
+        <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-foreground">We're building these for you</p>
+          <p className="text-xs text-muted-foreground">Plugins below are under development and will be enabled soon.</p>
+        </div>
+      </div>
+
+      {/* Plugin cards */}
+      <div className="flex flex-col gap-4">
+        {PLUGINS.map((plugin) => {
+          const Icon = plugin.icon;
+          return (
+            <div
+              key={plugin.title}
+              className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm hover:shadow-md transition-shadow"
+            >
+              {/* Icon */}
+              <div className={`${plugin.bgColor} p-3 rounded-xl flex-shrink-0`}>
+                <Icon className={`h-6 w-6 ${plugin.color}`} />
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h3 className="text-base font-semibold text-foreground leading-tight">
+                    {plugin.title}
+                  </h3>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${plugin.badgeColor}`}>
+                    {plugin.badge}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {plugin.description}
+                </p>
+              </div>
+
+              {/* Lock / arrow */}
+              <div className="flex-shrink-0 mt-0.5">
+                <Lock className="h-4 w-4 text-muted-foreground/50" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer note */}
+      <p className="text-center text-xs text-muted-foreground mt-8">
+        Have a plugin idea?{" "}
+        <a
+          href="https://wa.me/?text=Hi%2C+I+have+a+plugin+idea+for+Advize+Store%3A+"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary font-medium underline underline-offset-2"
+        >
+          Tell us on WhatsApp
+        </a>
+      </p>
+    </div>
+  );
+}
+
 /* ── main layout ─────────────────────────────────────── */
 const TABS = [
   { label: "Home",       icon: LayoutDashboard },
   { label: "My Store",   icon: Store           },
   { label: "Listings",   icon: ListOrdered     },
+  { label: "Plugins",    icon: Puzzle          },
 ] as const;
 
 export function DashboardPage() {
@@ -499,8 +627,8 @@ export function DashboardPage() {
   const [active, setActive] = useState(initialTab);
   const prevActive = useRef(initialTab);
   const touchStartX = useRef<number | null>(null);
-  const panelScrollTops = useRef<number[]>([0, 0, 0]);
-  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
+  const panelScrollTops = useRef<number[]>([0, 0, 0, 0]);
+  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null]);
   const { dark, toggle: toggleDark } = useTheme();
   const { store, loading: storeLoading, setStore } = useStore();
   const { signOut } = useAuth();
@@ -685,6 +813,10 @@ export function DashboardPage() {
                   setProducts(prev => prev.filter(p => p.id !== id))
                 }
               />
+            </div>
+
+            <div ref={el => { panelRefs.current[3] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
+              <PluginsPanel />
             </div>
           </div>
         </div>
