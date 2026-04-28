@@ -7,6 +7,7 @@ import reviewsRouter from "./reviews";
 import analyticsRouter from "./analytics";
 import uploadRouter from "./upload";
 import paymentsRouter from "./payments";
+import sitemapRouter from "./sitemap";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(reviewsRouter);
 router.use(analyticsRouter);
 router.use(uploadRouter);
 router.use(paymentsRouter);
+router.use(sitemapRouter);
 
 export default router;
