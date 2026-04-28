@@ -64,6 +64,8 @@ export interface Store {
   logo_url?: string;
   razorpay_key_id?: string;
   razorpay_enabled?: boolean;
+  razorpay_account_id?: string;
+  razorpay_account_status?: string;
 }
 
 export const getStore = (slug: string) =>
@@ -261,6 +263,28 @@ export interface RazorpayOrderResponse {
   amount: number;
   currency: string;
 }
+
+export interface OnboardRazorpayBody {
+  store_id: string;
+  legal_business_name: string;
+  contact_name: string;
+  business_type: string;
+  email: string;
+  phone: string;
+  pan: string;
+  category: string;
+  subcategory: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  street1?: string;
+}
+
+export const onboardRazorpay = (body: OnboardRazorpayBody) =>
+  request<{ account_id: string; status: string }>("/payments/razorpay/onboard", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 
 export const createRazorpayOrder = (store_id: string, amount_paise: number, receipt?: string) =>
   request<RazorpayOrderResponse>("/payments/razorpay/create-order", {

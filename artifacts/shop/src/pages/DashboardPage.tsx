@@ -16,7 +16,7 @@ import { useStore } from "@/hooks/use-store";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
-import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, type AnalyticsSummary } from "@/lib/api";
+import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, onboardRazorpay, type AnalyticsSummary } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
 
@@ -551,51 +551,112 @@ function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct 
 }
 
 /* ── Plugins Panel ───────────────────────────────────── */
+const BIZ_TYPES = [
+  { value: "proprietorship",  label: "Proprietorship" },
+  { value: "individual",      label: "Individual" },
+  { value: "partnership",     label: "Partnership" },
+  { value: "private_limited", label: "Private Limited" },
+  { value: "public_limited",  label: "Public Limited" },
+  { value: "llp",             label: "LLP" },
+  { value: "ngo",             label: "NGO / Trust" },
+  { value: "other",           label: "Other" },
+];
+
+const BIZ_CATEGORIES = [
+  { value: "ecommerce",        sub: "fashion_and_lifestyle",    label: "Fashion & Lifestyle" },
+  { value: "ecommerce",        sub: "beauty_and_personal_care", label: "Beauty & Personal Care" },
+  { value: "ecommerce",        sub: "electronics",              label: "Electronics" },
+  { value: "ecommerce",        sub: "home_furnishings",         label: "Home & Furniture" },
+  { value: "ecommerce",        sub: "grocery",                  label: "Grocery" },
+  { value: "ecommerce",        sub: "books_and_stationery",     label: "Books & Stationery" },
+  { value: "ecommerce",        sub: "health_and_wellness",      label: "Health & Wellness" },
+  { value: "food",             sub: "online_food_ordering",     label: "Food & Beverages" },
+  { value: "education",        sub: "education",                label: "Education" },
+  { value: "healthcare",       sub: "pharmacy",                 label: "Healthcare / Pharmacy" },
+  { value: "ecommerce",        sub: "general_merchandise",      label: "General / Other" },
+];
+
+const ACCOUNT_STATUS_LABEL: Record<string, string> = {
+  created:   "Account Created — KYC Pending",
+  activated: "Active",
+  suspended: "Suspended",
+  under_review: "Under Review",
+  needs_clarification: "Needs Clarification",
+};
+
 function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onStoreChange: (updated: StoreType) => void }) {
   const { toast } = useToast();
-  const paymentActive = !!(store?.razorpay_key_id);
+  const hasAccount = !!(store?.razorpay_account_id);
+  const legacyKeys  = !!(store?.razorpay_key_id) && !hasAccount;
+  const paymentActive = hasAccount || legacyKeys;
 
-  const [showSetup, setShowSetup] = useState(false);
-  const [keyId, setKeyId] = useState("");
-  const [keySecret, setKeySecret] = useState("");
-  const [showSecret, setShowSecret] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [showOnboard, setShowOnboard] = useState(false);
+  const [saving, setSaving]           = useState(false);
 
-  const openSetup = () => {
-    setKeyId(store?.razorpay_key_id ?? "");
-    setKeySecret("");
-    setShowSecret(false);
-    setShowSetup(true);
+  const [bizName,    setBizName]    = useState("");
+  const [contactName, setContactName] = useState("");
+  const [bizType,    setBizType]    = useState("proprietorship");
+  const [email,      setEmail]      = useState("");
+  const [phone,      setPhone]      = useState("");
+  const [pan,        setPan]        = useState("");
+  const [catIndex,   setCatIndex]   = useState(0);
+  const [street,     setStreet]     = useState("");
+  const [city,       setCity]       = useState("");
+  const [bizState,   setBizState]   = useState("");
+  const [pincode,    setPincode]    = useState("");
+
+  const openOnboard = () => {
+    setBizName(store?.name ?? "");
+    setContactName("");
+    setBizType("proprietorship");
+    setEmail("");
+    setPhone("");
+    setPan("");
+    setCatIndex(0);
+    setStreet("");
+    setCity("");
+    setBizState("");
+    setPincode("");
+    setShowOnboard(true);
   };
 
-  const handleSaveRazorpay = async () => {
+  const handleOnboard = async () => {
     if (!store?.id) return;
-    if (!keyId.trim()) {
-      toast({ variant: "destructive", title: "Key ID is required" });
+    if (!bizName.trim() || !contactName.trim() || !email.trim() ||
+        !phone.trim() || !pan.trim() || !city.trim() || !bizState.trim() || !pincode.trim()) {
+      toast({ variant: "destructive", title: "Please fill all required fields" });
       return;
     }
-    if (!paymentActive && !keySecret.trim()) {
-      toast({ variant: "destructive", title: "Key Secret is required for first-time setup" });
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(pan.trim())) {
+      toast({ variant: "destructive", title: "Invalid PAN", description: "PAN should be like ABCDE1234F" });
       return;
     }
+    const cat = BIZ_CATEGORIES[catIndex];
     setSaving(true);
     try {
-      const payload: Record<string, any> = {
-        razorpay_key_id: keyId.trim(),
-        razorpay_enabled: true,
-      };
-      if (keySecret.trim()) payload.razorpay_key_secret = keySecret.trim();
-      const updated = await updateStore(store.id, payload);
-      onStoreChange(updated);
-      setShowSetup(false);
+      const result = await onboardRazorpay({
+        store_id:             store.id,
+        legal_business_name:  bizName.trim(),
+        contact_name:         contactName.trim(),
+        business_type:        bizType,
+        email:                email.trim(),
+        phone:                phone.trim(),
+        pan:                  pan.trim().toUpperCase(),
+        category:             cat.value,
+        subcategory:          cat.sub,
+        street1:              street.trim() || city.trim(),
+        city:                 city.trim(),
+        state:                bizState.trim(),
+        postal_code:          pincode.trim(),
+      });
+      onStoreChange({ ...store, razorpay_account_id: result.account_id, razorpay_account_status: result.status });
+      setShowOnboard(false);
       toast({
-        title: paymentActive ? "Keys updated!" : "Razorpay connected! 🎉",
-        description: paymentActive
-          ? "Your Razorpay keys have been saved."
-          : "Customers can now pay online directly on your product pages.",
+        title: "Razorpay Account Created! 🎉",
+        description: `Account ID: ${result.account_id}. Razorpay will guide you through KYC to activate payments.`,
       });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Failed to save", description: err.message ?? "Please try again." });
+      toast({ variant: "destructive", title: "Connection Failed", description: err.message ?? "Please try again." });
     } finally {
       setSaving(false);
     }
@@ -619,7 +680,7 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
       {/* Plugin cards */}
       <div className="flex flex-col gap-4">
 
-        {/* ── Payment Integration (Razorpay) ── */}
+        {/* ── Payment Integration (Razorpay Partner) ── */}
         <div className={`bg-card border rounded-2xl overflow-hidden shadow-sm transition-all ${paymentActive ? "border-green-400/60 dark:border-green-600/40" : ""}`}>
           <div className="p-5">
             <div className="flex gap-4 items-start">
@@ -628,10 +689,14 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h3 className="text-base font-semibold text-foreground leading-tight">Payment Integration</h3>
-                  {paymentActive ? (
+                  <h3 className="text-base font-semibold text-foreground leading-tight">Razorpay Payments</h3>
+                  {hasAccount ? (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
-                      Active
+                      Connected
+                    </span>
+                  ) : legacyKeys ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                      Legacy
                     </span>
                   ) : (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
@@ -639,107 +704,173 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                  {paymentActive
-                    ? "Razorpay is connected. Customers can pay via UPI, cards, and wallets directly on product pages."
-                    : "Accept online payments via Razorpay — UPI, credit/debit cards, wallets, and more."}
-                </p>
-                {!showSetup && (
-                  paymentActive ? (
-                    <button
-                      onClick={openSetup}
-                      className="text-xs font-semibold text-primary underline underline-offset-2"
+
+                {hasAccount ? (
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {ACCOUNT_STATUS_LABEL[store?.razorpay_account_status ?? ""] ?? "Account created."}
+                    </p>
+                    <p className="text-[11px] font-mono text-muted-foreground/60 truncate">
+                      {store?.razorpay_account_id}
+                    </p>
+                    <a
+                      href="https://dashboard.razorpay.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block text-xs font-semibold text-primary underline underline-offset-2 mt-1"
                     >
-                      Update keys →
-                    </button>
-                  ) : (
-                    <button
-                      onClick={openSetup}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      <CreditCard className="h-3.5 w-3.5" />
-                      Set Up Razorpay
-                    </button>
-                  )
+                      Complete KYC on Razorpay →
+                    </a>
+                  </div>
+                ) : legacyKeys ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      You're using your own Razorpay API keys. Upgrade to the Partner flow for a seamless, no-API-key experience.
+                    </p>
+                    {!showOnboard && (
+                      <button
+                        onClick={openOnboard}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Upgrade to Partner Flow
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Accept UPI, cards & wallets. No API keys needed — we handle Razorpay setup for you.
+                    </p>
+                    {!showOnboard && (
+                      <button
+                        onClick={openOnboard}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <CreditCard className="h-3.5 w-3.5" />
+                        Connect Razorpay
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* ── Inline setup form (expands below) ── */}
-          {showSetup && (
-            <div className="border-t bg-muted/30 px-5 py-4 space-y-4">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-semibold">
-                  {paymentActive ? "Update Razorpay Keys" : "Connect Razorpay"}
-                </p>
+          {/* ── Partner onboarding form ── */}
+          {showOnboard && (
+            <div className="border-t bg-muted/30 px-5 py-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">Business Details</p>
                 <button
-                  onClick={() => setShowSetup(false)}
+                  onClick={() => setShowOnboard(false)}
                   className="text-xs text-muted-foreground hover:text-foreground underline"
                 >
                   Cancel
                 </button>
               </div>
 
-              <p className="text-[11px] text-muted-foreground">
-                Find your keys at{" "}
-                <a
-                  href="https://dashboard.razorpay.com/app/keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline underline-offset-2 font-medium"
-                >
-                  dashboard.razorpay.com/app/keys
-                </a>
+              <p className="text-[11px] text-muted-foreground -mt-2">
+                Razorpay will verify your business and handle KYC — no manual API keys needed.
               </p>
 
+              {/* Row 1 */}
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">Key ID</label>
-                <Input
-                  value={keyId}
-                  onChange={e => setKeyId(e.target.value)}
-                  placeholder="rzp_live_xxxxxxxxxxxx"
-                  className="h-11 rounded-xl font-mono text-sm bg-background"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                />
+                <label className="text-xs font-semibold text-muted-foreground">Legal Business Name *</label>
+                <Input value={bizName} onChange={e => setBizName(e.target.value)}
+                  placeholder="e.g. Acme Traders" className="h-10 rounded-xl text-sm bg-background" />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">
-                  Key Secret{paymentActive ? " (leave blank to keep existing)" : ""}
-                </label>
-                <div className="relative">
-                  <Input
-                    value={keySecret}
-                    onChange={e => setKeySecret(e.target.value)}
-                    type={showSecret ? "text" : "password"}
-                    placeholder={paymentActive ? "••••••••••••••••" : "Enter your secret key"}
-                    className="h-11 rounded-xl pr-10 font-mono text-sm bg-background"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSecret(s => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                <label className="text-xs font-semibold text-muted-foreground">Contact Name (Owner / Director) *</label>
+                <Input value={contactName} onChange={e => setContactName(e.target.value)}
+                  placeholder="Full name" className="h-10 rounded-xl text-sm bg-background" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">Business Type *</label>
+                  <select
+                    value={bizType}
+                    onChange={e => setBizType(e.target.value)}
+                    className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <Lock className={`h-4 w-4 ${showSecret ? "" : "opacity-40"}`} />
-                  </button>
+                    {BIZ_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Your secret key is encrypted and never shown to customers.
-                </p>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">Category *</label>
+                  <select
+                    value={catIndex}
+                    onChange={e => setCatIndex(Number(e.target.value))}
+                    className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {BIZ_CATEGORIES.map((c, i) => <option key={i} value={i}>{c.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">Business Email *</label>
+                  <Input value={email} onChange={e => setEmail(e.target.value)}
+                    type="email" placeholder="you@business.com"
+                    className="h-10 rounded-xl text-sm bg-background" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">Phone *</label>
+                  <Input value={phone} onChange={e => setPhone(e.target.value)}
+                    type="tel" placeholder="9876543210"
+                    className="h-10 rounded-xl text-sm bg-background" />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">PAN Number *</label>
+                <Input value={pan} onChange={e => setPan(e.target.value.toUpperCase())}
+                  placeholder="ABCDE1234F" maxLength={10}
+                  className="h-10 rounded-xl font-mono text-sm bg-background tracking-widest"
+                  autoCorrect="off" autoCapitalize="characters" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">Street Address</label>
+                <Input value={street} onChange={e => setStreet(e.target.value)}
+                  placeholder="Shop / flat / street" className="h-10 rounded-xl text-sm bg-background" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">City *</label>
+                  <Input value={city} onChange={e => setCity(e.target.value)}
+                    placeholder="Mumbai" className="h-10 rounded-xl text-sm bg-background" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-muted-foreground">State *</label>
+                  <Input value={bizState} onChange={e => setBizState(e.target.value)}
+                    placeholder="Maharashtra" className="h-10 rounded-xl text-sm bg-background" />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">PIN Code *</label>
+                <Input value={pincode} onChange={e => setPincode(e.target.value)}
+                  placeholder="400001" maxLength={6} inputMode="numeric"
+                  className="h-10 rounded-xl text-sm bg-background" />
               </div>
 
               <Button
-                onClick={handleSaveRazorpay}
+                onClick={handleOnboard}
                 disabled={saving}
                 className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white border-transparent"
               >
-                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                {saving ? "Saving..." : paymentActive ? "Update Keys" : "Connect Razorpay"}
+                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {saving ? "Creating Account..." : "Connect Razorpay"}
               </Button>
+
+              <p className="text-[10px] text-muted-foreground text-center">
+                Razorpay will send a KYC link to your email after account creation.
+              </p>
             </div>
           )}
         </div>
