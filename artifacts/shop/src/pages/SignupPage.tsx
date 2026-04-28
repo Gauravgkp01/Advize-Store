@@ -28,12 +28,14 @@ export function SignupPage() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { toast({ variant: "destructive", title: "Please enter your name." }); return; }
     if (!email.trim()) { toast({ variant: "destructive", title: "Please enter your email." }); return; }
     if (password.length < 6) { toast({ variant: "destructive", title: "Password must be at least 6 characters." }); return; }
+    if (!termsAccepted) { toast({ variant: "destructive", title: "Please accept the Terms and Conditions." }); return; }
 
     setLoading(true);
     try {
@@ -161,7 +163,27 @@ export function SignupPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-11 rounded-xl" disabled={loading}>
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={e => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-input accent-primary cursor-pointer"
+                />
+                <span className="text-sm text-muted-foreground leading-snug">
+                  I have read and agree to the{" "}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    className="text-primary font-medium underline underline-offset-2 hover:opacity-80"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    Terms and Conditions
+                  </Link>
+                </span>
+              </label>
+
+              <Button type="submit" className="w-full h-11 rounded-xl" disabled={loading || !termsAccepted}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Send verification code
               </Button>
