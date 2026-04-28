@@ -62,6 +62,8 @@ export interface Store {
   category?: string;
   location?: string;
   logo_url?: string;
+  razorpay_key_id?: string;
+  razorpay_enabled?: boolean;
 }
 
 export const getStore = (slug: string) =>
@@ -251,3 +253,28 @@ export const trackClick = (product_id: string, store_id: string) =>
     method: "POST",
     body: JSON.stringify({ product_id, store_id }),
   }).catch(() => {}); // fire-and-forget; never throw
+
+// ── Payments ─────────────────────────────────────────────────
+export interface RazorpayOrderResponse {
+  order_id: string;
+  key_id: string;
+  amount: number;
+  currency: string;
+}
+
+export const createRazorpayOrder = (store_id: string, amount_paise: number, receipt?: string) =>
+  request<RazorpayOrderResponse>("/payments/razorpay/create-order", {
+    method: "POST",
+    body: JSON.stringify({ store_id, amount_paise, receipt }),
+  });
+
+export const verifyRazorpayPayment = (payload: {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+  store_id: string;
+}) =>
+  request<{ verified: boolean }>("/payments/razorpay/verify", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
