@@ -551,8 +551,55 @@ function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct 
 }
 
 /* ── Plugins Panel ───────────────────────────────────── */
-function PluginsPanel({ store, onGoToMyStore }: { store: StoreType | null; onGoToMyStore: () => void }) {
+function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onStoreChange: (updated: StoreType) => void }) {
+  const { toast } = useToast();
   const paymentActive = !!(store?.razorpay_key_id);
+
+  const [showSetup, setShowSetup] = useState(false);
+  const [keyId, setKeyId] = useState("");
+  const [keySecret, setKeySecret] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const openSetup = () => {
+    setKeyId(store?.razorpay_key_id ?? "");
+    setKeySecret("");
+    setShowSecret(false);
+    setShowSetup(true);
+  };
+
+  const handleSaveRazorpay = async () => {
+    if (!store?.id) return;
+    if (!keyId.trim()) {
+      toast({ variant: "destructive", title: "Key ID is required" });
+      return;
+    }
+    if (!paymentActive && !keySecret.trim()) {
+      toast({ variant: "destructive", title: "Key Secret is required for first-time setup" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload: Record<string, any> = {
+        razorpay_key_id: keyId.trim(),
+        razorpay_enabled: true,
+      };
+      if (keySecret.trim()) payload.razorpay_key_secret = keySecret.trim();
+      const updated = await updateStore(store.id, payload);
+      onStoreChange(updated);
+      setShowSetup(false);
+      toast({
+        title: paymentActive ? "Keys updated!" : "Razorpay connected! 🎉",
+        description: paymentActive
+          ? "Your Razorpay keys have been saved."
+          : "Customers can now pay online directly on your product pages.",
+      });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Failed to save", description: err.message ?? "Please try again." });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-6 pb-28">
@@ -573,47 +620,128 @@ function PluginsPanel({ store, onGoToMyStore }: { store: StoreType | null; onGoT
       <div className="flex flex-col gap-4">
 
         {/* ── Payment Integration (Razorpay) ── */}
-        <div className={`bg-card border rounded-2xl p-5 shadow-sm ${paymentActive ? "border-green-400/60 dark:border-green-600/40" : ""}`}>
-          <div className="flex gap-4 items-start">
-            <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl flex-shrink-0">
-              <CreditCard className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h3 className="text-base font-semibold text-foreground leading-tight">Payment Integration</h3>
-                {paymentActive ? (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
-                    Active
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                    Available
-                  </span>
+        <div className={`bg-card border rounded-2xl overflow-hidden shadow-sm transition-all ${paymentActive ? "border-green-400/60 dark:border-green-600/40" : ""}`}>
+          <div className="p-5">
+            <div className="flex gap-4 items-start">
+              <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl flex-shrink-0">
+                <CreditCard className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h3 className="text-base font-semibold text-foreground leading-tight">Payment Integration</h3>
+                  {paymentActive ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                      Active
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                      Available
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                  {paymentActive
+                    ? "Razorpay is connected. Customers can pay via UPI, cards, and wallets directly on product pages."
+                    : "Accept online payments via Razorpay — UPI, credit/debit cards, wallets, and more."}
+                </p>
+                {!showSetup && (
+                  paymentActive ? (
+                    <button
+                      onClick={openSetup}
+                      className="text-xs font-semibold text-primary underline underline-offset-2"
+                    >
+                      Update keys →
+                    </button>
+                  ) : (
+                    <button
+                      onClick={openSetup}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <CreditCard className="h-3.5 w-3.5" />
+                      Set Up Razorpay
+                    </button>
+                  )
                 )}
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                {paymentActive
-                  ? "Razorpay is connected. Customers can pay via UPI, cards, and wallets directly on product pages."
-                  : "Accept online payments via Razorpay — UPI, credit/debit cards, wallets, and more."}
-              </p>
-              {paymentActive ? (
-                <button
-                  onClick={onGoToMyStore}
-                  className="text-xs font-semibold text-primary underline underline-offset-2"
-                >
-                  Manage keys in My Store →
-                </button>
-              ) : (
-                <button
-                  onClick={onGoToMyStore}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  <CreditCard className="h-3.5 w-3.5" />
-                  Set Up Razorpay
-                </button>
-              )}
             </div>
           </div>
+
+          {/* ── Inline setup form (expands below) ── */}
+          {showSetup && (
+            <div className="border-t bg-muted/30 px-5 py-4 space-y-4">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-semibold">
+                  {paymentActive ? "Update Razorpay Keys" : "Connect Razorpay"}
+                </p>
+                <button
+                  onClick={() => setShowSetup(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground">
+                Find your keys at{" "}
+                <a
+                  href="https://dashboard.razorpay.com/app/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 font-medium"
+                >
+                  dashboard.razorpay.com/app/keys
+                </a>
+              </p>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">Key ID</label>
+                <Input
+                  value={keyId}
+                  onChange={e => setKeyId(e.target.value)}
+                  placeholder="rzp_live_xxxxxxxxxxxx"
+                  className="h-11 rounded-xl font-mono text-sm bg-background"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Key Secret{paymentActive ? " (leave blank to keep existing)" : ""}
+                </label>
+                <div className="relative">
+                  <Input
+                    value={keySecret}
+                    onChange={e => setKeySecret(e.target.value)}
+                    type={showSecret ? "text" : "password"}
+                    placeholder={paymentActive ? "••••••••••••••••" : "Enter your secret key"}
+                    className="h-11 rounded-xl pr-10 font-mono text-sm bg-background"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecret(s => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <Lock className={`h-4 w-4 ${showSecret ? "" : "opacity-40"}`} />
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Your secret key is encrypted and never shown to customers.
+                </p>
+              </div>
+
+              <Button
+                onClick={handleSaveRazorpay}
+                disabled={saving}
+                className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white border-transparent"
+              >
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                {saving ? "Saving..." : paymentActive ? "Update Keys" : "Connect Razorpay"}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* ── Custom Domain ── */}
@@ -879,7 +1007,7 @@ export function DashboardPage() {
             </div>
 
             <div ref={el => { panelRefs.current[3] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-              <PluginsPanel store={store} onGoToMyStore={() => setActive(1)} />
+              <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />
             </div>
           </div>
         </div>
