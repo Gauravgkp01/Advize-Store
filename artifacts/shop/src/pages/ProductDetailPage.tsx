@@ -756,7 +756,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
               </div>
             )}
 
-            {razorpayKeyId ? (
+            {razorpayKeyId && (
               <Button
                 className="w-full h-14 text-lg rounded-xl shadow-lg bg-blue-600 hover:bg-blue-700 text-white border-transparent"
                 onClick={handleRazorpayCheckout}
@@ -767,15 +767,15 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
                   ? <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   : <CreditCard className="mr-2 h-5 w-5" />
                 }
-                {paymentLoading ? "Opening payment..." : `Pay ₹${effectivePrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
-              </Button>
-            ) : (
-              <Button className="w-full h-14 text-lg rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent"
-                onClick={handleOrder} data-testid="btn-order-whatsapp">
-                <MessageCircle className="mr-2 h-5 w-5" />
-                Order on WhatsApp
+                {paymentLoading ? "Opening payment..." : `Pay ₹${effectivePrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })} Online`}
               </Button>
             )}
+
+            <Button className="w-full h-14 text-lg rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent"
+              onClick={handleOrder} data-testid="btn-order-whatsapp">
+              <MessageCircle className="mr-2 h-5 w-5" />
+              Order on WhatsApp
+            </Button>
           </div>
         </div>
 
