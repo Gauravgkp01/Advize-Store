@@ -206,8 +206,8 @@ export function StorefrontPage() {
       );
     }
 
-    if (priceSort === "asc") list = [...list].sort((a, b) => a.price - b.price);
-    if (priceSort === "desc") list = [...list].sort((a, b) => b.price - a.price);
+    if (priceSort === "asc") list = [...list].sort((a, b) => (a.salePrice ?? a.price) - (b.salePrice ?? b.price));
+    if (priceSort === "desc") list = [...list].sort((a, b) => (b.salePrice ?? b.price) - (a.salePrice ?? a.price));
 
     return list;
   }, [products, activeCategory, search, priceSort]);

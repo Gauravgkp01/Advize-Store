@@ -65,12 +65,11 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
 
   /* ── STOREFRONT (buyer view) – compact Flipkart-style ── */
   if (!showActions) {
-    const discount = product.discountPercent ?? 0;
-    const hasDiscount = discount > 0;
-    const discountedPrice = hasDiscount
-      ? Math.round(product.price * (1 - discount / 100))
-      : product.price;
-    const savings = product.price - discountedPrice;
+    const hasSale = product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
+    const displayPrice = hasSale ? product.salePrice! : product.price;
+    const savings = hasSale ? product.price - product.salePrice! : 0;
+    const discountPct = hasSale ? Math.round((product.price - product.salePrice!) / product.price * 100) : 0;
+    const hasDiscount = hasSale;
 
     return (
       <Link href={productHref ?? `/product/${product.id}`} className="group block" data-testid={`card-product-${product.id}`}>
@@ -84,13 +83,9 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
               loading="lazy"
             />
             {/* Sale / category badge */}
-            {hasDiscount ? (
+            {hasDiscount && (
               <div className="absolute top-1.5 left-1.5 bg-red-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-sm leading-tight tracking-wide">
-                SALE {discount}% OFF
-              </div>
-            ) : (
-              <div className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full text-[9px] font-semibold text-foreground shadow-sm leading-tight">
-                Sale
+                {discountPct}% OFF
               </div>
             )}
             {/* Out-of-stock overlay */}
@@ -113,12 +108,17 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
               {/* Price row */}
               <div className="flex items-baseline gap-1.5 flex-wrap">
                 <p className="text-base sm:text-lg font-extrabold text-primary leading-tight">
-                  ₹{discountedPrice.toLocaleString("en-IN")}
+                  ₹{displayPrice.toLocaleString("en-IN")}
                 </p>
                 {hasDiscount && (
                   <p className="text-xs text-muted-foreground line-through leading-tight">
                     ₹{product.price.toLocaleString("en-IN")}
                   </p>
+                )}
+                {hasDiscount && (
+                  <span className="text-[9px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full leading-tight">
+                    {discountPct}% OFF
+                  </span>
                 )}
               </div>
               {/* Savings row */}

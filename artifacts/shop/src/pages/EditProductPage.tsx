@@ -18,8 +18,8 @@ import type { Product } from "@/lib/api";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Product name is required." }),
-  price: z.coerce.number().min(1, { message: "Price must be greater than 0." }),
-  discountPercent: z.coerce.number().int().min(0).max(99).optional(),
+  price: z.coerce.number().min(1, { message: "MRP must be greater than 0." }),
+  salePrice: z.coerce.number().min(0).optional(),
   units: z.coerce.number().int().min(0, { message: "Units cannot be negative." }),
   description: z.string().min(10, { message: "Add a short description." }),
   category: z.string().optional(),
@@ -76,7 +76,7 @@ export function EditProductPage() {
       form.reset({
         name: p.name,
         price: p.price,
-        discountPercent: p.discountPercent ?? 0,
+        salePrice: p.salePrice ?? undefined,
         units: p.units,
         description: p.description,
         category: p.category,
@@ -193,7 +193,7 @@ export function EditProductPage() {
         description: values.description,
         category: values.category ?? "",
         units: values.units,
-        discount_percent: values.discountPercent ?? 0,
+        sale_price: values.salePrice && values.salePrice > 0 && values.salePrice < values.price ? values.salePrice : null,
         variants: buildVariants(),
         image_url: allImageUrls[0] ?? "",
         image_urls: allImageUrls,
@@ -299,10 +299,10 @@ export function EditProductPage() {
                 </FormItem>
               )} />
 
-              {/* Price */}
+              {/* MRP */}
               <FormField control={form.control} name="price" render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base font-semibold">Price (₹) <span className="text-muted-foreground font-normal text-sm">— original / MRP</span></FormLabel>
+                  <FormLabel className="text-base font-semibold">MRP (₹) <span className="text-muted-foreground font-normal text-sm">— Maximum Retail Price</span></FormLabel>
                   <FormControl>
                     <div className="relative">
                       <span className="absolute left-4 top-3 text-muted-foreground">₹</span>
@@ -313,25 +313,27 @@ export function EditProductPage() {
                 </FormItem>
               )} />
 
-              {/* Discount */}
-              <FormField control={form.control} name="discountPercent" render={({ field }) => {
-                const price = form.watch("price");
-                const disc = Number(field.value) || 0;
-                const final = disc > 0 && price > 0 ? Math.round(price * (1 - disc / 100)) : null;
+              {/* Sale Price */}
+              <FormField control={form.control} name="salePrice" render={({ field }) => {
+                const mrp = form.watch("price");
+                const sp = Number(field.value) || 0;
+                const hasDiscount = sp > 0 && mrp > 0 && sp < mrp;
+                const pct = hasDiscount ? Math.round((mrp - sp) / mrp * 100) : null;
+                const savings = hasDiscount ? mrp - sp : null;
                 return (
                   <FormItem>
                     <FormLabel className="text-base font-semibold">
-                      Discount % <span className="text-muted-foreground font-normal text-sm">(optional — leave 0 for no sale)</span>
+                      Sale Price (₹) <span className="text-muted-foreground font-normal text-sm">(optional — leave blank if no discount)</span>
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Input type="number" min={0} max={99} placeholder="0" className="pr-10 h-12 rounded-xl" {...field} />
-                        <span className="absolute right-4 top-3.5 text-muted-foreground font-semibold text-sm">%</span>
+                        <span className="absolute left-4 top-3 text-muted-foreground">₹</span>
+                        <Input type="number" placeholder="Leave blank for no sale" className="pl-8 h-12 rounded-xl" {...field} />
                       </div>
                     </FormControl>
-                    {final !== null && (
+                    {hasDiscount && pct !== null && savings !== null && (
                       <p className="text-sm text-green-600 font-semibold mt-1">
-                        Customer pays ₹{final.toLocaleString("en-IN")} · saves ₹{(price - final).toLocaleString("en-IN")}
+                        {pct}% OFF · Customer saves ₹{savings.toLocaleString("en-IN")}
                       </p>
                     )}
                     <FormMessage />

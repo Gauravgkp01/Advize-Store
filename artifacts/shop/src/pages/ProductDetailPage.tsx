@@ -550,7 +550,9 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
     const variantSummary = product.variants?.filter(v => selectedVariants[v.label])
       .map(v => `${v.label}: ${selectedVariants[v.label]}`).join(", ");
     const variantText = variantSummary ? `\n🎨 Variant: ${variantSummary}` : "";
-    const message = `Hello 👋,\n\nI want to order this product:\n\n🛍 Product: ${product.name}${variantText}\n💰 Price: ₹${product.price.toLocaleString("en-IN")}\n\n🔗 Product Link: ${window.location.href}\n\nPlease confirm availability.`;
+    const effectivePrice = (product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price)
+      ? product.salePrice : product.price;
+    const message = `Hello 👋,\n\nI want to order this product:\n\n🛍 Product: ${product.name}${variantText}\n💰 Price: ₹${effectivePrice.toLocaleString("en-IN")}\n\n🔗 Product Link: ${window.location.href}\n\nPlease confirm availability.`;
     const number = storeWhatsapp.replace(/[^0-9]/g, "");
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank");
   };
@@ -606,33 +608,34 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, relatedProducts
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
               {(() => {
-                const discount = product.discountPercent ?? 0;
-                const hasDiscount = discount > 0;
-                const discountedPrice = hasDiscount
-                  ? Math.round(product.price * (1 - discount / 100))
-                  : product.price;
-                const savings = product.price - discountedPrice;
+                const hasSale = product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
+                const displayPrice = hasSale ? product.salePrice! : product.price;
+                const savings = hasSale ? product.price - product.salePrice! : 0;
+                const discountPct = hasSale ? Math.round((product.price - product.salePrice!) / product.price * 100) : 0;
                 return (
                   <div className="space-y-1">
                     <div className="flex items-baseline gap-3 flex-wrap">
                       <span className="text-3xl font-extrabold text-primary">
-                        ₹{discountedPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        ₹{displayPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                       </span>
-                      {hasDiscount && (
+                      {hasSale && (
                         <>
                           <span className="text-lg text-muted-foreground line-through">
-                            ₹{product.price.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                            MRP ₹{product.price.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                           </span>
                           <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
-                            {discount}% OFF
+                            {discountPct}% OFF
                           </span>
                         </>
                       )}
                     </div>
-                    {hasDiscount && (
+                    {hasSale && (
                       <p className="text-sm font-semibold text-green-600">
                         You save ₹{savings.toLocaleString("en-IN", { maximumFractionDigits: 0 })} on this order
                       </p>
+                    )}
+                    {!hasSale && (
+                      <p className="text-xs text-muted-foreground">MRP ₹{product.price.toLocaleString("en-IN")}</p>
                     )}
                   </div>
                 );

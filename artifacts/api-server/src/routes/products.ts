@@ -38,20 +38,21 @@ router.get("/products/:id", async (req, res) => {
 });
 
 router.post("/products", async (req, res) => {
-  const { store_id, name, price, description, image_url, image_urls, category, units, discount_percent, variants } = req.body;
+  const { store_id, name, price, description, image_url, image_urls, category, units, sale_price, variants } = req.body;
   if (!store_id || !name || !price) {
     return res.status(400).json({ error: "store_id, name, and price are required" });
   }
   const primaryUrl = (image_urls && image_urls.length > 0) ? image_urls[0] : (image_url ?? "");
-  const ref = await db.collection("products").add({
+  const productData: Record<string, unknown> = {
     store_id, name, price, description: description ?? "",
     image_url: primaryUrl,
     image_urls: image_urls ?? (primaryUrl ? [primaryUrl] : []),
     category: category ?? "",
     units: units ?? 0,
-    discount_percent: discount_percent ?? 0,
     created_at: FieldValue.serverTimestamp(),
-  });
+  };
+  if (sale_price != null && Number(sale_price) > 0) productData.sale_price = Number(sale_price);
+  const ref = await db.collection("products").add(productData);
 
   if (variants && Array.isArray(variants) && variants.length > 0) {
     const batch = db.batch();

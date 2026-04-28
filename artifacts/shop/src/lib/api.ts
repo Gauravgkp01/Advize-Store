@@ -10,7 +10,7 @@ export type Product = {
   storeId: string;
   name: string;
   price: number;
-  discountPercent: number;
+  salePrice?: number;
   description: string;
   imageUrl: string;
   imageUrls: string[];
@@ -97,12 +97,12 @@ export interface ApiProduct {
   store_id: string;
   name: string;
   price: number;
+  sale_price?: number;
   description: string;
   image_url: string;
   image_urls?: string[];
   category: string;
   units: number;
-  discount_percent?: number;
   trending?: boolean;
   variants: { id: string; label: string; values: string[] }[];
 }
@@ -119,7 +119,7 @@ function toProduct(p: ApiProduct): Product {
     storeId: p.store_id,
     name: p.name,
     price: p.price,
-    discountPercent: p.discount_percent ?? 0,
+    salePrice: p.sale_price ?? undefined,
     description: p.description ?? "",
     imageUrl: imageUrls[0] ?? "",
     imageUrls,
@@ -142,24 +142,24 @@ export const createProduct = (body: {
   store_id: string;
   name: string;
   price: number;
+  sale_price?: number;
   description?: string;
   image_url?: string;
   image_urls?: string[];
   category?: string;
   units?: number;
-  discount_percent?: number;
   variants?: ProductVariant[];
 }) => request<ApiProduct>("/products", { method: "POST", body: JSON.stringify(body) }).then(toProduct);
 
 export const updateProduct = (id: string, body: Partial<{
   name: string;
   price: number;
+  sale_price: number | null;
   description: string;
   image_url: string;
   image_urls: string[];
   category: string;
   units: number;
-  discount_percent: number;
   trending: boolean;
   variants: ProductVariant[];
 }>) => request<ApiProduct>(`/products/${id}`, { method: "PATCH", body: JSON.stringify(body) }).then(toProduct);
