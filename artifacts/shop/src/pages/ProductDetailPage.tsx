@@ -519,12 +519,12 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
   razorpayKeyId?: string;
   relatedProducts: Product[];
 }) {
-  // Always show the product/store page in light mode
+  // Always show the product/store page in dark mode
   useEffect(() => {
     const html = document.documentElement;
-    const wasDark = html.classList.contains("dark");
-    html.classList.remove("dark");
-    return () => { if (wasDark) html.classList.add("dark"); };
+    const wasLight = !html.classList.contains("dark");
+    html.classList.add("dark");
+    return () => { if (wasLight) html.classList.remove("dark"); };
   }, []);
 
   const { toast } = useToast();
