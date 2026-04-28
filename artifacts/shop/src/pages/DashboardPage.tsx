@@ -885,7 +885,7 @@ export function DashboardPage() {
   const isLoading = storeLoading || dataLoading;
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-muted/10 overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-muted/10 overflow-hidden">
 
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
         <div className="container max-w-5xl mx-auto flex h-14 items-center justify-between px-4">
