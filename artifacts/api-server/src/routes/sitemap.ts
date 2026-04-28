@@ -5,12 +5,26 @@ const router = Router();
 
 const BASE_URL = "https://store.advize.in";
 
+const STATIC_PAGES = [
+  { path: "/",       changefreq: "weekly",  priority: "1.0" },
+  { path: "/terms",  changefreq: "monthly", priority: "0.5" },
+  { path: "/login",  changefreq: "monthly", priority: "0.4" },
+  { path: "/signup", changefreq: "monthly", priority: "0.4" },
+];
+
 router.get("/sitemap-stores.xml", async (_req, res) => {
   try {
     const snap = await db.collection("stores").get();
+    const today = new Date().toISOString().split("T")[0];
 
-    const urls: string[] = [];
+    const staticUrls = STATIC_PAGES.map(p => `
+  <url>
+    <loc>${BASE_URL}${p.path}</loc>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`);
 
+    const storeUrls: string[] = [];
     for (const doc of snap.docs) {
       const data = doc.data();
       if (!data.slug) continue;
@@ -18,9 +32,9 @@ router.get("/sitemap-stores.xml", async (_req, res) => {
       const storeUrl = `${BASE_URL}/store/${encodeURIComponent(data.slug)}`;
       const updatedAt: string = data.updated_at?.toDate
         ? data.updated_at.toDate().toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0];
+        : today;
 
-      urls.push(`
+      storeUrls.push(`
   <url>
     <loc>${storeUrl}</loc>
     <lastmod>${updatedAt}</lastmod>
@@ -31,7 +45,7 @@ router.get("/sitemap-stores.xml", async (_req, res) => {
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join("\n")}
+${[...staticUrls, ...storeUrls].join("\n")}
 </urlset>`;
 
     res.setHeader("Content-Type", "application/xml");
