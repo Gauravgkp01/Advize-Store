@@ -219,32 +219,32 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
             </Button>
           </div>
         ) : (
-          <div className="px-2 pb-2 sm:px-3 sm:pb-3 flex items-center gap-1 border-t border-border/40 pt-2">
+          <div className="px-2 pb-2 sm:px-3 sm:pb-3 grid grid-cols-4 gap-1 border-t border-border/40 pt-2">
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 rounded-lg h-7 text-[10px] px-1 bg-background hover:bg-muted"
+              className="rounded-lg h-7 px-0 bg-background hover:bg-muted w-full"
               onClick={handleCopyLink}
+              title="Copy product link"
               data-testid={`btn-copy-${product.id}`}
             >
-              <Copy className="h-3 w-3 mr-1" />
-              Copy
+              <Copy className="h-3 w-3" />
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="rounded-lg h-7 px-2 shrink-0 bg-background hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-all"
+              className="rounded-lg h-7 px-0 bg-background hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-all w-full"
               onClick={handleEdit}
               title="Edit product"
               data-testid={`btn-edit-${product.id}`}
             >
               <Pencil className="h-3 w-3" />
             </Button>
-            {onToggleTrending && (
+            {onToggleTrending ? (
               <Button
                 variant={product.trending ? "default" : "outline"}
                 size="sm"
-                className={`rounded-lg h-7 px-2 shrink-0 transition-all ${
+                className={`rounded-lg h-7 px-0 transition-all w-full ${
                   product.trending
                     ? "bg-orange-500 hover:bg-orange-600 border-orange-500 text-white"
                     : "bg-background hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600"
@@ -255,19 +255,19 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
               >
                 <Flame className={`h-3 w-3 ${product.trending ? "fill-white" : ""}`} />
               </Button>
-            )}
-            {onDelete && (
+            ) : <span />}
+            {onDelete ? (
               <Button
                 variant="outline"
                 size="sm"
-                className="rounded-lg h-7 px-2 shrink-0 bg-background hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-all"
+                className="rounded-lg h-7 px-0 bg-background hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-all w-full"
                 onClick={handleDeleteClick}
                 title="Delete product"
                 data-testid={`btn-delete-${product.id}`}
               >
                 <Trash2 className="h-3 w-3" />
               </Button>
-            )}
+            ) : <span />}
           </div>
         )}
       </div>
