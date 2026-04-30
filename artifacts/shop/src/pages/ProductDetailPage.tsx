@@ -3,7 +3,7 @@ import { useParams, Link } from "wouter";
 import {
   ArrowLeft, MessageCircle,
   AlertCircle, Star, Loader2, MousePointerClick,
-  Package, BarChart2, TrendingUp, ZoomIn, ZoomOut, X, RotateCcw, CreditCard,
+  Package, BarChart2, TrendingUp, ZoomIn, ZoomOut, X, RotateCcw,
   ShoppingCart, ShoppingBag,
 } from "lucide-react";
 import {
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, createRazorpayOrder, verifyRazorpayPayment } from "@/lib/api";
+import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts } from "@/lib/api";
 import type { Product, Review } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
@@ -512,13 +512,12 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
 }
 
 /* ── Buyer (public) view ──────────────────────────────── */
-function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorpayKeyId, relatedProducts }: {
+function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relatedProducts }: {
   product: Product;
   reviews: Review[];
   storeWhatsapp: string;
   storeSlug: string;
   storeId: string;
-  razorpayKeyId?: string;
   relatedProducts: Product[];
 }) {
   // Always show the product/store page in dark mode
@@ -541,7 +540,6 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [localReviews, setLocalReviews] = useState(reviews);
-  const [paymentLoading, setPaymentLoading] = useState(false);
 
   useEffect(() => { setLocalReviews(reviews); }, [reviews]);
 
@@ -561,72 +559,6 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
     setAddedToCart(true);
     toast({ title: "Added to cart!", description: `${product.name} added. Tap the cart to review your order.` });
     setTimeout(() => setAddedToCart(false), 2000);
-  };
-
-  const handleRazorpayCheckout = async () => {
-    setPaymentLoading(true);
-    try {
-      const orderData = await createRazorpayOrder(
-        storeId,
-        Math.round(effectivePrice * 100),
-        `order_${product.id}_${Date.now()}`
-      );
-
-      const variantSummary = product.variants?.filter(v => selectedVariants[v.label])
-        .map(v => `${v.label}: ${selectedVariants[v.label]}`).join(", ") ?? "";
-
-      const options: any = {
-        key: orderData.key_id,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: product.name,
-        description: variantSummary || product.description?.slice(0, 80) || "",
-        image: product.imageUrl || undefined,
-        order_id: orderData.order_id,
-        handler: async (response: any) => {
-          try {
-            const result = await verifyRazorpayPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              store_id: storeId,
-            });
-            if (result.verified) {
-              toast({
-                title: "Payment successful! 🎉",
-                description: "Your order has been placed. The seller will contact you shortly.",
-              });
-            } else {
-              toast({ variant: "destructive", title: "Payment verification failed", description: "Please contact the seller." });
-            }
-          } catch {
-            toast({ variant: "destructive", title: "Could not verify payment", description: "Please contact the seller with your payment ID." });
-          }
-        },
-        prefill: {},
-        theme: { color: "#16a34a" },
-        modal: {
-          ondismiss: () => setPaymentLoading(false),
-        },
-      };
-
-      const Razorpay = (window as any).Razorpay;
-      if (!Razorpay) {
-        toast({ variant: "destructive", title: "Payment not available", description: "Please refresh the page and try again." });
-        setPaymentLoading(false);
-        return;
-      }
-      const rzp = new Razorpay(options);
-      rzp.on("payment.failed", () => {
-        toast({ variant: "destructive", title: "Payment failed", description: "Please try again or contact the seller." });
-        setPaymentLoading(false);
-      });
-      rzp.open();
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Could not initiate payment", description: err.message ?? "Please try again." });
-    } finally {
-      setPaymentLoading(false);
-    }
   };
 
   const handleOrder = () => {
@@ -793,21 +725,6 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
               </div>
             )}
 
-            {razorpayKeyId && (
-              <Button
-                className="w-full h-14 text-lg rounded-xl shadow-lg bg-blue-600 hover:bg-blue-700 text-white border-transparent"
-                onClick={handleRazorpayCheckout}
-                disabled={paymentLoading}
-                data-testid="btn-pay-razorpay"
-              >
-                {paymentLoading
-                  ? <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  : <CreditCard className="mr-2 h-5 w-5" />
-                }
-                {paymentLoading ? "Opening payment..." : `Pay ₹${effectivePrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })} Online`}
-              </Button>
-            )}
-
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -828,6 +745,23 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
                 WhatsApp
               </Button>
             </div>
+
+            {/* View Cart pill — slides in once items are in the cart */}
+            {storeSlug && totalItems > 0 && (
+              <Link
+                href={`/store/${storeSlug}/cart`}
+                className="flex items-center justify-between gap-3 bg-primary/10 hover:bg-primary/15 border border-primary/30 rounded-2xl px-4 py-2.5 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
+              >
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-sm font-semibold text-primary">View Cart</span>
+                  <span className="bg-primary text-primary-foreground text-[10px] font-extrabold px-1.5 py-0.5 rounded-full leading-none">
+                    {totalItems}
+                  </span>
+                </div>
+                <ArrowLeft className="h-3.5 w-3.5 text-primary rotate-180 shrink-0" />
+              </Link>
+            )}
           </div>
         </div>
 
@@ -856,20 +790,9 @@ export function ProductDetailPage() {
   const [storeWhatsapp, setStoreWhatsapp] = useState("");
   const [storeSlug, setStoreSlug] = useState("");
   const [storeId, setStoreId] = useState("");
-  const [razorpayKeyId, setRazorpayKeyId] = useState<string | undefined>(undefined);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Inject Razorpay checkout.js script once
-  useEffect(() => {
-    if (document.getElementById("razorpay-script")) return;
-    const script = document.createElement("script");
-    script.id = "razorpay-script";
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -900,7 +823,6 @@ export function ProductDetailPage() {
               setStoreWhatsapp(store.whatsapp ?? "");
               setStoreSlug(store.slug ?? "");
               setStoreId(store.id ?? "");
-              setRazorpayKeyId(store.razorpay_key_id ?? undefined);
               const related = allProducts
                 .filter(p => p.id !== loadedProduct.id && p.category === loadedProduct.category)
                 .slice(0, 6);
@@ -941,6 +863,6 @@ export function ProductDetailPage() {
   }
 
   return (
-    <BuyerView product={product} reviews={reviews} storeWhatsapp={storeWhatsapp} storeSlug={storeSlug} storeId={storeId} razorpayKeyId={razorpayKeyId} relatedProducts={relatedProducts} />
+    <BuyerView product={product} reviews={reviews} storeWhatsapp={storeWhatsapp} storeSlug={storeSlug} storeId={storeId} relatedProducts={relatedProducts} />
   );
 }
