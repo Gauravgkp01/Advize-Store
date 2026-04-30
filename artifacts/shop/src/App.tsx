@@ -17,6 +17,8 @@ import { ProductDetailPage } from "@/pages/ProductDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { TermsPage } from "@/pages/TermsPage";
+import { CartPage } from "@/pages/CartPage";
+import { CartProvider } from "@/contexts/CartContext";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +51,7 @@ function Router() {
           <ProtectedRoute><EditProductPage /></ProtectedRoute>
         </Route>
         <Route path="/store/:slug" component={StorefrontPage} />
+        <Route path="/store/:slug/cart" component={CartPage} />
         <Route path="/product/:id" component={ProductDetailPage} />
         <Route path="/terms" component={TermsPage} />
         <Route component={NotFound} />
@@ -63,7 +66,9 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
-            <Router />
+            <CartProvider>
+              <Router />
+            </CartProvider>
           </AuthProvider>
         </WouterRouter>
         <Toaster />

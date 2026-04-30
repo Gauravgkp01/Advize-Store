@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useLocation } from "wouter";
-import { Store, Loader2, Search, Star, MessageSquare, ArrowUpDown, TrendingUp, MapPin } from "lucide-react";
+import { Store, Loader2, Search, Star, MessageSquare, ArrowUpDown, TrendingUp, MapPin, ShoppingCart } from "lucide-react";
 import { Link } from "wouter";
+import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import { getStore, getProducts, trackClick, getStoreReviews } from "@/lib/api";
 import type { Store as StoreType, Product } from "@/lib/api";
@@ -130,6 +131,7 @@ export function StorefrontPage() {
   const [priceSort, setPriceSort] = useState<PriceSort>("none");
 
   const searchRef = useRef<HTMLInputElement>(null);
+  const { totalItems } = useCart();
 
   useEffect(() => {
     if (!slug) return;
@@ -248,20 +250,45 @@ export function StorefrontPage() {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
 
-      {/* ── Compact Store Header ─────────────────────────────── */}
-      <header className="bg-primary text-primary-foreground py-4 px-4 sm:px-6 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
-        <div className="container max-w-5xl mx-auto relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border-2 border-white/30 bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            {store.logo_url ? (
-              <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
-            ) : (
-              <Store className="w-5 h-5 text-white" />
-            )}
+      {/* ── Store Navbar ─────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 bg-primary text-primary-foreground px-4 sm:px-6">
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent pointer-events-none" />
+        <div className="container max-w-5xl mx-auto relative z-10">
+          {/* Main nav row */}
+          <div className="h-14 flex items-center">
+            {/* Left: store logo */}
+            <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 border-2 border-white/30 bg-white/20 flex items-center justify-center">
+              {store.logo_url ? (
+                <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
+              ) : (
+                <Store className="w-4 h-4 text-white" />
+              )}
+            </div>
+
+            {/* Center: store name (absolute so it's truly centred) */}
+            <div className="absolute inset-x-0 flex items-center justify-center pointer-events-none h-14">
+              <h1 className="font-bold text-base sm:text-lg leading-tight truncate max-w-[55%] text-center">
+                {store.name}
+              </h1>
+            </div>
+
+            {/* Right: cart icon */}
+            <Link
+              href={`/store/${slug}/cart`}
+              className="ml-auto relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {totalItems > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-white text-primary text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center leading-none shadow">
+                  {totalItems > 9 ? "9+" : totalItems}
+                </span>
+              )}
+            </Link>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold leading-tight truncate">{store.name}</h1>
-            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+
+          {/* Metadata row */}
+          {(store.category || store.location || avgRating) && (
+            <div className="flex items-center gap-2 pb-2 flex-wrap">
               {store.category && (
                 <span className="text-primary-foreground/70 text-[10px] font-medium">{store.category}</span>
               )}
@@ -271,18 +298,18 @@ export function StorefrontPage() {
                 </span>
               )}
               {avgRating && (
-                <span className="bg-white/15 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5 backdrop-blur-sm">
+                <span className="bg-white/15 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
                   <Star className="w-2.5 h-2.5 fill-amber-300 text-amber-300" />
                   {avgRating} · {reviews.length} review{reviews.length !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
-          </div>
+          )}
         </div>
       </header>
 
-      {/* ── Sticky Search Bar ────────────────────────────────── */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b px-4 py-2.5 sm:px-6">
+      {/* ── Search Bar ───────────────────────────────────────── */}
+      <div className="bg-background/95 backdrop-blur border-b px-4 py-2.5 sm:px-6">
         <div className="container max-w-5xl mx-auto">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -4,6 +4,7 @@ import {
   ArrowLeft, MessageCircle,
   AlertCircle, Star, Loader2, MousePointerClick,
   Package, BarChart2, TrendingUp, ZoomIn, ZoomOut, X, RotateCcw, CreditCard,
+  ShoppingCart, ShoppingBag,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -16,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, createRazorpayOrder, verifyRazorpayPayment } from "@/lib/api";
 import type { Product, Review } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
+import { useCart } from "@/contexts/CartContext";
 
 /* ── shared sub-components ────────────────────────────── */
 function StarRating({ value, onChange, size = "md" }: { value: number; onChange?: (v: number) => void; size?: "sm" | "md" }) {
@@ -528,6 +530,8 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
   }, []);
 
   const { toast } = useToast();
+  const { addItem, totalItems } = useCart();
+  const [addedToCart, setAddedToCart] = useState(false);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const images = product.imageUrls.length > 0 ? product.imageUrls : [product.imageUrl];
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
@@ -551,6 +555,13 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
 
   const effectivePrice = (product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price)
     ? product.salePrice : product.price;
+
+  const handleAddToCart = () => {
+    addItem(product, storeId, storeSlug);
+    setAddedToCart(true);
+    toast({ title: "Added to cart!", description: `${product.name} added. Tap the cart to review your order.` });
+    setTimeout(() => setAddedToCart(false), 2000);
+  };
 
   const handleRazorpayCheckout = async () => {
     setPaymentLoading(true);
@@ -645,8 +656,34 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
       <header className="border-b bg-card sticky top-0 z-10">
-        <div className="container max-w-4xl mx-auto px-4 h-16 flex items-center">
-          <span className="font-semibold text-lg">Product Details</span>
+        <div className="container max-w-4xl mx-auto px-4 h-14 flex items-center relative">
+          {/* Back to store */}
+          {storeSlug && (
+            <Link
+              href={`/store/${storeSlug}`}
+              className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          )}
+          {/* Centred title */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="font-semibold text-base">Product Details</span>
+          </div>
+          {/* Cart icon */}
+          {storeSlug && (
+            <Link
+              href={`/store/${storeSlug}/cart`}
+              className="ml-auto relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {totalItems > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center leading-none shadow">
+                  {totalItems > 9 ? "9+" : totalItems}
+                </span>
+              )}
+            </Link>
+          )}
         </div>
       </header>
 
@@ -771,11 +808,26 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, razorp
               </Button>
             )}
 
-            <Button className="w-full h-14 text-lg rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent"
-              onClick={handleOrder} data-testid="btn-order-whatsapp">
-              <MessageCircle className="mr-2 h-5 w-5" />
-              Order on WhatsApp
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 h-14 text-base rounded-xl border-2 font-semibold gap-2"
+                onClick={handleAddToCart}
+                disabled={product.units === 0}
+                data-testid="btn-add-to-cart"
+              >
+                <ShoppingBag className={`h-5 w-5 ${addedToCart ? "fill-primary" : ""}`} />
+                {addedToCart ? "Added!" : "Add to Cart"}
+              </Button>
+              <Button
+                className="flex-1 h-14 text-base rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent gap-2 font-semibold"
+                onClick={handleOrder}
+                data-testid="btn-order-whatsapp"
+              >
+                <MessageCircle className="h-5 w-5" />
+                WhatsApp
+              </Button>
+            </div>
           </div>
         </div>
 
