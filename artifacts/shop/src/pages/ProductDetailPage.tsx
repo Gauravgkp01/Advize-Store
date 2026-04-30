@@ -523,9 +523,8 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
   // Always show the product/store page in dark mode
   useEffect(() => {
     const html = document.documentElement;
-    const wasLight = !html.classList.contains("dark");
     html.classList.add("dark");
-    return () => { if (wasLight) html.classList.remove("dark"); };
+    return () => {};
   }, []);
 
   const { toast } = useToast();

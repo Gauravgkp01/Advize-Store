@@ -50,9 +50,8 @@ export function CartPage() {
   /* Always dark on storefront pages */
   useEffect(() => {
     const html = document.documentElement;
-    const wasLight = !html.classList.contains("dark");
     html.classList.add("dark");
-    return () => { if (wasLight) html.classList.remove("dark"); };
+    return () => {};
   }, []);
 
   /* Load store info */

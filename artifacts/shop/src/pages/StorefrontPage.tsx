@@ -115,9 +115,8 @@ export function StorefrontPage() {
 
   useEffect(() => {
     const html = document.documentElement;
-    const wasLight = !html.classList.contains("dark");
     html.classList.add("dark");
-    return () => { if (wasLight) html.classList.remove("dark"); };
+    return () => {};
   }, []);
 
   const [store, setStore] = useState<StoreType | null>(null);
