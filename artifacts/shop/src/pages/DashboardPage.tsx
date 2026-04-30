@@ -5,7 +5,7 @@ import {
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
   Pencil, Phone, MapPin, Tag,
-  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles,
+  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -132,6 +132,17 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
               {copied ? <Check className="h-3 w-3 mr-1.5" /> : <Share2 className="h-3 w-3 mr-1.5" />}
               {copied ? "Copied!" : "Share QR Code"}
             </Button>
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="w-full rounded-full text-xs"
+            >
+              <a href={storeUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-3 w-3 mr-1.5" />
+                Visit Store
+              </a>
+            </Button>
           </div>
         </div>
       ) : (
@@ -152,6 +163,12 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
           <Button onClick={handleShare} className="w-full rounded-full" size="sm" data-testid="btn-share-link-qr-full">
             {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Share2 className="h-3.5 w-3.5 mr-1.5" />}
             {copied ? "Copied!" : "Share QR Code"}
+          </Button>
+          <Button asChild variant="outline" className="w-full rounded-full" size="sm">
+            <a href={storeUrl} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+              Visit Store
+            </a>
           </Button>
         </div>
       )}
