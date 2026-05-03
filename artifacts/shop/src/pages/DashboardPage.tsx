@@ -1018,18 +1018,6 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
 
       </div>
 
-      {/* Footer note */}
-      <p className="text-center text-xs text-muted-foreground mt-8">
-        Have a plugin idea?{" "}
-        <a
-          href="https://wa.me/?text=Hi%2C+I+have+a+plugin+idea+for+Advize+Store%3A+"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary font-medium underline underline-offset-2"
-        >
-          Tell us on WhatsApp
-        </a>
-      </p>
     </div>
   );
 }
