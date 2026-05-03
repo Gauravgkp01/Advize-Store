@@ -393,7 +393,7 @@ export function StorefrontPage() {
                     onClick={() => setActiveCategory(cat)}
                     className="flex flex-col items-center gap-1.5 shrink-0"
                   >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border-2 ${
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border-2 ${
                       isActive
                         ? `border-primary ${bg} shadow-md scale-105`
                         : `border-border ${bg} hover:border-primary/40 hover:scale-105`
