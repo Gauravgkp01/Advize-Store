@@ -217,10 +217,41 @@ export function StorefrontPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
+  const trendingScrollRef = useRef<HTMLDivElement>(null);
+  const trendingPausedRef = useRef(false);
+  const trendingRafRef = useRef<number>(0);
+
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [priceSort, setPriceSort] = useState<PriceSort>("none");
 
   const searchRef = useRef<HTMLInputElement>(null);
+
+  /* ── Trending auto-scroll (JS-driven, manually interruptible) ── */
+  useEffect(() => {
+    const el = trendingScrollRef.current;
+    if (!el || trendingProducts.length === 0) return;
+    el.scrollLeft = 0;
+    const SPEED = 45; // px per second
+    let last: number | null = null;
+    function step(ts: number) {
+      if (!el) return;
+      if (!trendingPausedRef.current) {
+        if (last !== null) {
+          el.scrollLeft += (SPEED * (ts - last)) / 1000;
+          // seamless loop — jump back when we've scrolled past the first copy
+          if (el.scrollLeft >= el.scrollWidth / 2) {
+            el.scrollLeft -= el.scrollWidth / 2;
+          }
+        }
+        last = ts;
+      } else {
+        last = null; // reset so there's no jump on resume
+      }
+      trendingRafRef.current = requestAnimationFrame(step);
+    }
+    trendingRafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(trendingRafRef.current);
+  }, [trendingProducts.length]);
   const { totalItems } = useCart();
 
   useEffect(() => {
@@ -424,15 +455,18 @@ export function StorefrontPage() {
               <TrendingUp className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-bold text-foreground">Trending Now</h2>
             </div>
-            {/* Marquee track — overflow hidden, fade edges */}
+            {/* Scroll track — auto-scrolls, pauses on touch/drag for manual control */}
             <div
-              className="marquee-track relative overflow-hidden pb-3"
+              ref={trendingScrollRef}
+              className="overflow-x-auto no-scrollbar pb-3 cursor-grab active:cursor-grabbing select-none"
               style={{ maskImage: "linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)" }}
+              onPointerDown={() => { trendingPausedRef.current = true; }}
+              onPointerUp={() => { trendingPausedRef.current = false; }}
+              onPointerLeave={() => { trendingPausedRef.current = false; }}
+              onTouchStart={() => { trendingPausedRef.current = true; }}
+              onTouchEnd={() => { trendingPausedRef.current = false; }}
             >
-              <div
-                className="animate-marquee flex gap-2.5 w-max"
-                style={{ "--marquee-duration": `${Math.max(trendingProducts.length * 4, 12)}s` } as React.CSSProperties}
-              >
+              <div className="flex gap-2.5 w-max">
                 {/* First copy */}
                 {trendingProducts.map(product => (
                   <TrendingCard
