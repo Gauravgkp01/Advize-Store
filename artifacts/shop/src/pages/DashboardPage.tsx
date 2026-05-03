@@ -974,6 +974,27 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
           </div>
         </div>
 
+        {/* ── Custom Templates ── */}
+        <div className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm opacity-75">
+          <div className="bg-teal-50 dark:bg-teal-950/40 p-3 rounded-xl flex-shrink-0">
+            <Sparkles className="h-6 w-6 text-teal-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="text-base font-semibold text-foreground leading-tight">Custom Templates</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300">
+                Coming Soon
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Choose from beautiful storefront templates to give your shop a unique look and feel.
+            </p>
+          </div>
+          <div className="flex-shrink-0 mt-0.5">
+            <Lock className="h-4 w-4 text-muted-foreground/50" />
+          </div>
+        </div>
+
       </div>
 
       {/* Footer note */}
