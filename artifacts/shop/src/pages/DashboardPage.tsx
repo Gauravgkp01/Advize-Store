@@ -6,6 +6,7 @@ import {
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
   Pencil, Phone, MapPin, Tag, Mail, FileText,
   Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike,
+  ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -177,10 +178,11 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
 }
 
 /* ── panels ─────────────────────────────────────────── */
-function HomePanel({ products, analytics, store }: {
+function HomePanel({ products, analytics, store, orderStats }: {
   products: Product[];
   analytics: AnalyticsSummary | null;
   store: StoreType | null;
+  orderStats: OrderStats | null;
 }) {
   const inStockCount = products.filter(p => p.units > 0).length;
   const outCount = products.filter(p => p.units === 0).length;
@@ -189,6 +191,7 @@ function HomePanel({ products, analytics, store }: {
   const storeUrl = store?.slug
     ? `${window.location.origin}/store/${store.slug}`
     : "";
+  const paymentActive = !!(store?.razorpay_account_id || store?.razorpay_key_id);
 
   return (
     <div className="p-3 sm:p-6 space-y-4 pb-28">
@@ -201,6 +204,61 @@ function HomePanel({ products, analytics, store }: {
           <Link href="/add-product"><Plus className="h-3.5 w-3.5 mr-1" />Add Product</Link>
         </Button>
       </div>
+
+      {/* ── Orders Summary (payment stores only) ─────────── */}
+      {paymentActive && (
+        <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+          <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b">
+            <ShoppingCart className="h-4 w-4 text-primary" />
+            <p className="text-sm font-bold">Orders Summary</p>
+            {orderStats && (
+              <span className="ml-auto text-[10px] font-semibold text-muted-foreground">
+                {orderStats.totalOrders} total
+              </span>
+            )}
+          </div>
+          {orderStats ? (
+            <div className="grid grid-cols-2 divide-x divide-y">
+              <div className="px-4 py-3 flex flex-col gap-0.5">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <IndianRupee className="h-3 w-3" />
+                  <span className="text-[10px] font-medium">Revenue</span>
+                </div>
+                <p className="text-lg font-extrabold text-foreground">
+                  ₹{orderStats.totalRevenueRupees.toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div className="px-4 py-3 flex flex-col gap-0.5">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <ShoppingCart className="h-3 w-3" />
+                  <span className="text-[10px] font-medium">Total Orders</span>
+                </div>
+                <p className="text-lg font-extrabold text-foreground">{orderStats.totalOrders}</p>
+              </div>
+              <div className="px-4 py-3 flex flex-col gap-0.5">
+                <div className="flex items-center gap-1.5 text-amber-500">
+                  <Clock className="h-3 w-3" />
+                  <span className="text-[10px] font-medium">Pending</span>
+                </div>
+                <p className="text-base font-bold text-amber-500">{orderStats.pendingOrders}</p>
+              </div>
+              <div className="px-4 py-3 flex flex-col gap-0.5">
+                <div className="flex items-center gap-1.5 text-green-500">
+                  <PackageCheck className="h-3 w-3" />
+                  <span className="text-[10px] font-medium">Delivered</span>
+                </div>
+                <p className="text-base font-bold text-green-500">{orderStats.deliveredOrders}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
+              <AlertCircle className="h-8 w-8 opacity-20" />
+              <p className="text-xs font-medium">No orders yet</p>
+              <p className="text-[11px]">Orders will appear here after customers pay.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         <MiniStat icon={<TrendingUp className="h-3.5 w-3.5" />} label="Clicks"
@@ -1049,17 +1107,18 @@ export function DashboardPage() {
   };
   const [products, setProducts] = useState<Product[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+  const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
 
-  const loadData = useCallback(async (storeId: string) => {
+  const loadData = useCallback(async (storeId: string, hasPayment: boolean) => {
     setDataLoading(true);
     try {
-      const [prods, anal] = await Promise.all([
-        getProducts(storeId),
-        getAnalytics(storeId),
-      ]);
+      const fetches: Promise<any>[] = [getProducts(storeId), getAnalytics(storeId)];
+      if (hasPayment) fetches.push(getOrderStats(storeId));
+      const [prods, anal, orders] = await Promise.all(fetches);
       setProducts(prods);
       setAnalytics(anal);
+      if (orders) setOrderStats(orders);
     } catch {
       // silent — show empty state
     } finally {
@@ -1068,8 +1127,11 @@ export function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (store?.id) loadData(store.id);
-  }, [store?.id, loadData]);
+    if (store?.id) {
+      const hasPayment = !!(store.razorpay_account_id || store.razorpay_key_id);
+      loadData(store.id, hasPayment);
+    }
+  }, [store?.id, store?.razorpay_account_id, store?.razorpay_key_id, loadData]);
 
   // Save old tab scroll → restore new tab scroll
   useEffect(() => {
@@ -1203,7 +1265,7 @@ export function DashboardPage() {
             style={{ transform: `translateX(-${active * 100}%)` }}
           >
             <div ref={el => { panelRefs.current[0] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-              <HomePanel products={products} analytics={analytics} store={store} />
+              <HomePanel products={products} analytics={analytics} store={store} orderStats={orderStats} />
             </div>
 
             <div ref={el => { panelRefs.current[1] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
