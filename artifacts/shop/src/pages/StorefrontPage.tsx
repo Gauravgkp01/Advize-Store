@@ -353,13 +353,13 @@ export function StorefrontPage() {
 
         {/* ── Trending Products ─────────────────────────────────── */}
         {showTrending && (
-          <div className="mb-5">
+          <div className="mb-8">
             <div className="flex items-center gap-1.5 mb-3 px-2.5 sm:px-0">
               <TrendingUp className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-bold text-foreground">Trending Now</h2>
             </div>
             <div className="relative">
-              <div className="flex gap-2.5 overflow-x-auto px-2.5 sm:px-0 pb-2 scrollbar-none">
+              <div className="flex gap-2.5 overflow-x-auto px-2.5 sm:px-0 pb-3 scrollbar-none">
                 {trendingProducts.map(product => (
                   <TrendingCard
                     key={product.id}
