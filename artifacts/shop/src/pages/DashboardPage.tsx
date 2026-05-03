@@ -5,7 +5,7 @@ import {
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
   Pencil, Phone, MapPin, Tag, Mail, FileText,
-  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink,
+  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -967,6 +967,27 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Source and import products from suppliers — sell without holding any inventory.
+            </p>
+          </div>
+          <div className="flex-shrink-0 mt-0.5">
+            <Lock className="h-4 w-4 text-muted-foreground/50" />
+          </div>
+        </div>
+
+        {/* ── Delivery Partners ── */}
+        <div className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm opacity-75">
+          <div className="bg-green-50 dark:bg-green-950/40 p-3 rounded-xl flex-shrink-0">
+            <Bike className="h-6 w-6 text-green-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="text-base font-semibold text-foreground leading-tight">Delivery Partners</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                Coming Soon
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Connect with Dunzo, Porter, Shiprocket & more to offer fast local and national delivery to your customers.
             </p>
           </div>
           <div className="flex-shrink-0 mt-0.5">
