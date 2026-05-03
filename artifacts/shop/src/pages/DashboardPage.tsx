@@ -1113,16 +1113,20 @@ export function DashboardPage() {
   const loadData = useCallback(async (storeId: string, hasPayment: boolean) => {
     setDataLoading(true);
     try {
-      const fetches: Promise<any>[] = [getProducts(storeId), getAnalytics(storeId)];
-      if (hasPayment) fetches.push(getOrderStats(storeId));
-      const [prods, anal, orders] = await Promise.all(fetches);
+      const [prods, anal] = await Promise.all([
+        getProducts(storeId),
+        getAnalytics(storeId),
+      ]);
       setProducts(prods);
       setAnalytics(anal);
-      if (orders) setOrderStats(orders);
     } catch {
       // silent — show empty state
     } finally {
       setDataLoading(false);
+    }
+    // order stats fetched independently so any failure doesn't break products
+    if (hasPayment) {
+      getOrderStats(storeId).then(setOrderStats).catch(() => {});
     }
   }, []);
 
