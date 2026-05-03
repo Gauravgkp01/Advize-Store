@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { getStore, createRazorpayOrder, verifyRazorpayPayment } from "@/lib/api";
+import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 
 type Screen = "cart" | "checkout" | "success";
@@ -143,6 +143,22 @@ export function CartPage() {
               store_id: store.id,
             });
             if (result.verified) {
+              createOrder({
+                store_id: store.id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                amount_paise: Math.round(totalPrice * 100),
+                items: items.map(i => ({
+                  productId: i.product.id,
+                  name: i.product.name,
+                  quantity: i.quantity,
+                  price: unitPrice(i.product),
+                  variant: i.selectedVariants
+                    ? Object.values(i.selectedVariants).filter(Boolean).join(", ")
+                    : undefined,
+                })),
+                buyer,
+              }).catch(() => {}); // fire-and-forget — don't block success screen
               setScreen("success");
               clearCart();
             } else {

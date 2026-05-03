@@ -16,7 +16,7 @@ import { useStore } from "@/hooks/use-store";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
-import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, onboardRazorpay, type AnalyticsSummary } from "@/lib/api";
+import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, onboardRazorpay, getOrderStats, updateOrderStatus, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
 

@@ -305,3 +305,64 @@ export const verifyRazorpayPayment = (payload: {
     method: "POST",
     body: JSON.stringify(payload),
   });
+
+// ── Orders ────────────────────────────────────────────────────
+export interface OrderItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+  variant?: string;
+}
+
+export interface OrderBuyer {
+  name: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  pincode: string;
+}
+
+export type OrderStatus = "pending" | "confirmed" | "delivered" | "cancelled";
+
+export interface Order {
+  id: string;
+  razorpay_payment_id: string;
+  amount_paise: number;
+  items: OrderItem[];
+  buyer: OrderBuyer;
+  status: OrderStatus;
+  created_at: any;
+}
+
+export interface OrderStats {
+  totalOrders: number;
+  totalRevenueRupees: number;
+  pendingOrders: number;
+  confirmedOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  recentOrders: Order[];
+}
+
+export const createOrder = (payload: {
+  store_id: string;
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  amount_paise: number;
+  items: OrderItem[];
+  buyer: OrderBuyer;
+}) =>
+  request<{ id: string }>("/orders", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const getOrderStats = (store_id: string) =>
+  request<OrderStats>(`/orders/store/${store_id}`);
+
+export const updateOrderStatus = (order_id: string, status: OrderStatus) =>
+  request<{ ok: boolean; status: string }>(`/orders/${order_id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
