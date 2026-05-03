@@ -199,10 +199,11 @@ function TrendingCard({
   );
 }
 
-export function StorefrontPage() {
+export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const params = useParams();
   const [, navigate] = useLocation();
-  const slug = params.slug ?? "";
+  const slug = forcedSlug ?? params.slug ?? "";
+  const onSubdomain = !!forcedSlug;
 
   useEffect(() => {
     const html = document.documentElement;
@@ -395,7 +396,7 @@ export function StorefrontPage() {
 
             {/* Right: cart icon */}
             <Link
-              href={`/store/${slug}/cart`}
+              href={onSubdomain ? "/cart" : `/store/${slug}/cart`}
               className="ml-auto relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/10 transition-colors"
             >
               <ShoppingCart className="h-5 w-5" />

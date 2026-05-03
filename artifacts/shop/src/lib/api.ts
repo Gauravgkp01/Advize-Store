@@ -53,6 +53,19 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// ── Domain helpers ──────────────────────────────────────────
+/** Returns the store slug when the app is accessed via a store subdomain, e.g. myshop.store.advize.in */
+export function getSubdomainSlug(): string | null {
+  const m = window.location.hostname.match(/^([^.]+)\.store\.advize\.in$/);
+  return m?.[1] ?? null;
+}
+
+/** Returns the public URL for a store — subdomain format in prod, path format in dev */
+export function getStorePublicUrl(slug: string): string {
+  if (import.meta.env.PROD) return `https://${slug}.store.advize.in`;
+  return `${window.location.origin}/store/${slug}`;
+}
+
 // ── Stores ──────────────────────────────────────────────────
 export interface Store {
   id: string;

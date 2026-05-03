@@ -189,7 +189,9 @@ function HomePanel({ products, analytics, store, orderStats }: {
   const totalUnits = products.reduce((s, p) => s + p.units, 0);
   const avgStoreRating = analytics?.avgRating ?? "–";
   const storeUrl = store?.slug
-    ? `${window.location.origin}/store/${store.slug}`
+    ? (import.meta.env.PROD
+        ? `https://${store.slug}.store.advize.in`
+        : `${window.location.origin}/store/${store.slug}`)
     : "";
   const paymentActive = !!(store?.razorpay_account_id || store?.razorpay_key_id);
 
@@ -376,7 +378,9 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
   };
 
   const storeUrl = store?.slug
-    ? `${window.location.origin}/store/${store.slug}`
+    ? (import.meta.env.PROD
+        ? `https://${store.slug}.store.advize.in`
+        : `${window.location.origin}/store/${store.slug}`)
     : "";
 
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

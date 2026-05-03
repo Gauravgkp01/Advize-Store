@@ -35,9 +35,10 @@ function unitPrice(p: { price: number; salePrice?: number }) {
     ? p.salePrice : p.price;
 }
 
-export function CartPage() {
+export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const params = useParams();
-  const slug = params.slug ?? "";
+  const slug = forcedSlug ?? params.slug ?? "";
+  const onSubdomain = !!forcedSlug;
   const { items, updateQty, removeItem, clearCart, totalItems, totalPrice } = useCart();
   const { toast } = useToast();
   const [store, setStore] = useState<StoreType | null>(null);
@@ -218,7 +219,7 @@ export function CartPage() {
             <p className="text-sm text-muted-foreground mt-1.5">Add products from the store to get started</p>
           </div>
           <Button asChild className="rounded-full px-6 mt-1">
-            <Link href={`/store/${slug}`}>
+            <Link href={onSubdomain ? "/" : `/store/${slug}`}>
               <Store className="h-4 w-4 mr-2" />
               Browse Products
             </Link>
@@ -244,7 +245,7 @@ export function CartPage() {
             </p>
           </div>
           <Button asChild className="rounded-full px-6 mt-1">
-            <Link href={`/store/${slug}`}>Continue Shopping</Link>
+            <Link href={onSubdomain ? "/" : `/store/${slug}`}>Continue Shopping</Link>
           </Button>
         </div>
       </div>

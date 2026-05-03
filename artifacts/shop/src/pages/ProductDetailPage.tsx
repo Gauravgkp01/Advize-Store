@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts } from "@/lib/api";
+import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, getSubdomainSlug } from "@/lib/api";
 import type { Product, Review } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
@@ -520,6 +520,9 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
   storeId: string;
   relatedProducts: Product[];
 }) {
+  const onSubdomain = !!getSubdomainSlug();
+  const storePath = onSubdomain ? "/" : `/store/${storeSlug}`;
+  const cartPath  = onSubdomain ? "/cart" : `/store/${storeSlug}/cart`;
   // Always show the product/store page in dark mode
   useEffect(() => {
     const html = document.documentElement;
@@ -591,7 +594,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
           {/* Back to store */}
           {storeSlug && (
             <Link
-              href={`/store/${storeSlug}`}
+              href={storePath}
               className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -604,7 +607,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
           {/* Cart icon */}
           {storeSlug && (
             <Link
-              href={`/store/${storeSlug}/cart`}
+              href={cartPath}
               className="ml-auto relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors"
             >
               <ShoppingCart className="h-5 w-5" />
@@ -748,7 +751,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
             {/* View Cart pill — slides in once items are in the cart */}
             {storeSlug && totalItems > 0 && (
               <Link
-                href={`/store/${storeSlug}/cart`}
+                href={cartPath}
                 className="flex items-center justify-between gap-3 bg-primary/10 hover:bg-primary/15 border border-primary/30 rounded-2xl px-4 py-2.5 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
               >
                 <div className="flex items-center gap-2">

@@ -22,6 +22,10 @@ import { CartProvider } from "@/contexts/CartContext";
 
 const queryClient = new QueryClient();
 
+// Detect store subdomain: e.g. myshop.store.advize.in
+const _subdomainMatch = window.location.hostname.match(/^([^.]+)\.store\.advize\.in$/);
+const SUBDOMAIN_SLUG = _subdomainMatch?.[1] ?? null;
+
 function ScrollToTop() {
   const [location] = useLocation();
   useEffect(() => {
@@ -60,7 +64,41 @@ function Router() {
   );
 }
 
+/** Minimal router used when the app is served from a store subdomain */
+function SubdomainRouter({ slug }: { slug: string }) {
+  return (
+    <>
+      <ScrollToTop />
+      <Switch>
+        <Route path="/cart">
+          <CartPage forcedSlug={slug} />
+        </Route>
+        <Route path="/product/:id" component={ProductDetailPage} />
+        <Route path="/terms" component={TermsPage} />
+        <Route>
+          <StorefrontPage forcedSlug={slug} />
+        </Route>
+      </Switch>
+    </>
+  );
+}
+
 function App() {
+  if (SUBDOMAIN_SLUG) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <WouterRouter base="">
+            <CartProvider>
+              <SubdomainRouter slug={SUBDOMAIN_SLUG} />
+            </CartProvider>
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
