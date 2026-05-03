@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useLocation } from "wouter";
-import { Store, Loader2, Search, Star, MessageSquare, ArrowUpDown, TrendingUp, MapPin, ShoppingCart } from "lucide-react";
+import {
+  Store, Loader2, Search, Star, MessageSquare, ArrowUpDown, TrendingUp, MapPin, ShoppingCart,
+  Shirt, Footprints, UserRound, Gem, UtensilsCrossed, Smartphone, Palette, Sparkles,
+  Baby, Home, Package, ShoppingBag, Watch, Dumbbell, BookOpen, Flower2, Scissors,
+  Sofa, Glasses, Dog, Car, Bike,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Link } from "wouter";
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
@@ -10,21 +16,40 @@ import type { Review } from "@/lib/api";
 
 type PriceSort = "none" | "asc" | "desc";
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  "All": "🏪",
-  "Fashion & Clothing": "👗",
-  "Food & Beverages": "🍔",
-  "Electronics": "📱",
-  "Handicrafts": "🎨",
-  "Beauty & Cosmetics": "💄",
-  "Jewellery": "💍",
-  "Home": "🏠",
-  "Kids": "🧸",
-  "Men Fashion": "👔",
-  "Other": "📦",
-};
-function getCategoryEmoji(cat: string) {
-  return CATEGORY_EMOJI[cat] ?? "🛍️";
+interface CategoryIconDef { icon: LucideIcon; color: string; bg: string }
+
+const CATEGORY_ICON_MAP: { keywords: string[]; def: CategoryIconDef }[] = [
+  { keywords: ["cloth", "fashion", "shirt", "dress", "wear", "apparel", "saree", "kurta", "kurti", "blouse", "top", "lehenga"], def: { icon: Shirt,          color: "text-pink-400",   bg: "bg-pink-400/10"   } },
+  { keywords: ["shoe", "footwear", "sandal", "chappal", "boot", "slipper", "heel", "sneaker"],                                  def: { icon: Footprints,    color: "text-amber-400",  bg: "bg-amber-400/10"  } },
+  { keywords: ["bangle", "jewel", "ring", "necklace", "gold", "silver", "ornament", "bracelet", "earring", "pendant"],         def: { icon: Gem,           color: "text-yellow-400", bg: "bg-yellow-400/10" } },
+  { keywords: ["men", "gent", "male"],                                                                                          def: { icon: UserRound,     color: "text-blue-400",   bg: "bg-blue-400/10"   } },
+  { keywords: ["food", "beverage", "eat", "drink", "snack", "restaurant", "cafe", "spice", "grocery", "sweet", "mithai"],      def: { icon: UtensilsCrossed, color: "text-orange-400", bg: "bg-orange-400/10" } },
+  { keywords: ["electron", "mobile", "phone", "tech", "gadget", "computer", "laptop", "tablet"],                               def: { icon: Smartphone,    color: "text-cyan-400",   bg: "bg-cyan-400/10"   } },
+  { keywords: ["handicraft", "craft", "handmade", "art", "pottery", "weave"],                                                  def: { icon: Palette,       color: "text-purple-400", bg: "bg-purple-400/10" } },
+  { keywords: ["beauty", "cosmetic", "makeup", "skincare", "hair", "salon", "lipstick", "cream", "perfume"],                   def: { icon: Sparkles,      color: "text-rose-400",   bg: "bg-rose-400/10"   } },
+  { keywords: ["kid", "child", "baby", "toy", "infant", "girl"],                                                               def: { icon: Baby,          color: "text-green-400",  bg: "bg-green-400/10"  } },
+  { keywords: ["home", "furniture", "kitchen", "decor", "household", "utensil", "bed"],                                        def: { icon: Sofa,          color: "text-emerald-400",bg: "bg-emerald-400/10"} },
+  { keywords: ["sport", "gym", "fitness", "exercise", "yoga", "cricket", "football"],                                          def: { icon: Dumbbell,      color: "text-red-400",    bg: "bg-red-400/10"    } },
+  { keywords: ["book", "stationery", "study", "education", "notebook", "pen"],                                                 def: { icon: BookOpen,      color: "text-indigo-400", bg: "bg-indigo-400/10" } },
+  { keywords: ["flower", "plant", "garden", "organic", "nursery"],                                                             def: { icon: Flower2,       color: "text-lime-400",   bg: "bg-lime-400/10"   } },
+  { keywords: ["watch", "clock"],                                                                                               def: { icon: Watch,         color: "text-slate-400",  bg: "bg-slate-400/10"  } },
+  { keywords: ["eyewear", "glass", "spectacle", "sunglass", "lens"],                                                           def: { icon: Glasses,       color: "text-sky-400",    bg: "bg-sky-400/10"    } },
+  { keywords: ["tailor", "stitch", "sewing", "alteration"],                                                                    def: { icon: Scissors,      color: "text-fuchsia-400",bg: "bg-fuchsia-400/10"} },
+  { keywords: ["pet", "dog", "cat", "animal"],                                                                                 def: { icon: Dog,           color: "text-brown-400",  bg: "bg-orange-900/10" } },
+  { keywords: ["car", "auto", "vehicle", "tyre", "motor"],                                                                     def: { icon: Car,           color: "text-zinc-400",   bg: "bg-zinc-400/10"   } },
+  { keywords: ["cycle", "bike", "bicycle", "scooter"],                                                                         def: { icon: Bike,          color: "text-teal-400",   bg: "bg-teal-400/10"   } },
+];
+
+const ALL_DEF: CategoryIconDef = { icon: Store,       color: "text-primary",        bg: "bg-primary/10"    };
+const OTHER_DEF: CategoryIconDef = { icon: ShoppingBag, color: "text-muted-foreground", bg: "bg-muted/40"   };
+
+function getCategoryIcon(cat: string): CategoryIconDef {
+  if (cat === "All") return ALL_DEF;
+  const lower = cat.toLowerCase();
+  for (const entry of CATEGORY_ICON_MAP) {
+    if (entry.keywords.some(k => lower.includes(k))) return entry.def;
+  }
+  return OTHER_DEF;
 }
 
 function StarRating({ rating, size = 14 }: { rating: number; size?: number }) {
@@ -359,26 +384,30 @@ export function StorefrontPage() {
               className="flex gap-3 overflow-x-auto px-2.5 sm:px-0 pb-1 scrollbar-none"
               data-testid="category-icons"
             >
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className="flex flex-col items-center gap-1 shrink-0"
-                >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition-all border-2 ${
-                    activeCategory === cat
-                      ? "border-primary bg-primary/10 shadow-sm scale-105"
-                      : "border-border bg-muted/40 hover:border-primary/40"
-                  }`}>
-                    {getCategoryEmoji(cat)}
-                  </div>
-                  <span className={`text-[10px] font-medium w-12 text-center leading-tight line-clamp-1 ${
-                    activeCategory === cat ? "text-primary" : "text-muted-foreground"
-                  }`}>
-                    {cat === "All" ? "All" : cat.split(" ")[0]}
-                  </span>
-                </button>
-              ))}
+              {categories.map(cat => {
+                const { icon: Icon, color, bg } = getCategoryIcon(cat);
+                const isActive = activeCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className="flex flex-col items-center gap-1.5 shrink-0"
+                  >
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border-2 ${
+                      isActive
+                        ? `border-primary ${bg} shadow-md scale-105`
+                        : `border-border ${bg} hover:border-primary/40 hover:scale-105`
+                    }`}>
+                      <Icon className={`h-6 w-6 transition-colors ${isActive ? "text-primary" : color}`} />
+                    </div>
+                    <span className={`text-[10px] font-semibold w-14 text-center leading-tight line-clamp-2 ${
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    }`}>
+                      {cat}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
