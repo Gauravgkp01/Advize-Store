@@ -4,7 +4,7 @@ import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
-  Pencil, Phone, MapPin, Tag,
+  Pencil, Phone, MapPin, Tag, Mail, FileText,
   Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
@@ -269,6 +269,9 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
   const [editCategory, setEditCategory] = useState("");
   const [editRazorpayKeyId, setEditRazorpayKeyId] = useState("");
   const [editRazorpaySecret, setEditRazorpaySecret] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editContactPhone, setEditContactPhone] = useState("");
+  const [editTerms, setEditTerms] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -279,6 +282,9 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
     setEditCategory(store?.category ?? "");
     setEditRazorpayKeyId(store?.razorpay_key_id ?? "");
     setEditRazorpaySecret("");
+    setEditEmail(store?.email ?? "");
+    setEditContactPhone(store?.contact_phone ?? "");
+    setEditTerms(store?.terms_and_conditions ?? "");
     setShowSecret(false);
     setEditing(true);
   };
@@ -292,6 +298,9 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
         whatsapp: editPhone.trim(),
         location: editLocation.trim(),
         category: editCategory.trim(),
+        email: editEmail.trim(),
+        contact_phone: editContactPhone.trim(),
+        terms_and_conditions: editTerms.trim(),
       };
       if (editRazorpayKeyId.trim()) payload.razorpay_key_id = editRazorpayKeyId.trim();
       if (editRazorpaySecret.trim()) payload.razorpay_key_secret = editRazorpaySecret.trim();
@@ -414,6 +423,37 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
           <div className="space-y-1">
             <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Location</label>
             <Input value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="e.g. Mumbai, Maharashtra" className="h-11 rounded-xl" />
+          </div>
+
+          {/* ── Contact & Legal section ── */}
+          <div className="pt-2 border-t">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="h-4 w-4 text-purple-500" />
+              <p className="text-sm font-semibold">Contact &amp; Legal Info</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Shown in your store's footer. Helps customers reach you and builds trust.
+            </p>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Business Email</label>
+                <Input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="e.g. shop@example.com" className="h-11 rounded-xl" type="email" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Contact Phone</label>
+                <Input value={editContactPhone} onChange={e => setEditContactPhone(e.target.value)} placeholder="e.g. 9876543210" className="h-11 rounded-xl" type="tel" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Terms &amp; Conditions</label>
+                <textarea
+                  value={editTerms}
+                  onChange={e => setEditTerms(e.target.value)}
+                  placeholder="Enter your store's terms and conditions, return policy, shipping info, etc."
+                  rows={5}
+                  className="w-full rounded-xl border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
+                />
+              </div>
+            </div>
           </div>
 
           {/* ── Razorpay section ── */}

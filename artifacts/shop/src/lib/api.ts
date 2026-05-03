@@ -62,6 +62,9 @@ export interface Store {
   category?: string;
   location?: string;
   logo_url?: string;
+  email?: string;
+  contact_phone?: string;
+  terms_and_conditions?: string;
   razorpay_key_id?: string;
   razorpay_enabled?: boolean;
   razorpay_account_id?: string;

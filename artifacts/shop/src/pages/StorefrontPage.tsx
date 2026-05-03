@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import {
-  Store, Loader2, Search, Star, MessageSquare, ArrowUpDown, TrendingUp, MapPin, ShoppingCart,
+  Store, Loader2, Search, Star, MessageSquare, ArrowUpDown, TrendingUp, MapPin, ShoppingCart, Mail, Phone, FileText, ChevronDown, ChevronUp,
   Shirt, Footprints, UserRound, Gem, UtensilsCrossed, Smartphone, Palette, Sparkles,
   Baby, Home, Package, ShoppingBag, Watch, Dumbbell, BookOpen, Flower2, Scissors,
   Sofa, Glasses, Dog, Car, Bike,
@@ -15,6 +15,72 @@ import type { Store as StoreType, Product } from "@/lib/api";
 import type { Review } from "@/lib/api";
 
 type PriceSort = "none" | "asc" | "desc";
+
+/* ── Store Footer ─────────────────────────────────────────── */
+function StoreFooter({ store }: { store: StoreType | null }) {
+  const [termsOpen, setTermsOpen] = useState(false);
+  if (!store) return null;
+
+  const hasContact = store.email || store.contact_phone;
+  const hasTerms = !!store.terms_and_conditions;
+
+  return (
+    <footer className="border-t bg-muted/20 text-xs text-muted-foreground">
+      {(hasContact || hasTerms) && (
+        <div className="container max-w-5xl mx-auto px-4 py-5 space-y-4">
+          {/* Contact row */}
+          {hasContact && (
+            <div className="flex flex-wrap gap-4">
+              {store.email && (
+                <a
+                  href={`mailto:${store.email}`}
+                  className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+                >
+                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                  {store.email}
+                </a>
+              )}
+              {store.contact_phone && (
+                <a
+                  href={`tel:${store.contact_phone}`}
+                  className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+                >
+                  <Phone className="h-3.5 w-3.5 shrink-0" />
+                  {store.contact_phone}
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Terms accordion */}
+          {hasTerms && (
+            <div className="border rounded-xl overflow-hidden">
+              <button
+                onClick={() => setTermsOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors text-left"
+              >
+                <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                  <FileText className="h-3.5 w-3.5" />
+                  Terms &amp; Conditions
+                </span>
+                {termsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+              {termsOpen && (
+                <div className="px-4 py-3 border-t bg-background/40 whitespace-pre-wrap leading-relaxed text-[11px]">
+                  {store.terms_and_conditions}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="container max-w-5xl mx-auto px-4 py-4 border-t text-center">
+        Powered by <span className="font-bold text-foreground">Advize Store</span>
+      </div>
+    </footer>
+  );
+}
 
 interface CategoryIconDef { icon: LucideIcon; color: string; bg: string }
 
@@ -518,9 +584,8 @@ export function StorefrontPage() {
 
       </main>
 
-      <footer className="py-5 text-center text-muted-foreground border-t bg-muted/20 text-xs">
-        <p>Powered by <span className="font-bold text-foreground">Advize Store</span></p>
-      </footer>
+      <StoreFooter store={store} />
+
     </div>
   );
 }
