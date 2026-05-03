@@ -226,32 +226,6 @@ export function StorefrontPage() {
 
   const searchRef = useRef<HTMLInputElement>(null);
 
-  /* ── Trending auto-scroll (JS-driven, manually interruptible) ── */
-  useEffect(() => {
-    const el = trendingScrollRef.current;
-    if (!el || trendingProducts.length === 0) return;
-    el.scrollLeft = 0;
-    const SPEED = 45; // px per second
-    let last: number | null = null;
-    function step(ts: number) {
-      if (!el) return;
-      if (!trendingPausedRef.current) {
-        if (last !== null) {
-          el.scrollLeft += (SPEED * (ts - last)) / 1000;
-          // seamless loop — jump back when we've scrolled past the first copy
-          if (el.scrollLeft >= el.scrollWidth / 2) {
-            el.scrollLeft -= el.scrollWidth / 2;
-          }
-        }
-        last = ts;
-      } else {
-        last = null; // reset so there's no jump on resume
-      }
-      trendingRafRef.current = requestAnimationFrame(step);
-    }
-    trendingRafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(trendingRafRef.current);
-  }, [trendingProducts.length]);
   const { totalItems } = useCart();
 
   useEffect(() => {
@@ -315,6 +289,32 @@ export function StorefrontPage() {
     const withoutReviews = products.filter(p => !productReviewMap[p.id]);
     return [...withReviews, ...withoutReviews];
   }, [products, productReviewMap]);
+
+  /* ── Trending auto-scroll (JS-driven, manually interruptible) ── */
+  useEffect(() => {
+    const el = trendingScrollRef.current;
+    if (!el || trendingProducts.length === 0) return;
+    el.scrollLeft = 0;
+    const SPEED = 45; // px per second
+    let last: number | null = null;
+    function step(ts: number) {
+      if (!el) return;
+      if (!trendingPausedRef.current) {
+        if (last !== null) {
+          el.scrollLeft += (SPEED * (ts - last)) / 1000;
+          if (el.scrollLeft >= el.scrollWidth / 2) {
+            el.scrollLeft -= el.scrollWidth / 2;
+          }
+        }
+        last = ts;
+      } else {
+        last = null;
+      }
+      trendingRafRef.current = requestAnimationFrame(step);
+    }
+    trendingRafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(trendingRafRef.current);
+  }, [trendingProducts.length]);
 
   const filteredProducts = useMemo(() => {
     let list = activeCategory === "All"
