@@ -305,3 +305,17 @@
     inset: -1px;
   }
 }
+
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee var(--marquee-duration, 20s) linear infinite;
+}
+
+.animate-marquee:hover,
+.marquee-track:hover .animate-marquee {
+  animation-play-state: paused;
+}

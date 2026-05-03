@@ -358,8 +358,16 @@ export function StorefrontPage() {
               <TrendingUp className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-bold text-foreground">Trending Now</h2>
             </div>
-            <div className="relative">
-              <div className="flex gap-2.5 overflow-x-auto px-2.5 sm:px-0 pb-3 scrollbar-none">
+            {/* Marquee track — overflow hidden, fade edges */}
+            <div
+              className="marquee-track relative overflow-hidden pb-3"
+              style={{ maskImage: "linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)" }}
+            >
+              <div
+                className="animate-marquee flex gap-2.5 w-max"
+                style={{ "--marquee-duration": `${Math.max(trendingProducts.length * 4, 12)}s` } as React.CSSProperties}
+              >
+                {/* First copy */}
                 {trendingProducts.map(product => (
                   <TrendingCard
                     key={product.id}
@@ -368,11 +376,16 @@ export function StorefrontPage() {
                     onClick={() => handleProductClick(product)}
                   />
                 ))}
-                {/* trailing spacer */}
-                <div className="shrink-0 w-1" />
+                {/* Duplicate for seamless loop */}
+                {trendingProducts.map(product => (
+                  <TrendingCard
+                    key={`dup-${product.id}`}
+                    product={product}
+                    reviewSummary={productReviewMap[product.id]}
+                    onClick={() => handleProductClick(product)}
+                  />
+                ))}
               </div>
-              {/* right fade hint */}
-              <div className="pointer-events-none absolute right-0 top-0 bottom-2 w-10 bg-gradient-to-l from-background to-transparent sm:hidden" />
             </div>
           </div>
         )}
