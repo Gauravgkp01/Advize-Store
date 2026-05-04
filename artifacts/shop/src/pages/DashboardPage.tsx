@@ -19,6 +19,13 @@ import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet, SheetContent, SheetTitle,
+} from "@/components/ui/sheet";
 import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, onboardRazorpay, getOrderStats, updateOrderStatus, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
@@ -1443,7 +1450,6 @@ const TABS = [
   { label: "My Store",   icon: Store           },
   { label: "Listings",   icon: ListOrdered     },
   { label: "Plugins",    icon: Puzzle          },
-  { label: "Settings",   icon: Settings        },
 ] as const;
 
 export function DashboardPage() {
@@ -1452,8 +1458,9 @@ export function DashboardPage() {
   const [active, setActive] = useState(initialTab);
   const prevActive = useRef(initialTab);
   const touchStartX = useRef<number | null>(null);
-  const panelScrollTops = useRef<number[]>([0, 0, 0, 0, 0]);
-  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null, null]);
+  const panelScrollTops = useRef<number[]>([0, 0, 0, 0]);
+  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null]);
+  const [showSettings, setShowSettings] = useState(false);
   const { dark, toggle: toggleDark } = useTheme();
   const { store, loading: storeLoading, setStore } = useStore();
   const { signOut } = useAuth();
@@ -1529,37 +1536,53 @@ export function DashboardPage() {
   return (
     <div className="h-[100dvh] flex flex-col bg-muted/10 overflow-hidden">
 
+      {/* ── Settings Sheet ─────────────────────────────────── */}
+      <Sheet open={showSettings} onOpenChange={setShowSettings}>
+        <SheetContent side="right" className="w-full sm:max-w-md p-0 overflow-y-auto">
+          <SheetTitle className="sr-only">Settings</SheetTitle>
+          <SettingsPanel
+            store={store}
+            onTabChange={(i) => { setShowSettings(false); setActive(i); }}
+          />
+        </SheetContent>
+      </Sheet>
+
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
         <div className="container max-w-5xl mx-auto flex h-14 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="bg-primary/10 p-1.5 rounded-xl overflow-hidden w-7 h-7 flex items-center justify-center">
-              {store?.logo_url
-                ? <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
-                : <Store className="h-4 w-4 text-primary" />}
-            </div>
-            <span className="text-base font-bold text-foreground">
-              {store?.name ?? "My Shop"}
-            </span>
-          </Link>
-          <div className="sm:hidden flex items-center gap-1">
-            <Button
-              variant="ghost" size="icon"
-              onClick={toggleDark}
-              className="rounded-full h-8 w-8"
-              aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {dark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
-            </Button>
-            <Button
-              variant="ghost" size="icon"
-              onClick={handleSignOut}
-              className="rounded-full h-8 w-8 text-muted-foreground hover:text-destructive"
-              aria-label="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
 
+          {/* Logo — opens dropdown with Settings / Dark Mode / Sign Out */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-2 rounded-xl hover:bg-muted/60 px-1 py-1 transition-colors -ml-1 outline-none">
+              <div className="bg-primary/10 p-1.5 rounded-xl overflow-hidden w-7 h-7 flex items-center justify-center shrink-0">
+                {store?.logo_url
+                  ? <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
+                  : <Store className="h-4 w-4 text-primary" />}
+              </div>
+              <span className="text-base font-bold text-foreground">
+                {store?.name ?? "My Shop"}
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-52">
+              <DropdownMenuItem onClick={() => setShowSettings(true)} className="gap-2.5">
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={toggleDark} className="gap-2.5">
+                {dark
+                  ? <Sun className="h-4 w-4 text-amber-400" />
+                  : <Moon className="h-4 w-4 text-muted-foreground" />}
+                {dark ? "Light mode" : "Dark mode"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="gap-2.5 text-destructive focus:text-destructive">
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Tablet tab pills (sm → lg) */}
           <div className="hidden sm:flex lg:hidden items-center gap-1 bg-muted rounded-full p-1">
             {TABS.map((tab, i) => (
               <button
@@ -1577,26 +1600,8 @@ export function DashboardPage() {
             ))}
           </div>
 
-          <div className="hidden sm:flex lg:hidden items-center gap-2">
-            <span className="text-xs text-muted-foreground font-medium">{store?.name ?? "My Shop"}</span>
-            <Button
-              variant="ghost" size="icon"
-              onClick={toggleDark}
-              className="rounded-full h-8 w-8"
-              aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {dark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
-            </Button>
-            <Button
-              variant="ghost" size="icon"
-              onClick={handleSignOut}
-              className="rounded-full h-8 w-8 text-muted-foreground hover:text-destructive"
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+          {/* Tablet right spacer (keeps tab pills centred) */}
+          <div className="hidden sm:block lg:hidden w-28" />
         </div>
 
         <div className="flex sm:hidden justify-center gap-1.5 pb-2">
@@ -1695,9 +1700,6 @@ export function DashboardPage() {
               <div ref={el => { panelRefs.current[3] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
                 <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />
               </div>
-              <div ref={el => { panelRefs.current[4] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-                <SettingsPanel store={store} onTabChange={setActive} />
-              </div>
             </div>
           </div>
 
@@ -1726,7 +1728,6 @@ export function DashboardPage() {
                 />
               )}
               {active === 3 && <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />}
-              {active === 4 && <SettingsPanel store={store} onTabChange={setActive} />}
             </div>
           </div>
 
