@@ -373,23 +373,22 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     <div className="min-h-[100dvh] flex flex-col bg-background">
 
       {/* ── Store Navbar ─────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-primary text-primary-foreground px-4 sm:px-6">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent pointer-events-none" />
-        <div className="container max-w-5xl mx-auto relative z-10">
+      <header className="sticky top-0 z-50 bg-muted/95 backdrop-blur text-foreground border-b px-4 sm:px-6">
+        <div className="container max-w-5xl mx-auto">
           {/* Main nav row */}
           <div className="h-14 flex items-center">
             {/* Left: store logo */}
-            <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 border-2 border-white/30 bg-white/20 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 border bg-background flex items-center justify-center">
               {store.logo_url ? (
                 <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
               ) : (
-                <Store className="w-4 h-4 text-white" />
+                <Store className="w-4 h-4 text-muted-foreground" />
               )}
             </div>
 
             {/* Center: store name (absolute so it's truly centred) */}
             <div className="absolute inset-x-0 flex items-center justify-center pointer-events-none h-14">
-              <h1 className="font-bold text-base sm:text-lg leading-tight truncate max-w-[55%] text-center">
+              <h1 className="font-bold text-base sm:text-lg leading-tight truncate max-w-[55%] text-center text-foreground">
                 {store.name}
               </h1>
             </div>
@@ -397,11 +396,11 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
             {/* Right: cart icon */}
             <Link
               href={onSubdomain ? "/cart" : `/store/${slug}/cart`}
-              className="ml-auto relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/10 transition-colors"
+              className="ml-auto relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted-foreground/10 transition-colors"
             >
-              <ShoppingCart className="h-5 w-5" />
+              <ShoppingCart className="h-5 w-5 text-foreground" />
               {totalItems > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-white text-primary text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center leading-none shadow">
+                <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center leading-none shadow">
                   {totalItems > 9 ? "9+" : totalItems}
                 </span>
               )}
@@ -412,16 +411,16 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           {(store.category || store.location || avgRating) && (
             <div className="flex items-center gap-2 pb-2 flex-wrap">
               {store.category && (
-                <span className="text-primary-foreground/70 text-[10px] font-medium">{store.category}</span>
+                <span className="text-muted-foreground text-[10px] font-medium">{store.category}</span>
               )}
               {store.location && (
-                <span className="text-primary-foreground/70 text-[10px] flex items-center gap-0.5">
+                <span className="text-muted-foreground text-[10px] flex items-center gap-0.5">
                   <MapPin className="w-2.5 h-2.5" />{store.location}
                 </span>
               )}
               {avgRating && (
-                <span className="bg-white/15 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                  <Star className="w-2.5 h-2.5 fill-amber-300 text-amber-300" />
+                <span className="bg-muted-foreground/15 text-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                   {avgRating} · {reviews.length} review{reviews.length !== 1 ? "s" : ""}
                 </span>
               )}
