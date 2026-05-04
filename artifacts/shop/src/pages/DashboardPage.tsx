@@ -5,7 +5,7 @@ import {
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
   Pencil, Phone, MapPin, Tag, Mail, FileText, Download,
-  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike,
+  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer,
   ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
@@ -1063,6 +1063,27 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Source and import products from suppliers — sell without holding any inventory.
+            </p>
+          </div>
+          <div className="flex-shrink-0 mt-0.5">
+            <Lock className="h-4 w-4 text-muted-foreground/50" />
+          </div>
+        </div>
+
+        {/* ── Print on Demand ── */}
+        <div className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm opacity-75">
+          <div className="bg-pink-50 dark:bg-pink-950/40 p-3 rounded-xl flex-shrink-0">
+            <Printer className="h-6 w-6 text-pink-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="text-base font-semibold text-foreground leading-tight">Print on Demand Products</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300">
+                Coming Soon
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Sell custom-printed t-shirts, mugs, hoodies & more — products are printed and shipped only when an order is placed, so you carry zero inventory.
             </p>
           </div>
           <div className="flex-shrink-0 mt-0.5">
