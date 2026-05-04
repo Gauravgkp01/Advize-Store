@@ -4,7 +4,7 @@ import {
   Package, TrendingUp, ShoppingBag, Plus, Boxes,
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
-  Pencil, Phone, MapPin, Tag, Mail, FileText,
+  Pencil, Phone, MapPin, Tag, Mail, FileText, Download,
   Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike,
   ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
 } from "lucide-react";
@@ -65,6 +65,24 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
     const bytes = new Uint8Array(bstr.length);
     for (let i = 0; i < bstr.length; i++) bytes[i] = bstr.charCodeAt(i);
     return new File([bytes], `${storeName.toLowerCase().replace(/\s+/g, "-")}-qr.png`, { type: mime });
+  };
+
+  const handleDownload = () => {
+    const canvas = qrRef.current?.querySelector("canvas");
+    if (!canvas) return;
+    const pad = 24;
+    const out = document.createElement("canvas");
+    out.width = canvas.width + pad * 2;
+    out.height = canvas.height + pad * 2;
+    const ctx = out.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(canvas, pad, pad);
+    const a = document.createElement("a");
+    a.href = out.toDataURL("image/png");
+    a.download = `${storeName.toLowerCase().replace(/\s+/g, "-")}-qr.png`;
+    a.click();
   };
 
   const handleShare = async () => {
@@ -134,6 +152,16 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
               {copied ? "Copied!" : "Share QR Code"}
             </Button>
             <Button
+              onClick={handleDownload}
+              size="sm"
+              variant="outline"
+              className="w-full rounded-full text-xs"
+              data-testid="btn-download-qr"
+            >
+              <Download className="h-3 w-3 mr-1.5" />
+              Download PNG
+            </Button>
+            <Button
               asChild
               size="sm"
               variant="outline"
@@ -164,6 +192,16 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
           <Button onClick={handleShare} className="w-full rounded-full" size="sm" data-testid="btn-share-link-qr-full">
             {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Share2 className="h-3.5 w-3.5 mr-1.5" />}
             {copied ? "Copied!" : "Share QR Code"}
+          </Button>
+          <Button
+            onClick={handleDownload}
+            variant="outline"
+            className="w-full rounded-full"
+            size="sm"
+            data-testid="btn-download-qr-full"
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Download PNG
           </Button>
           <Button asChild variant="outline" className="w-full rounded-full" size="sm">
             <a href={storeUrl} target="_blank" rel="noopener noreferrer">
