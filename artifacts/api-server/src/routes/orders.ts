@@ -2,10 +2,12 @@ import { Router } from "express";
 import { db } from "../lib/firebase.js";
 import { FieldValue } from "firebase-admin/firestore";
 import { verifyToken } from "../middlewares/verifyToken.js";
+import { cacheGet, cacheSet, cacheDeleteByPrefix } from "../lib/cache.js";
 
 const router = Router();
 
-// ── Save a new order after successful payment ──────────────────────────────
+const ORDERS_TTL = 30_000; // 30 seconds
+
 router.post("/orders", async (req, res) => {
   const {
     store_id, razorpay_order_id, razorpay_payment_id,
@@ -34,13 +36,17 @@ router.post("/orders", async (req, res) => {
     created_at: FieldValue.serverTimestamp(),
   });
 
+  cacheDeleteByPrefix(`orders:store:${store_id}`);
   return res.status(201).json({ id: ref.id });
 });
 
-// ── Get order stats for a store (owner only) ──────────────────────────────
 router.get("/orders/store/:store_id", verifyToken, async (req, res) => {
   const uid = (req as any).uid as string;
   const { store_id } = req.params;
+  const cacheKey = `orders:store:${store_id}`;
+
+  const cached = cacheGet<unknown>(cacheKey);
+  if (cached) return res.json(cached);
 
   const storeSnap = await db.collection("stores").doc(store_id).get();
   if (!storeSnap.exists) return res.status(404).json({ error: "Store not found" });
@@ -73,7 +79,7 @@ router.get("/orders/store/:store_id", verifyToken, async (req, res) => {
     created_at: o.created_at,
   }));
 
-  return res.json({
+  const result = {
     totalOrders,
     totalRevenuePaise,
     totalRevenueRupees: Math.round(totalRevenuePaise / 100),
@@ -82,10 +88,12 @@ router.get("/orders/store/:store_id", verifyToken, async (req, res) => {
     deliveredOrders,
     cancelledOrders,
     recentOrders,
-  });
+  };
+
+  cacheSet(cacheKey, result, ORDERS_TTL);
+  return res.json(result);
 });
 
-// ── Update order status (owner only) ─────────────────────────────────────
 router.patch("/orders/:order_id/status", verifyToken, async (req, res) => {
   const uid = (req as any).uid as string;
   const { order_id } = req.params;
@@ -109,6 +117,7 @@ router.patch("/orders/:order_id/status", verifyToken, async (req, res) => {
   }
 
   await orderRef.update({ status, updated_at: FieldValue.serverTimestamp() });
+  cacheDeleteByPrefix(`orders:store:${orderData.store_id}`);
   return res.json({ ok: true, status });
 });
 

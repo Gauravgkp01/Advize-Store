@@ -1,40 +1,59 @@
 import { Router } from "express";
 import { db } from "../lib/firebase.js";
 import { FieldValue } from "firebase-admin/firestore";
+import { cacheGet, cacheSet, cacheDeleteByPrefix } from "../lib/cache.js";
 
 const router = Router();
+
+const PRODUCTS_TTL = 30_000; // 30 seconds
 
 function docToProduct(doc: FirebaseFirestore.DocumentSnapshot) {
   return { id: doc.id, ...doc.data() };
 }
 
+// Fetch a single product with its variants (used internally + by GET /products/:id)
+async function getProductWithVariants(doc: FirebaseFirestore.DocumentSnapshot) {
+  const variantsSnap = await doc.ref.collection("variants").get();
+  const variants = variantsSnap.docs.map(v => ({ id: v.id, ...v.data() }));
+  return { id: doc.id, ...doc.data(), variants };
+}
+
 router.get("/products", async (req, res) => {
-  const { store_id } = req.query;
+  const { store_id } = req.query as Record<string, string>;
+  const cacheKey = `products:list:${store_id ?? "__all__"}`;
+
+  const cached = cacheGet<unknown[]>(cacheKey);
+  if (cached) return res.json(cached);
+
   let query: FirebaseFirestore.Query = db.collection("products");
   if (store_id) query = query.where("store_id", "==", store_id);
   const snap = await query.get();
-  const products = await Promise.all(
-    snap.docs.map(async (doc) => {
-      const variantsSnap = await doc.ref.collection("variants").get();
-      const variants = variantsSnap.docs.map(v => ({ id: v.id, ...v.data() }));
-      return { id: doc.id, ...doc.data(), variants };
-    })
-  );
-  // Sort newest first in code (avoids needing a Firestore composite index)
-  products.sort((a: any, b: any) => {
+
+  // Return products WITHOUT variants for the list — variants are only needed
+  // on the individual product detail page, fetching them here causes N+1 Firestore calls.
+  const products = snap.docs.map(docToProduct) as any[];
+
+  products.sort((a, b) => {
     const aTime = a.created_at?.toMillis?.() ?? 0;
     const bTime = b.created_at?.toMillis?.() ?? 0;
     return bTime - aTime;
   });
+
+  cacheSet(cacheKey, products, PRODUCTS_TTL);
   return res.json(products);
 });
 
 router.get("/products/:id", async (req, res) => {
+  const cacheKey = `products:detail:${req.params.id}`;
+  const cached = cacheGet<unknown>(cacheKey);
+  if (cached) return res.json(cached);
+
   const doc = await db.collection("products").doc(req.params.id).get();
   if (!doc.exists) return res.status(404).json({ error: "Product not found" });
-  const variantsSnap = await doc.ref.collection("variants").get();
-  const variants = variantsSnap.docs.map(v => ({ id: v.id, ...v.data() }));
-  return res.json({ id: doc.id, ...doc.data(), variants });
+  const result = await getProductWithVariants(doc);
+
+  cacheSet(cacheKey, result, PRODUCTS_TTL);
+  return res.json(result);
 });
 
 router.post("/products", async (req, res) => {
@@ -63,6 +82,9 @@ router.post("/products", async (req, res) => {
     await batch.commit();
   }
 
+  cacheDeleteByPrefix(`products:list:${store_id}`);
+  cacheDeleteByPrefix("products:list:__all__");
+
   const doc = await ref.get();
   const variantsSnap = await ref.collection("variants").get();
   const savedVariants = variantsSnap.docs.map(v => ({ id: v.id, ...v.data() }));
@@ -88,6 +110,12 @@ router.patch("/products/:id", async (req, res) => {
     await batch.commit();
   }
 
+  // Invalidate caches
+  cacheDeleteByPrefix(`products:detail:${req.params.id}`);
+  const storeId = (snap.data() as any)?.store_id;
+  if (storeId) cacheDeleteByPrefix(`products:list:${storeId}`);
+  cacheDeleteByPrefix("products:list:__all__");
+
   const updated = await ref.get();
   const variantsSnap = await ref.collection("variants").get();
   const savedVariants = variantsSnap.docs.map(v => ({ id: v.id, ...v.data() }));
@@ -96,11 +124,19 @@ router.patch("/products/:id", async (req, res) => {
 
 router.delete("/products/:id", async (req, res) => {
   const ref = db.collection("products").doc(req.params.id);
+  const snap = await ref.get();
+  const storeId = (snap.data() as any)?.store_id;
+
   const variantsSnap = await ref.collection("variants").get();
   const batch = db.batch();
   for (const v of variantsSnap.docs) batch.delete(v.ref);
   batch.delete(ref);
   await batch.commit();
+
+  cacheDeleteByPrefix(`products:detail:${req.params.id}`);
+  if (storeId) cacheDeleteByPrefix(`products:list:${storeId}`);
+  cacheDeleteByPrefix("products:list:__all__");
+
   return res.status(204).send();
 });
 
