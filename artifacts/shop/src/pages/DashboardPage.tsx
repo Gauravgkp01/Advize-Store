@@ -7,6 +7,7 @@ import {
   Pencil, Phone, MapPin, Tag, Mail, FileText, Download,
   Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer,
   ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
+  Settings, Bell, Shield, User, ChevronRight, HelpCircle, Trash2,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { useStore } from "@/hooks/use-store";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, onboardRazorpay, getOrderStats, updateOrderStatus, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
@@ -1139,12 +1141,309 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
   );
 }
 
+/* ── Settings Panel ──────────────────────────────────── */
+function SettingsRow({
+  icon, label, description, right, onClick, danger = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description?: string;
+  right?: React.ReactNode;
+  onClick?: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className={`w-full flex items-center gap-3.5 px-4 py-3.5 transition-colors text-left
+        ${onClick ? "hover:bg-muted/60 active:bg-muted cursor-pointer" : "cursor-default"}
+        ${danger ? "text-destructive" : ""}`}
+    >
+      <div className={`shrink-0 ${danger ? "text-destructive" : "text-muted-foreground"}`}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-medium leading-tight ${danger ? "text-destructive" : "text-foreground"}`}>
+          {label}
+        </p>
+        {description && (
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{description}</p>
+        )}
+      </div>
+      {right !== undefined ? (
+        <div className="shrink-0">{right}</div>
+      ) : onClick ? (
+        <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+      ) : null}
+    </button>
+  );
+}
+
+function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-4">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground px-4 py-2">
+        {title}
+      </p>
+      <div className="bg-card border rounded-2xl overflow-hidden divide-y">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SettingsPanel({
+  store,
+  onTabChange,
+}: {
+  store: StoreType | null;
+  onTabChange: (index: number) => void;
+}) {
+  const { dark, toggle: toggleDark } = useTheme();
+  const { user, signOut } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  const [whatsappNotif, setWhatsappNotif] = useState<boolean>(() => {
+    try { return localStorage.getItem("notif_whatsapp") !== "false"; } catch { return true; }
+  });
+  const [orderEmailNotif, setOrderEmailNotif] = useState<boolean>(() => {
+    try { return localStorage.getItem("notif_order_email") === "true"; } catch { return false; }
+  });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleWhatsappNotif = (val: boolean) => {
+    setWhatsappNotif(val);
+    localStorage.setItem("notif_whatsapp", val ? "true" : "false");
+  };
+  const handleOrderEmailNotif = (val: boolean) => {
+    setOrderEmailNotif(val);
+    localStorage.setItem("notif_order_email", val ? "true" : "false");
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setLocation("/");
+  };
+
+  const initials = (user?.displayName ?? user?.email ?? "U")
+    .split(" ")
+    .map(w => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div className="container max-w-2xl mx-auto px-4 py-6 pb-28">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="bg-primary/10 p-1.5 rounded-xl">
+            <Settings className="h-5 w-5 text-primary" />
+          </div>
+          <h1 className="text-xl font-bold text-foreground">Settings</h1>
+        </div>
+        <p className="text-sm text-muted-foreground ml-10">
+          Manage your account and app preferences.
+        </p>
+      </div>
+
+      {/* ── Account ── */}
+      <div className="bg-card border rounded-2xl p-4 flex items-center gap-4 mb-4">
+        <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          <span className="text-lg font-extrabold text-primary">{initials}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          {user?.displayName && (
+            <p className="text-base font-bold text-foreground truncate">{user.displayName}</p>
+          )}
+          <p className="text-sm text-muted-foreground truncate">{user?.email ?? "—"}</p>
+          {store && (
+            <p className="text-[11px] text-muted-foreground/60 truncate mt-0.5">
+              store.advize.in/store/{store.slug}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Store ── */}
+      <SettingsSection title="Store">
+        <SettingsRow
+          icon={<Store className="h-4 w-4" />}
+          label="Edit Store Profile"
+          description="Name, logo, WhatsApp, location & more"
+          onClick={() => onTabChange(1)}
+        />
+        <SettingsRow
+          icon={<ListOrdered className="h-4 w-4" />}
+          label="Manage Listings"
+          description="Add, edit or remove your products"
+          onClick={() => onTabChange(2)}
+        />
+        <SettingsRow
+          icon={<Puzzle className="h-4 w-4" />}
+          label="Plugins & Integrations"
+          description="Payments, delivery, print on demand"
+          onClick={() => onTabChange(3)}
+        />
+      </SettingsSection>
+
+      {/* ── Appearance ── */}
+      <SettingsSection title="Appearance">
+        <SettingsRow
+          icon={dark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+          label={dark ? "Light Mode" : "Dark Mode"}
+          description={dark ? "Switch to a bright theme" : "Switch to a dark theme"}
+          right={
+            <Switch
+              checked={dark}
+              onCheckedChange={toggleDark}
+              onClick={e => e.stopPropagation()}
+            />
+          }
+        />
+        <SettingsRow
+          icon={<Sparkles className="h-4 w-4" />}
+          label="Theme Color"
+          description="Custom accent colors — coming soon"
+          right={
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+              Soon
+            </span>
+          }
+        />
+      </SettingsSection>
+
+      {/* ── Notifications ── */}
+      <SettingsSection title="Notifications">
+        <SettingsRow
+          icon={<Bell className="h-4 w-4" />}
+          label="WhatsApp Order Alerts"
+          description="Get notified when a customer places an order"
+          right={
+            <Switch
+              checked={whatsappNotif}
+              onCheckedChange={handleWhatsappNotif}
+              onClick={e => e.stopPropagation()}
+            />
+          }
+        />
+        <SettingsRow
+          icon={<Mail className="h-4 w-4" />}
+          label="Email Order Summary"
+          description="Daily summary of orders sent to your email"
+          right={
+            <Switch
+              checked={orderEmailNotif}
+              onCheckedChange={handleOrderEmailNotif}
+              onClick={e => e.stopPropagation()}
+            />
+          }
+        />
+      </SettingsSection>
+
+      {/* ── Privacy & Legal ── */}
+      <SettingsSection title="Privacy & Legal">
+        <SettingsRow
+          icon={<Shield className="h-4 w-4" />}
+          label="Privacy Policy"
+          description="How we handle your data"
+          onClick={() => window.open("/terms", "_blank")}
+        />
+        <SettingsRow
+          icon={<FileText className="h-4 w-4" />}
+          label="Terms & Conditions"
+          description="Platform rules and usage policies"
+          onClick={() => window.open("/terms", "_blank")}
+        />
+      </SettingsSection>
+
+      {/* ── Support ── */}
+      <SettingsSection title="Support">
+        <SettingsRow
+          icon={<HelpCircle className="h-4 w-4" />}
+          label="Help & FAQ"
+          description="Common questions and how-tos"
+          onClick={() => {
+            toast({ title: "Help center coming soon!", description: "Reach us on WhatsApp for now." });
+          }}
+        />
+        <SettingsRow
+          icon={<Mail className="h-4 w-4" />}
+          label="Contact Support"
+          description="support@advize.in"
+          onClick={() => window.open("mailto:support@advize.in")}
+        />
+      </SettingsSection>
+
+      {/* ── About ── */}
+      <SettingsSection title="About">
+        <SettingsRow
+          icon={<Store className="h-4 w-4" />}
+          label="Advize Store Builder"
+          description="Version 1.0.0 · store.advize.in"
+          right={null}
+        />
+      </SettingsSection>
+
+      {/* ── Account actions ── */}
+      <SettingsSection title="Account">
+        <SettingsRow
+          icon={<LogOut className="h-4 w-4" />}
+          label="Sign Out"
+          description="Sign out of your account"
+          onClick={handleSignOut}
+        />
+        {!showDeleteConfirm ? (
+          <SettingsRow
+            icon={<Trash2 className="h-4 w-4" />}
+            label="Delete Account"
+            description="Permanently remove your store and data"
+            onClick={() => setShowDeleteConfirm(true)}
+            danger
+          />
+        ) : (
+          <div className="px-4 py-4 flex flex-col gap-2">
+            <p className="text-sm text-destructive font-semibold">Are you sure?</p>
+            <p className="text-xs text-muted-foreground">
+              This will permanently delete your store and all products. This cannot be undone.
+            </p>
+            <div className="flex gap-2 mt-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 rounded-full text-xs"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 rounded-full text-xs bg-destructive hover:bg-destructive/90 text-white border-transparent"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  toast({ title: "Coming soon", description: "Account deletion will be available soon. Contact support@advize.in for immediate requests." });
+                }}
+              >
+                Delete Account
+              </Button>
+            </div>
+          </div>
+        )}
+      </SettingsSection>
+    </div>
+  );
+}
+
 /* ── main layout ─────────────────────────────────────── */
 const TABS = [
   { label: "Home",       icon: LayoutDashboard },
   { label: "My Store",   icon: Store           },
   { label: "Listings",   icon: ListOrdered     },
   { label: "Plugins",    icon: Puzzle          },
+  { label: "Settings",   icon: Settings        },
 ] as const;
 
 export function DashboardPage() {
@@ -1153,8 +1452,8 @@ export function DashboardPage() {
   const [active, setActive] = useState(initialTab);
   const prevActive = useRef(initialTab);
   const touchStartX = useRef<number | null>(null);
-  const panelScrollTops = useRef<number[]>([0, 0, 0, 0]);
-  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null]);
+  const panelScrollTops = useRef<number[]>([0, 0, 0, 0, 0]);
+  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null, null]);
   const { dark, toggle: toggleDark } = useTheme();
   const { store, loading: storeLoading, setStore } = useStore();
   const { signOut } = useAuth();
@@ -1396,6 +1695,9 @@ export function DashboardPage() {
               <div ref={el => { panelRefs.current[3] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
                 <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />
               </div>
+              <div ref={el => { panelRefs.current[4] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
+                <SettingsPanel store={store} onTabChange={setActive} />
+              </div>
             </div>
           </div>
 
@@ -1424,6 +1726,7 @@ export function DashboardPage() {
                 />
               )}
               {active === 3 && <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />}
+              {active === 4 && <SettingsPanel store={store} onTabChange={setActive} />}
             </div>
           </div>
 
