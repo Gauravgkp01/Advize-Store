@@ -432,7 +432,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
 
       {/* ── Search Bar ───────────────────────────────────────── */}
       <div className="bg-background/95 backdrop-blur border-b px-4 py-2.5 sm:px-6">
-        <div className="container max-w-5xl mx-auto">
+        <div className="container max-w-6xl mx-auto">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
@@ -447,7 +447,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
         </div>
       </div>
 
-      <main className="flex-1 container max-w-5xl mx-auto px-0 sm:px-6 pt-4 pb-10">
+      <main className="flex-1 container max-w-6xl mx-auto px-0 sm:px-6 pt-4 pb-10">
 
         {/* ── Trending Products ─────────────────────────────────── */}
         {showTrending && (
@@ -570,7 +570,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6 mb-10">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6 mb-10">
               {filteredProducts.map((product) => (
                 <div key={product.id} onClick={() => handleProductClick(product)}>
                   <ProductCard

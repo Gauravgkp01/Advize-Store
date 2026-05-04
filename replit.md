@@ -2,7 +2,7 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+pnpm workspace monorepo using TypeScript. Production domain: `https://store.advize.in`
 
 ## Stack
 
@@ -10,44 +10,72 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **API framework**: Express 5 + Fastify-logger (pino)
+- **Database**: Firebase Firestore (via Firebase Admin SDK)
+- **Storage**: Firebase Storage (product images, logos)
+- **Auth**: Firebase Auth (email/password) + email OTP signup verification via SMTP
+- **Build**: esbuild
 
 ## Artifacts
 
 ### Shop (artifacts/shop) — previewPath: /
-A beginner-friendly, mobile-first Shopify-like store builder. Pure frontend with mock data. No backend integration.
+Merchant dashboard + public storefront. Mobile-first, fully responsive (desktop-optimized since May 2026).
 
-**Pages:**
-- `/` — Landing page with hero section and CTA
-- `/onboarding` — 3-step store setup wizard (business name, category, WhatsApp)
-- `/dashboard` — Stats cards (revenue, orders, products) + product grid
-- `/add-product` — Form to add a new product
-- `/store/:slug` — Public-facing storefront page
-- `/product/:id` — Product detail with coupon input and WhatsApp order button
-
-**Tech stack:**
+**Architecture:**
 - React + Vite + Wouter (routing)
 - Tailwind CSS + shadcn/ui
-- react-hook-form + zod for forms
-- framer-motion for animations
-- Mock data in `src/lib/mock-data.ts`
+- Firebase client SDK for auth
+- All data fetched from API server (`/api/*`)
 
-**Key Components:**
-- `Navbar` — Top navigation bar
-- `ProductCard` — Product display with copy/share actions
-- `StatCard` — Dashboard stat display
-- `StepIndicator` — Onboarding progress indicator
+**Routing:**
+- `/` — Landing page
+- `/login` — Sign in (2-column desktop layout)
+- `/signup` — Sign up with OTP email verification (2-column desktop layout)
+- `/onboarding` — 3-step store setup wizard
+- `/dashboard` — Merchant dashboard (sidebar nav on desktop, bottom tabs on mobile)
+- `/store/:slug` — Public storefront (customer-facing)
+- `/cart/:slug` — Cart / order checkout
+- `/terms` — Terms & Conditions
+
+**Dashboard panels (DashboardPage.tsx):**
+- HomePanel — stats cards, order summary, quick share
+- MyStorePanel — store settings, branding, WhatsApp
+- ListingsPanel — product CRUD
+- PluginsPanel — Razorpay integration
+
+**Storefront features:**
+- Product grid (2 cols mobile → 4 cols desktop)
+- Trending auto-scroll section
+- Category filter pills
+- Price sort
+- Search
+- Customer reviews
+- WhatsApp order → CartPage
+
+### API Server (artifacts/api-server) — port: 8080
+Express REST API with Firebase Admin SDK.
+
+**Routes:**
+- `GET/POST /api/stores` — store CRUD
+- `GET /api/products` — products for a store
+- `GET /api/analytics/:store_id` — analytics events
+- `GET /api/reviews` — product reviews
+- `POST /api/orders` — create order (fires WhatsApp redirect)
+- `GET /api/orders/store/:store_id` — orders for a store (auth required)
+- `PATCH /api/orders/:id/status` — update order status (auth required)
+- `POST /api/otp/send`, `POST /api/otp/verify` — email OTP via SMTP
+
+**Middleware:**
+- `verifyToken` — validates Firebase ID token from Authorization header
+
+## Store URL Format
+`https://store.advize.in/store/{slug}` (path-based, not subdomain)
+
+## Key Env Secrets
+- `FIREBASE_PRIVATE_KEY`, `VITE_FIREBASE_*` — Firebase config
+- `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` — Email OTP sending
 
 ## Key Commands
-
+- `pnpm --filter @workspace/shop run dev` — frontend dev server
+- `pnpm --filter @workspace/api-server run dev` — API server
 - `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
-
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

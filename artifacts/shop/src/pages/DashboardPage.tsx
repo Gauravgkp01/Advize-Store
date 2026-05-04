@@ -1202,7 +1202,7 @@ export function DashboardPage() {
             </Button>
           </div>
 
-          <div className="hidden sm:flex items-center gap-1 bg-muted rounded-full p-1">
+          <div className="hidden sm:flex lg:hidden items-center gap-1 bg-muted rounded-full p-1">
             {TABS.map((tab, i) => (
               <button
                 key={tab.label}
@@ -1219,7 +1219,7 @@ export function DashboardPage() {
             ))}
           </div>
 
-          <div className="hidden sm:flex items-center gap-2">
+          <div className="hidden sm:flex lg:hidden items-center gap-2">
             <span className="text-xs text-muted-foreground font-medium">{store?.name ?? "My Shop"}</span>
             <Button
               variant="ghost" size="icon"
@@ -1259,45 +1259,115 @@ export function DashboardPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
         </div>
       ) : (
-        <div
-          className="flex-1 overflow-hidden"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
+        <div className="flex-1 overflow-hidden flex">
+
+          {/* ── Desktop sidebar ────────────────────────────────── */}
+          <aside className="hidden lg:flex flex-col w-56 border-r bg-background/60 shrink-0">
+            <div className="flex-1 py-4 flex flex-col gap-0.5">
+              {TABS.map((tab, i) => {
+                const Icon = tab.icon;
+                const isActive = active === i;
+                return (
+                  <button
+                    key={tab.label}
+                    onClick={() => setActive(i)}
+                    className={`flex items-center gap-3 mx-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="border-t mx-3 pt-3 pb-4 flex flex-col gap-0.5">
+              <button
+                onClick={toggleDark}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+              >
+                {dark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+                {dark ? "Light mode" : "Dark mode"}
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-destructive hover:bg-muted transition-all"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </button>
+            </div>
+          </aside>
+
+          {/* ── Mobile: swipeable carousel ─────────────────────── */}
           <div
-            className="flex h-full transition-transform duration-300 ease-in-out"
-            style={{ transform: `translateX(-${active * 100}%)` }}
+            className="lg:hidden flex-1 overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
-            <div ref={el => { panelRefs.current[0] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-              <HomePanel products={products} analytics={analytics} store={store} orderStats={orderStats} />
-            </div>
-
-            <div ref={el => { panelRefs.current[1] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-              <MyStorePanel
-                store={store}
-                products={products}
-                onLogoChange={(url) => setStore(prev => prev ? { ...prev, logo_url: url } : prev)}
-                onStoreChange={(updated) => setStore(updated)}
-              />
-            </div>
-
-            <div ref={el => { panelRefs.current[2] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-              <ListingsPanel
-                products={products}
-                onRefresh={() => store?.id && loadData(store.id)}
-                onProductsChange={(updated) =>
-                  setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))
-                }
-                onDeleteProduct={(id) =>
-                  setProducts(prev => prev.filter(p => p.id !== id))
-                }
-              />
-            </div>
-
-            <div ref={el => { panelRefs.current[3] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-              <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />
+            <div
+              className="flex h-full transition-transform duration-300 ease-in-out"
+              style={{ transform: `translateX(-${active * 100}%)` }}
+            >
+              <div ref={el => { panelRefs.current[0] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
+                <HomePanel products={products} analytics={analytics} store={store} orderStats={orderStats} />
+              </div>
+              <div ref={el => { panelRefs.current[1] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
+                <MyStorePanel
+                  store={store}
+                  products={products}
+                  onLogoChange={(url) => setStore(prev => prev ? { ...prev, logo_url: url } : prev)}
+                  onStoreChange={(updated) => setStore(updated)}
+                />
+              </div>
+              <div ref={el => { panelRefs.current[2] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
+                <ListingsPanel
+                  products={products}
+                  onRefresh={() => store?.id && loadData(store.id)}
+                  onProductsChange={(updated) =>
+                    setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))
+                  }
+                  onDeleteProduct={(id) =>
+                    setProducts(prev => prev.filter(p => p.id !== id))
+                  }
+                />
+              </div>
+              <div ref={el => { panelRefs.current[3] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
+                <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />
+              </div>
             </div>
           </div>
+
+          {/* ── Desktop: active panel (no carousel) ────────────── */}
+          <div className="hidden lg:flex flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              {active === 0 && <HomePanel products={products} analytics={analytics} store={store} orderStats={orderStats} />}
+              {active === 1 && (
+                <MyStorePanel
+                  store={store}
+                  products={products}
+                  onLogoChange={(url) => setStore(prev => prev ? { ...prev, logo_url: url } : prev)}
+                  onStoreChange={(updated) => setStore(updated)}
+                />
+              )}
+              {active === 2 && (
+                <ListingsPanel
+                  products={products}
+                  onRefresh={() => store?.id && loadData(store.id)}
+                  onProductsChange={(updated) =>
+                    setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))
+                  }
+                  onDeleteProduct={(id) =>
+                    setProducts(prev => prev.filter(p => p.id !== id))
+                  }
+                />
+              )}
+              {active === 3 && <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />}
+            </div>
+          </div>
+
         </div>
       )}
 
