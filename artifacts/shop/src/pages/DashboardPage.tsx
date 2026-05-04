@@ -8,6 +8,7 @@ import {
   Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer,
   ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
   Settings, Bell, Shield, User, ChevronRight, HelpCircle, Trash2,
+  Search, X, SlidersHorizontal,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -445,62 +446,84 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
 
   return (
     <div className="pb-28">
-      <div className="bg-primary text-primary-foreground py-8 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
-
+      {/* ── Store header card ── */}
+      <div className="bg-card border-b px-4 pt-5 pb-4 relative">
         {/* Edit button */}
         <button
           onClick={openEdit}
-          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-muted hover:bg-muted-foreground/15 flex items-center justify-center transition-colors"
           title="Edit store details"
         >
-          <Pencil className="w-3.5 h-3.5 text-white" />
+          <Pencil className="w-3.5 h-3.5 text-foreground" />
         </button>
 
-        <div className="flex flex-col items-center text-center relative z-10">
-
+        <div className="flex items-center gap-4">
           {/* Tappable logo */}
           <button
             onClick={() => logoInputRef.current?.click()}
             disabled={logoUploading}
-            className="relative w-20 h-20 mb-3 group"
-            title="Change store logo"
+            className="relative w-16 h-16 shrink-0 group"
+            title="Tap to change logo"
           >
-            <div className="w-20 h-20 rounded-full overflow-hidden bg-white shadow-lg border-2 border-white/40 flex items-center justify-center text-primary">
+            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-primary/10 shadow-sm border flex items-center justify-center text-primary">
               {store?.logo_url ? (
                 <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
               ) : (
-                <Store className="w-9 h-9" />
+                <Store className="w-8 h-8" />
               )}
             </div>
-            {/* Overlay hint */}
-            <div className={`absolute inset-0 rounded-full bg-black/40 flex items-center justify-center transition-opacity ${
+            <div className={`absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center transition-opacity ${
               logoUploading ? "opacity-100" : "opacity-0 group-hover:opacity-100"
             }`}>
               {logoUploading
-                ? <Loader2 className="w-5 h-5 text-white animate-spin" />
-                : <Camera className="w-5 h-5 text-white" />
-              }
+                ? <Loader2 className="w-4 h-4 text-white animate-spin" />
+                : <Camera className="w-4 h-4 text-white" />}
             </div>
           </button>
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleLogoChange}
-          />
-          <p className="text-primary-foreground/60 text-[10px] mb-2">Tap logo to change</p>
+          <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
 
-          <h2 className="text-2xl font-bold">{store?.name ?? "My Shop"}</h2>
-          {store?.category && (
-            <p className="text-primary-foreground/80 bg-black/10 px-3 py-0.5 rounded-full text-xs font-medium mt-1.5">
-              {store.category}
-            </p>
+          <div className="flex-1 min-w-0 pr-8">
+            <h2 className="text-lg font-bold text-foreground truncate">{store?.name ?? "My Shop"}</h2>
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              {store?.category && (
+                <span className="text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                  {store.category}
+                </span>
+              )}
+              {store?.location && (
+                <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+                  <MapPin className="h-3 w-3" />{store.location}
+                </span>
+              )}
+            </div>
+            {store?.whatsapp && (
+              <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                <Phone className="h-3 w-3" />{store.whatsapp}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Quick action pills */}
+        <div className="flex gap-2 mt-4 overflow-x-auto pb-0.5 no-scrollbar">
+          {storeUrl && (
+            <a
+              href={storeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted-foreground/15 text-xs font-medium text-foreground shrink-0 transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              View Store
+            </a>
           )}
-          {store?.location && (
-            <p className="text-primary-foreground/70 text-xs mt-1">{store.location}</p>
-          )}
+          <button
+            onClick={openEdit}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/15 text-xs font-medium text-primary shrink-0 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit Details
+          </button>
         </div>
       </div>
 
@@ -644,13 +667,24 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
   );
 }
 
-function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct }: {
+function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct, searchQuery = "" }: {
   products: Product[];
   onRefresh: () => void;
   onProductsChange: (updated: Product) => void;
   onDeleteProduct: (id: string) => void;
+  searchQuery?: string;
 }) {
   const { toast } = useToast();
+  const [categoryFilter, setCategoryFilter] = useState("All");
+
+  const categories = ["All", ...Array.from(new Set(products.map(p => (p as any).category).filter(Boolean)))];
+
+  const filtered = products.filter(p => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !q || p.name.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q);
+    const matchesCategory = categoryFilter === "All" || (p as any).category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const handleToggleTrending = async (product: Product) => {
     const newVal = !product.trending;
@@ -669,45 +703,79 @@ function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct 
   };
 
   return (
-    <div className="p-3 pb-28">
-      <div className="flex items-center justify-between mb-4 pt-1">
-        <div>
-          <h2 className="text-lg font-bold">My Listings</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{products.length} products listed</p>
-        </div>
-        <Button asChild size="sm" className="rounded-full shadow-sm text-xs" data-testid="btn-add-product-listings">
-          <Link href="/add-product"><Plus className="h-3.5 w-3.5 mr-1" />Add New</Link>
-        </Button>
-      </div>
-
-      {products.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <Package className="h-12 w-12 mx-auto mb-3 opacity-20" />
-          <p className="font-medium">No products yet</p>
-          <p className="text-sm mt-1">Add your first product to get started!</p>
-          <Button asChild className="mt-4 rounded-full" size="sm">
-            <Link href="/add-product"><Plus className="h-3.5 w-3.5 mr-1" />Add Product</Link>
+    <div className="pb-28">
+      {/* Panel header */}
+      <div className="px-3 pt-4 pb-3 border-b bg-card">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-lg font-bold">My Listings</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {filtered.length === products.length
+                ? `${products.length} products`
+                : `${filtered.length} of ${products.length} products`}
+            </p>
+          </div>
+          <Button asChild size="sm" className="rounded-full shadow-sm text-xs" data-testid="btn-add-product-listings">
+            <Link href="/add-product"><Plus className="h-3.5 w-3.5 mr-1" />Add New</Link>
           </Button>
         </div>
-      ) : (
-        <>
-          <p className="text-[10px] text-muted-foreground mb-3 flex items-center gap-1">
-            Tap <span className="inline-flex items-center gap-0.5 text-orange-500 font-semibold"><Flame className="h-3 w-3" /> flame</span> to pin a product to the Trending section on your store.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
-            {products.map(product => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                showActions={true}
-                onDelete={() => onDeleteProduct(product.id)}
-                onToggleTrending={() => handleToggleTrending(product)}
-                productHref={`/product/${product.id}?from=dashboard`}
-              />
+
+        {/* Category filter pills */}
+        {categories.length > 1 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
+                  categoryFilter === cat
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {cat}
+              </button>
             ))}
           </div>
-        </>
-      )}
+        )}
+      </div>
+
+      <div className="p-3">
+        {products.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            <Package className="h-12 w-12 mx-auto mb-3 opacity-20" />
+            <p className="font-medium">No products yet</p>
+            <p className="text-sm mt-1">Add your first product to get started!</p>
+            <Button asChild className="mt-4 rounded-full" size="sm">
+              <Link href="/add-product"><Plus className="h-3.5 w-3.5 mr-1" />Add Product</Link>
+            </Button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            <Search className="h-10 w-10 mx-auto mb-3 opacity-20" />
+            <p className="font-medium">No results found</p>
+            <p className="text-sm mt-1">Try a different search or category</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-[10px] text-muted-foreground mb-3 flex items-center gap-1">
+              Tap <span className="inline-flex items-center gap-0.5 text-orange-500 font-semibold"><Flame className="h-3 w-3" /> flame</span> to pin a product to the Trending section on your store.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
+              {filtered.map(product => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  showActions={true}
+                  onDelete={() => onDeleteProduct(product.id)}
+                  onToggleTrending={() => handleToggleTrending(product)}
+                  productHref={`/product/${product.id}?from=dashboard`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -1461,6 +1529,8 @@ export function DashboardPage() {
   const panelScrollTops = useRef<number[]>([0, 0, 0, 0]);
   const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null]);
   const [showSettings, setShowSettings] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const { dark, toggle: toggleDark } = useTheme();
   const { store, loading: storeLoading, setStore } = useStore();
   const { signOut } = useAuth();
@@ -1582,39 +1652,87 @@ export function DashboardPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Search input — tablet + desktop */}
+          <div className="hidden sm:flex flex-1 max-w-xs mx-3 lg:max-w-sm relative items-center">
+            <Search className="absolute left-3 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <input
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); if (e.target.value) setActive(2); }}
+              placeholder="Search products..."
+              className="w-full h-9 pl-9 pr-8 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground border-0 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="absolute right-3 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
           {/* Tablet tab pills (sm → lg) */}
-          <div className="hidden sm:flex lg:hidden items-center gap-1 bg-muted rounded-full p-1">
+          <div className="hidden sm:flex lg:hidden items-center gap-1 bg-muted rounded-full p-1 shrink-0">
             {TABS.map((tab, i) => (
               <button
                 key={tab.label}
                 onClick={() => setActive(i)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                   active === i
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <tab.icon className="h-3.5 w-3.5" />
-                {tab.label}
+                <span className="hidden md:inline">{tab.label}</span>
               </button>
             ))}
           </div>
 
-          {/* Tablet right spacer (keeps tab pills centred) */}
-          <div className="hidden sm:block lg:hidden w-28" />
+          {/* Mobile: search icon toggle */}
+          <button
+            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors"
+            onClick={() => setShowMobileSearch(p => !p)}
+            aria-label="Search"
+          >
+            {showMobileSearch
+              ? <X className="h-4 w-4 text-muted-foreground" />
+              : <Search className="h-4 w-4 text-muted-foreground" />}
+          </button>
         </div>
 
-        <div className="flex sm:hidden justify-center gap-1.5 pb-2">
-          {TABS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActive(i)}
-              className={`rounded-full transition-all duration-300 ${
-                active === i ? "w-5 h-1.5 bg-primary" : "w-1.5 h-1.5 bg-muted-foreground/30"
-              }`}
-            />
-          ))}
-        </div>
+        {/* Mobile search bar */}
+        {showMobileSearch && (
+          <div className="sm:hidden px-4 pb-2.5 pt-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <input
+                autoFocus
+                value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); if (e.target.value) setActive(2); }}
+                placeholder="Search products..."
+                className="w-full h-9 pl-9 pr-8 rounded-full bg-muted text-sm text-foreground placeholder:text-muted-foreground border-0 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile dot nav */}
+        {!showMobileSearch && (
+          <div className="flex sm:hidden justify-center gap-1.5 pb-2">
+            {TABS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActive(i)}
+                className={`rounded-full transition-all duration-300 ${
+                  active === i ? "w-5 h-1.5 bg-primary" : "w-1.5 h-1.5 bg-muted-foreground/30"
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </header>
 
       {isLoading ? (
@@ -1695,6 +1813,7 @@ export function DashboardPage() {
                   onDeleteProduct={(id) =>
                     setProducts(prev => prev.filter(p => p.id !== id))
                   }
+                  searchQuery={searchQuery}
                 />
               </div>
               <div ref={el => { panelRefs.current[3] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
@@ -1725,6 +1844,7 @@ export function DashboardPage() {
                   onDeleteProduct={(id) =>
                     setProducts(prev => prev.filter(p => p.id !== id))
                   }
+                  searchQuery={searchQuery}
                 />
               )}
               {active === 3 && <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />}
