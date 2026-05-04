@@ -586,7 +586,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
               {products.length} items
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
             {products.map(product => (
               <ProductCard key={product.id} product={product} showActions={false} />
             ))}
@@ -647,7 +647,7 @@ function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct 
           <p className="text-[10px] text-muted-foreground mb-3 flex items-center gap-1">
             Tap <span className="inline-flex items-center gap-0.5 text-orange-500 font-semibold"><Flame className="h-3 w-3" /> flame</span> to pin a product to the Trending section on your store.
           </p>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
             {products.map(product => (
               <ProductCard
                 key={product.id}

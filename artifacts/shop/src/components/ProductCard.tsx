@@ -75,7 +75,7 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
       <Link href={productHref ?? `/product/${product.id}`} className="group block" data-testid={`card-product-${product.id}`}>
         <div className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col h-full hover:border-primary/20">
           {/* Image */}
-          <div className="aspect-square relative overflow-hidden bg-muted/30">
+          <div className="aspect-square lg:aspect-[4/3] relative overflow-hidden bg-muted/30">
             <img
               src={product.imageUrl}
               alt={product.name}
@@ -158,7 +158,7 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
     <Link href={productHref ?? `/product/${product.id}`} className="group block" data-testid={`card-product-${product.id}`}>
       <div className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col h-full hover:border-primary/20">
         {/* Image */}
-        <div className="aspect-square relative overflow-hidden bg-muted/30">
+        <div className="aspect-square lg:aspect-[4/3] relative overflow-hidden bg-muted/30">
           <img
             src={product.imageUrl}
             alt={product.name}
