@@ -352,10 +352,11 @@ function HomePanel({ products, analytics, store, orderStats, loading = false }: 
   );
 }
 
-function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
+function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigger = 0 }: {
   store: StoreType | null;
   products: Product[];
   onLogoChange: (url: string) => void;
+  editTrigger?: number;
   onStoreChange: (updated: StoreType) => void;
 }) {
   const { toast } = useToast();
@@ -389,6 +390,11 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
     setShowSecret(false);
     setEditing(true);
   };
+
+  useEffect(() => {
+    if (editTrigger > 0) openEdit();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editTrigger]);
 
   const handleSaveStore = async () => {
     if (!store?.id) return;
@@ -1272,9 +1278,11 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 function SettingsPanel({
   store,
   onTabChange,
+  onEditStore,
 }: {
   store: StoreType | null;
   onTabChange: (index: number) => void;
+  onEditStore: () => void;
 }) {
   const { dark, toggle: toggleDark } = useTheme();
   const { user, signOut } = useAuth();
@@ -1349,7 +1357,7 @@ function SettingsPanel({
           icon={<Store className="h-4 w-4" />}
           label="Edit Store Profile"
           description="Name, logo, WhatsApp, location & more"
-          onClick={() => onTabChange(1)}
+          onClick={onEditStore}
         />
         <SettingsRow
           icon={<ListOrdered className="h-4 w-4" />}
@@ -1544,6 +1552,7 @@ export function DashboardPage() {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [storeEditTrigger, setStoreEditTrigger] = useState(0);
 
   const loadData = useCallback(async (storeId: string, hasPayment: boolean) => {
     setDataLoading(true);
@@ -1613,6 +1622,7 @@ export function DashboardPage() {
           <SettingsPanel
             store={store}
             onTabChange={(i) => { setShowSettings(false); setActive(i); }}
+            onEditStore={() => { setShowSettings(false); setActive(1); setStoreEditTrigger(t => t + 1); }}
           />
         </SheetContent>
       </Sheet>
@@ -1801,6 +1811,7 @@ export function DashboardPage() {
                   products={products}
                   onLogoChange={(url) => setStore(prev => prev ? { ...prev, logo_url: url } : prev)}
                   onStoreChange={(updated) => setStore(updated)}
+                  editTrigger={storeEditTrigger}
                 />
               </div>
               <div ref={el => { panelRefs.current[2] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
@@ -1833,6 +1844,7 @@ export function DashboardPage() {
                   products={products}
                   onLogoChange={(url) => setStore(prev => prev ? { ...prev, logo_url: url } : prev)}
                   onStoreChange={(updated) => setStore(updated)}
+                  editTrigger={storeEditTrigger}
                 />
               )}
               {active === 2 && (
