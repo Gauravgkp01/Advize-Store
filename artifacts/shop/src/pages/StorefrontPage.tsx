@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import {
-  Store, Loader2, Search, Star, MessageSquare, ArrowUpDown, TrendingUp, MapPin, ShoppingCart, Mail, Phone, FileText, ChevronDown, ChevronUp,
+  Store, Search, Star, MessageSquare, ArrowUpDown, TrendingUp, MapPin, ShoppingCart, Mail, Phone, FileText, ChevronDown, ChevronUp,
   Shirt, Footprints, UserRound, Gem, UtensilsCrossed, Smartphone, Palette, Sparkles,
   Baby, Home, Package, ShoppingBag, Watch, Dumbbell, BookOpen, Flower2, Scissors,
   Sofa, Glasses, Dog, Car, Bike,
@@ -10,11 +10,22 @@ import type { LucideIcon } from "lucide-react";
 import { Link } from "wouter";
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
-import { getStore, getProducts, trackClick, getStoreReviews } from "@/lib/api";
+import { getStorefront, trackClick } from "@/lib/api";
 import type { Store as StoreType, Product } from "@/lib/api";
 import type { Review } from "@/lib/api";
 
 type PriceSort = "none" | "asc" | "desc";
+
+// ── Module-level session cache (stale-while-revalidate) ───────────────────────
+// Survives re-renders and back-navigation; cleared when the browser tab closes.
+interface SFCacheEntry {
+  store: StoreType;
+  products: Product[];
+  reviews: Review[];
+  ts: number;
+}
+const sfCache = new Map<string, SFCacheEntry>();
+const SF_CACHE_TTL = 5 * 60_000; // 5 minutes
 
 /* ── Store Footer ─────────────────────────────────────────── */
 function StoreFooter({ store }: { store: StoreType | null }) {
@@ -232,27 +243,36 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
-    async function load() {
-      setLoading(true);
+
+    async function fetchAndApply(background: boolean) {
       try {
-        const s = await getStore(slug);
+        const payload = await getStorefront(slug);
         if (cancelled) return;
-        setStore(s);
-        const [prods, revs] = await Promise.all([
-          getProducts(s.id),
-          getStoreReviews(s.id),
-        ]);
-        if (!cancelled) {
-          setProducts(prods);
-          setReviews(revs);
-        }
+        // Update session cache
+        sfCache.set(slug, { store: payload.store, products: payload.products, reviews: payload.reviews, ts: Date.now() });
+        setStore(payload.store);
+        setProducts(payload.products);
+        setReviews(payload.reviews);
       } catch (e: any) {
-        if (!cancelled) setError(e.message ?? "Failed to load store");
+        if (!background && !cancelled) setError(e.message ?? "Failed to load store");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!background && !cancelled) setLoading(false);
       }
     }
-    load();
+
+    // Serve stale session cache instantly while revalidating in the background
+    const hit = sfCache.get(slug);
+    if (hit && Date.now() - hit.ts < SF_CACHE_TTL) {
+      setStore(hit.store);
+      setProducts(hit.products);
+      setReviews(hit.reviews);
+      setLoading(false);
+      fetchAndApply(true); // background revalidation
+    } else {
+      setLoading(true);
+      fetchAndApply(false);
+    }
+
     return () => { cancelled = true; };
   }, [slug]);
 
@@ -352,8 +372,38 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
+      <div className="min-h-[100dvh] flex flex-col bg-background">
+        {/* Skeleton navbar */}
+        <header className="sticky top-0 z-50 bg-muted/95 backdrop-blur border-b px-4 sm:px-6">
+          <div className="container max-w-5xl mx-auto h-14 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-muted animate-pulse" />
+            <div className="flex-1 flex justify-center">
+              <div className="h-4 w-32 rounded-full bg-muted animate-pulse" />
+            </div>
+            <div className="w-9 h-9 rounded-full bg-muted animate-pulse" />
+          </div>
+        </header>
+        {/* Skeleton search */}
+        <div className="bg-background/95 border-b px-4 py-2.5 sm:px-6">
+          <div className="container max-w-6xl mx-auto">
+            <div className="h-9 rounded-xl bg-muted animate-pulse" />
+          </div>
+        </div>
+        {/* Skeleton product grid */}
+        <main className="flex-1 container max-w-6xl mx-auto px-2.5 sm:px-6 pt-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-xl border bg-card overflow-hidden animate-pulse">
+                <div className="aspect-square bg-muted" />
+                <div className="p-3 space-y-2">
+                  <div className="h-3 bg-muted rounded-full w-3/4" />
+                  <div className="h-3 bg-muted rounded-full w-1/2" />
+                  <div className="h-4 bg-muted rounded-full w-1/3 mt-1" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
       </div>
     );
   }

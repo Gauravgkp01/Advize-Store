@@ -87,6 +87,16 @@ export interface Store {
 export const getStore = (slug: string) =>
   request<Store>(`/stores/${slug}`);
 
+// ── Combined storefront (store + products + reviews in one request) ───────────
+export const getStorefront = (slug: string) =>
+  request<{ store: Store; products: ApiProduct[]; reviews: ApiReview[] }>(
+    `/storefront/${slug}`
+  ).then(p => ({
+    store: p.store,
+    products: p.products.map(toProduct),
+    reviews: p.reviews.map(toReview),
+  }));
+
 export const getStoreById = (id: string) =>
   request<Store>(`/stores/id/${id}`);
 

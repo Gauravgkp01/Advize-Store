@@ -9,11 +9,15 @@ import uploadRouter from "./upload";
 import paymentsRouter from "./payments";
 import ordersRouter from "./orders";
 import sitemapRouter from "./sitemap";
+import storefrontRouter from "./storefront";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+// Combined storefront endpoint first — before storesRouter so /storefront/:slug
+// is matched before /stores/:slug
+router.use(storefrontRouter);
 router.use(storesRouter);
 router.use(productsRouter);
 router.use(reviewsRouter);
