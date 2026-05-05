@@ -591,15 +591,14 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
     <div className="min-h-[100dvh] flex flex-col bg-background">
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="container max-w-4xl mx-auto px-4 h-14 flex items-center relative">
-          {/* Back to store */}
-          {storeSlug && (
-            <Link
-              href={storePath}
-              className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          )}
+          {/* Back — always goes to the previous page in history */}
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors shrink-0"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
           {/* Centred title */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="font-semibold text-base">Product Details</span>
@@ -802,37 +801,40 @@ export function ProductDetailPage() {
     async function load() {
       setLoading(true);
       try {
-        const fetchList: Promise<any>[] = [getProduct(id!), getReviews(id!)];
-        if (isOwnerView) fetchList.push(getProductAnalytics(id!));
+        // Kick off product + reviews + analytics all at once
+        const productPromise  = getProduct(id!);
+        const reviewsPromise  = getReviews(id!);
+        const analyticsPromise = isOwnerView ? getProductAnalytics(id!) : Promise.resolve(null);
 
-        const results = await Promise.all(fetchList);
+        // As soon as we have the product we know the storeId —
+        // start the store + catalogue fetch immediately, in parallel with reviews.
+        const loadedProduct = await productPromise;
+        if (cancelled) return;
+        setProduct(loadedProduct);
+
+        const storePromise      = !isOwnerView ? getStoreById(loadedProduct.storeId) : Promise.resolve(null);
+        const allProductsPromise = !isOwnerView ? getProducts(loadedProduct.storeId)  : Promise.resolve([]);
+
+        // Wait for everything in true parallel
+        const [reviews, analytics, store, allProducts] = await Promise.all([
+          reviewsPromise,
+          analyticsPromise,
+          storePromise,
+          allProductsPromise,
+        ]);
         if (cancelled) return;
 
-        setProduct(results[0]);
-        setReviews(results[1]);
-        if (isOwnerView && results[2]) setProductAnalytics(results[2]);
+        setReviews(reviews ?? []);
+        if (isOwnerView && analytics) setProductAnalytics(analytics);
 
-        // Load store info for WhatsApp + related products (buyer view only)
-        if (!isOwnerView) {
-          const loadedProduct = results[0] as Product;
-          // Fetch store by ID — works for all visitors, not just the owner
-          try {
-            const [store, allProducts] = await Promise.all([
-              getStoreById(loadedProduct.storeId),
-              getProducts(loadedProduct.storeId),
-            ]);
-            if (!cancelled) {
-              setStoreWhatsapp(store.whatsapp ?? "");
-              setStoreSlug(store.slug ?? "");
-              setStoreId(store.id ?? "");
-              const related = allProducts
-                .filter(p => p.id !== loadedProduct.id && p.category === loadedProduct.category)
-                .slice(0, 6);
-              setRelatedProducts(related);
-            }
-          } catch {
-            // non-critical, ignore
-          }
+        if (!isOwnerView && store) {
+          setStoreWhatsapp(store.whatsapp ?? "");
+          setStoreSlug(store.slug ?? "");
+          setStoreId(store.id ?? "");
+          const related = (allProducts as Product[])
+            .filter(p => p.id !== loadedProduct.id && p.category === loadedProduct.category)
+            .slice(0, 6);
+          setRelatedProducts(related);
         }
       } catch {
         // product not found — leave null
