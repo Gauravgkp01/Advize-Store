@@ -620,12 +620,13 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6 mb-10">
-              {filteredProducts.map((product) => (
+              {filteredProducts.map((product, idx) => (
                 <div key={product.id} onClick={() => handleProductClick(product)}>
                   <ProductCard
                     product={product}
                     showActions={false}
                     reviewSummary={productReviewMap[product.id]}
+                    priority={idx < 4}
                   />
                 </div>
               ))}

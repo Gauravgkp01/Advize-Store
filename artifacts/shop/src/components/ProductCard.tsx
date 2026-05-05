@@ -13,9 +13,11 @@ interface ProductCardProps {
   onToggleTrending?: () => void;
   productHref?: string;
   reviewSummary?: { avg: number; count: number };
+  /** Pass true for the first ~4 cards visible above the fold so they load eagerly */
+  priority?: boolean;
 }
 
-export function ProductCard({ product, showActions = true, productHref, onDelete, onToggleTrending, reviewSummary }: ProductCardProps) {
+export function ProductCard({ product, showActions = true, productHref, onDelete, onToggleTrending, reviewSummary, priority = false }: ProductCardProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const inStock = product.units > 0;
@@ -80,7 +82,9 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
               src={product.imageUrl}
               alt={product.name}
               className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
+              decoding="async"
+              fetchPriority={priority ? "high" : "low"}
             />
             {/* Sale / category badge */}
             {hasDiscount && (
@@ -164,6 +168,7 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
             alt={product.name}
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
+            decoding="async"
           />
           {/* Stock badge */}
           <div
