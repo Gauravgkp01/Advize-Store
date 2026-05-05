@@ -172,17 +172,6 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
               <Download className="h-3 w-3 mr-1.5" />
               Download PNG
             </Button>
-            <Button
-              asChild
-              size="sm"
-              variant="outline"
-              className="w-full rounded-full text-xs"
-            >
-              <a href={storeUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-3 w-3 mr-1.5" />
-                Visit Store
-              </a>
-            </Button>
           </div>
         </div>
       ) : (
@@ -213,12 +202,6 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
           >
             <Download className="h-3.5 w-3.5 mr-1.5" />
             Download PNG
-          </Button>
-          <Button asChild variant="outline" className="w-full rounded-full" size="sm">
-            <a href={storeUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-              Visit Store
-            </a>
           </Button>
         </div>
       )}
@@ -459,16 +442,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
   return (
     <div className="pb-28">
       {/* ── Store header card ── */}
-      <div className="bg-card border-b px-4 pt-5 pb-4 relative">
-        {/* Edit button */}
-        <button
-          onClick={openEdit}
-          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-muted hover:bg-muted-foreground/15 flex items-center justify-center transition-colors"
-          title="Edit store details"
-        >
-          <Pencil className="w-3.5 h-3.5 text-foreground" />
-        </button>
-
+      <div className="bg-card border-b px-4 pt-5 pb-4">
         <div className="flex items-center gap-4">
           {/* Tappable logo */}
           <button
