@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { ProductCard } from "@/components/ProductCard";
 import { AnalyticsSection } from "@/components/AnalyticsSection";
@@ -226,11 +227,12 @@ function QrCodeCard({ storeUrl, storeName, compact = false }: {
 }
 
 /* ── panels ─────────────────────────────────────────── */
-function HomePanel({ products, analytics, store, orderStats }: {
+function HomePanel({ products, analytics, store, orderStats, loading = false }: {
   products: Product[];
   analytics: AnalyticsSummary | null;
   store: StoreType | null;
   orderStats: OrderStats | null;
+  loading?: boolean;
 }) {
   const inStockCount = products.filter(p => p.units > 0).length;
   const outCount = products.filter(p => p.units === 0).length;
@@ -308,17 +310,26 @@ function HomePanel({ products, analytics, store, orderStats }: {
         </div>
       )}
 
-      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-        <MiniStat icon={<TrendingUp className="h-3.5 w-3.5" />} label="Clicks"
-          value={(analytics?.totalClicks ?? 0).toLocaleString()} color="bg-violet-100 text-violet-600" />
-        <MiniStat icon={<ShoppingBag className="h-3.5 w-3.5" />} label="Reviews"
-          value={analytics?.totalReviews ?? 0} color="bg-sky-100 text-sky-600" />
-        <MiniStat icon={<Package className="h-3.5 w-3.5" />} label="Products"
-          value={products.length} color="bg-amber-100 text-amber-600" />
-        <MiniStat icon={<Boxes className="h-3.5 w-3.5" />} label="Units"
-          value={totalUnits} color="bg-primary/10 text-primary" />
-      </div>
+      {loading && !analytics ? (
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {[0,1,2,3].map(i => <Skeleton key={i} className="flex-1 h-[72px] rounded-2xl min-w-[70px]" />)}
+        </div>
+      ) : (
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <MiniStat icon={<TrendingUp className="h-3.5 w-3.5" />} label="Clicks"
+            value={(analytics?.totalClicks ?? 0).toLocaleString()} color="bg-violet-100 text-violet-600" />
+          <MiniStat icon={<ShoppingBag className="h-3.5 w-3.5" />} label="Reviews"
+            value={analytics?.totalReviews ?? 0} color="bg-sky-100 text-sky-600" />
+          <MiniStat icon={<Package className="h-3.5 w-3.5" />} label="Products"
+            value={products.length} color="bg-amber-100 text-amber-600" />
+          <MiniStat icon={<Boxes className="h-3.5 w-3.5" />} label="Units"
+            value={totalUnits} color="bg-primary/10 text-primary" />
+        </div>
+      )}
 
+      {loading && !analytics ? (
+        <Skeleton className="h-14 w-full rounded-2xl" />
+      ) : (
       <div className="bg-card border rounded-2xl px-4 py-3 flex items-center gap-4 overflow-x-auto no-scrollbar" data-testid="inventory-summary">
         <div className="flex items-center gap-2 shrink-0">
           <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -346,6 +357,7 @@ function HomePanel({ products, analytics, store, orderStats }: {
           <span className="text-[10px] text-muted-foreground">avg rating</span>
         </div>
       </div>
+      )}
 
       {/* QR code compact card */}
       {storeUrl && (
@@ -667,12 +679,13 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange }: {
   );
 }
 
-function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct, searchQuery = "" }: {
+function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct, searchQuery = "", loading = false }: {
   products: Product[];
   onRefresh: () => void;
   onProductsChange: (updated: Product) => void;
   onDeleteProduct: (id: string) => void;
   searchQuery?: string;
+  loading?: boolean;
 }) {
   const { toast } = useToast();
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -741,7 +754,20 @@ function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct,
       </div>
 
       <div className="p-3">
-        {products.length === 0 ? (
+        {loading && products.length === 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {[0,1,2,3,4,5].map(i => (
+              <div key={i} className="rounded-xl border bg-card overflow-hidden">
+                <Skeleton className="aspect-square w-full" />
+                <div className="p-2.5 space-y-1.5">
+                  <Skeleton className="h-3.5 w-3/4 rounded" />
+                  <Skeleton className="h-3 w-1/2 rounded" />
+                  <Skeleton className="h-5 w-1/3 rounded mt-1" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : products.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             <Package className="h-12 w-12 mx-auto mb-3 opacity-20" />
             <p className="font-medium">No products yet</p>
@@ -1601,7 +1627,7 @@ export function DashboardPage() {
     touchStartX.current = null;
   };
 
-  const isLoading = storeLoading || dataLoading;
+  const isLoading = storeLoading && !store;
 
   return (
     <div className="h-[100dvh] flex flex-col bg-muted/10 overflow-hidden">
@@ -1793,7 +1819,7 @@ export function DashboardPage() {
               style={{ transform: `translateX(-${active * 100}%)` }}
             >
               <div ref={el => { panelRefs.current[0] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-                <HomePanel products={products} analytics={analytics} store={store} orderStats={orderStats} />
+                <HomePanel products={products} analytics={analytics} store={store} orderStats={orderStats} loading={dataLoading} />
               </div>
               <div ref={el => { panelRefs.current[1] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
                 <MyStorePanel
@@ -1814,6 +1840,7 @@ export function DashboardPage() {
                     setProducts(prev => prev.filter(p => p.id !== id))
                   }
                   searchQuery={searchQuery}
+                  loading={dataLoading}
                 />
               </div>
               <div ref={el => { panelRefs.current[3] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
@@ -1825,7 +1852,7 @@ export function DashboardPage() {
           {/* ── Desktop: active panel (no carousel) ────────────── */}
           <div className="hidden lg:flex flex-1 overflow-hidden">
             <div className="flex-1 overflow-y-auto">
-              {active === 0 && <HomePanel products={products} analytics={analytics} store={store} orderStats={orderStats} />}
+              {active === 0 && <HomePanel products={products} analytics={analytics} store={store} orderStats={orderStats} loading={dataLoading} />}
               {active === 1 && (
                 <MyStorePanel
                   store={store}
@@ -1845,6 +1872,7 @@ export function DashboardPage() {
                     setProducts(prev => prev.filter(p => p.id !== id))
                   }
                   searchQuery={searchQuery}
+                  loading={dataLoading}
                 />
               )}
               {active === 3 && <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />}
