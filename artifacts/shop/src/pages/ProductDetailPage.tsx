@@ -205,8 +205,14 @@ function OwnerView({ product, reviews, analytics }: {
     <div className="min-h-[100dvh] flex flex-col bg-background">
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="container max-w-4xl mx-auto px-4 h-16 flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild className="rounded-full">
-            <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onClick={() => window.history.back()}
+            aria-label="Go back"
+          >
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <p className="font-semibold text-sm leading-tight">{product.name}</p>
