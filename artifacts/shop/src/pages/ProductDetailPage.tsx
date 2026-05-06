@@ -4,7 +4,7 @@ import {
   ArrowLeft, MessageCircle,
   AlertCircle, Star, Loader2, MousePointerClick,
   Package, BarChart2, TrendingUp, ZoomIn, ZoomOut, X, RotateCcw,
-  ShoppingCart, ShoppingBag,
+  ShoppingCart, ShoppingBag, ChevronDown,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -549,8 +549,29 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [localReviews, setLocalReviews] = useState(reviews);
+  const [reviewsOpen, setReviewsOpen] = useState(false);
+  const [reviewsFetched, setReviewsFetched] = useState(reviews.length > 0);
+  const [reviewsFetching, setReviewsFetching] = useState(false);
 
-  useEffect(() => { setLocalReviews(reviews); }, [reviews]);
+  useEffect(() => {
+    setLocalReviews(reviews);
+    if (reviews.length > 0) setReviewsFetched(true);
+  }, [reviews]);
+
+  const handleToggleReviews = async () => {
+    const opening = !reviewsOpen;
+    setReviewsOpen(opening);
+    if (opening && !reviewsFetched) {
+      setReviewsFetching(true);
+      try {
+        const fetched = await getReviews(product.id);
+        setLocalReviews(fetched);
+        setReviewsFetched(true);
+      } catch { /* ignore */ } finally {
+        setReviewsFetching(false);
+      }
+    }
+  };
 
   const avgRating = localReviews.length
     ? localReviews.reduce((s, r) => s + r.rating, 0) / localReviews.length : 0;
@@ -775,10 +796,43 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
 
         <RelatedProducts products={relatedProducts} />
 
-        <ReviewsList reviews={localReviews} avgRating={avgRating} ratingCounts={ratingCounts}
-          showForm={showForm} setShowForm={setShowForm} reviewName={reviewName} setReviewName={setReviewName}
-          reviewRating={reviewRating} setReviewRating={setReviewRating} reviewComment={reviewComment}
-          setReviewComment={setReviewComment} submitting={submitting} handleSubmitReview={handleSubmitReview} />
+        {/* ── Lazy reviews collapsible ── */}
+        <div className="bg-card sm:border sm:rounded-3xl shadow-sm overflow-hidden">
+          {/* Header — always visible, tappable to expand */}
+          <button
+            onClick={handleToggleReviews}
+            className="w-full flex items-center justify-between px-5 sm:px-10 py-5 text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <Star className={`h-5 w-5 shrink-0 ${reviewsFetched && localReviews.length > 0 ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`} />
+              <span className="text-lg font-bold">Customer Reviews</span>
+              {reviewsFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-1" />}
+              {reviewsFetched && localReviews.length > 0 && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  · {avgRating.toFixed(1)}★ ({localReviews.length})
+                </span>
+              )}
+            </div>
+            <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${reviewsOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {reviewsOpen && (
+            <div className="px-5 sm:px-10 pb-8 border-t">
+              {reviewsFetching ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="pt-6">
+                  <ReviewsList reviews={localReviews} avgRating={avgRating} ratingCounts={ratingCounts}
+                    showForm={showForm} setShowForm={setShowForm} reviewName={reviewName} setReviewName={setReviewName}
+                    reviewRating={reviewRating} setReviewRating={setReviewRating} reviewComment={reviewComment}
+                    setReviewComment={setReviewComment} submitting={submitting} handleSubmitReview={handleSubmitReview} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="pb-8" />
       </main>
@@ -810,11 +864,11 @@ export function ProductDetailPage() {
     function applyPayload(payload: {
       product: Product;
       store: import("@/lib/api").Store | null;
-      reviews: Review[];
+      reviews?: Review[];
       relatedProducts: Product[];
     }) {
       setProduct(payload.product);
-      setReviews(payload.reviews);
+      if (payload.reviews !== undefined) setReviews(payload.reviews);
       if (!isOwnerView && payload.store) {
         setStoreWhatsapp(payload.store.whatsapp ?? "");
         setStoreSlug(payload.store.slug ?? "");

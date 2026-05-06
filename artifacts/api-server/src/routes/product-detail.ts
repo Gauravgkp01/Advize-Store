@@ -53,17 +53,19 @@ router.get("/product-detail/:id", async (req, res) => {
   const storeId: string = productData["store_id"];
   const category: string = productData["category"] ?? "";
 
-  // ── Step 2: Parallel fetch – variants, store, reviews, catalog ──
+  // ── Step 2: Parallel fetch – variants, store, catalog ──
+  // Reviews are intentionally excluded here — the client lazy-loads them
+  // only when the user opens the reviews section, saving one Firestore
+  // read on every cold-start product page view.
   const cachedCatalog = cacheGet<any[]>(`products:list:${storeId}`);
 
-  const [variantsSnap, storeDoc, reviewsSnap, catalogSnap] = await Promise.all([
+  const [variantsSnap, storeDoc, catalogSnap] = await Promise.all([
     productDoc.ref.collection("variants").get(),
     // Store: check sub-cache first
     (async () => {
       const cachedStore = cacheGet<any>(`store:id:${storeId}`);
       return cachedStore ?? db.collection("stores").doc(storeId).get();
     })(),
-    db.collection("reviews").where("product_id", "==", id).get(),
     // Catalog: use server cache if warm to avoid an extra Firestore query
     cachedCatalog
       ? Promise.resolve(null)
@@ -92,12 +94,6 @@ router.get("/product-detail/:id", async (req, res) => {
     store = storeDoc;
   }
 
-  // ── Build reviews ──
-  const reviews = (reviewsSnap as FirebaseFirestore.QuerySnapshot).docs.map(serializeReview);
-  reviews.sort((a, b) =>
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
-
   // ── Build related products ──
   let allProducts: any[];
   if (cachedCatalog) {
@@ -117,7 +113,7 @@ router.get("/product-detail/:id", async (req, res) => {
     .filter((p: any) => p.id !== id && p.category === category)
     .slice(0, 6);
 
-  const result = { product, store, reviews, relatedProducts };
+  const result = { product, store, relatedProducts };
   cacheSet(cacheKey, result, TTL);
   return res.json(result);
 });

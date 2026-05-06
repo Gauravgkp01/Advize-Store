@@ -170,18 +170,18 @@ export const getProduct = (id: string) =>
 
 /**
  * Combined product-detail endpoint — returns product (with variants),
- * store, reviews, and related products in a single round-trip.
+ * store, and related products in a single round-trip.
+ * Reviews are NOT included; they are lazy-loaded by the client when
+ * the user opens the reviews section.
  */
 export const getProductDetail = (id: string) =>
   request<{
     product: ApiProduct;
     store: Store;
-    reviews: ApiReview[];
     relatedProducts: ApiProduct[];
   }>(`/product-detail/${id}`).then(r => ({
     product: toProduct(r.product),
     store: r.store,
-    reviews: r.reviews.map(toReview),
     relatedProducts: r.relatedProducts.map(toProduct),
   }));
 

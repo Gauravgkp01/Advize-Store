@@ -13,7 +13,8 @@ import type { Store, Product, Review } from "./api";
 export interface PdCacheEntry {
   product: Product;
   store: Store;
-  reviews: Review[];
+  /** Pre-populated when navigating from a storefront; undefined on direct URL visits. */
+  reviews?: Review[];
   relatedProducts: Product[];
   ts: number;
 }
