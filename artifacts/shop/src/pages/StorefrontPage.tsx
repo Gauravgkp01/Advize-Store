@@ -11,6 +11,7 @@ import { Link } from "wouter";
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import { getStorefront, trackClick } from "@/lib/api";
+import { populatePdCacheFromStorefront } from "@/lib/product-cache";
 import type { Store as StoreType, Product } from "@/lib/api";
 import type { Review } from "@/lib/api";
 
@@ -250,6 +251,8 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
         if (cancelled) return;
         // Update session cache
         sfCache.set(slug, { store: payload.store, products: payload.products, reviews: payload.reviews, ts: Date.now() });
+        // Pre-populate product detail cache — navigating to any product is now instant
+        populatePdCacheFromStorefront(payload.store, payload.products, payload.reviews);
         setStore(payload.store);
         setProducts(payload.products);
         setReviews(payload.reviews);

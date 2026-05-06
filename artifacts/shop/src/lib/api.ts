@@ -168,6 +168,23 @@ export const getProducts = (store_id: string) =>
 export const getProduct = (id: string) =>
   request<ApiProduct>(`/products/${id}`).then(toProduct);
 
+/**
+ * Combined product-detail endpoint — returns product (with variants),
+ * store, reviews, and related products in a single round-trip.
+ */
+export const getProductDetail = (id: string) =>
+  request<{
+    product: ApiProduct;
+    store: Store;
+    reviews: ApiReview[];
+    relatedProducts: ApiProduct[];
+  }>(`/product-detail/${id}`).then(r => ({
+    product: toProduct(r.product),
+    store: r.store,
+    reviews: r.reviews.map(toReview),
+    relatedProducts: r.relatedProducts.map(toProduct),
+  }));
+
 export const createProduct = (body: {
   store_id: string;
   name: string;

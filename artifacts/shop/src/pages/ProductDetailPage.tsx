@@ -14,9 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, getSubdomainSlug } from "@/lib/api";
+import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, getSubdomainSlug, getProductDetail } from "@/lib/api";
 import type { Product, Review } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
+import { pdCache, PD_CACHE_TTL } from "@/lib/product-cache";
 import { useCart } from "@/contexts/CartContext";
 
 /* ── shared sub-components ────────────────────────────── */
@@ -804,50 +805,75 @@ export function ProductDetailPage() {
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
+
+    /** Apply a fully-loaded product-detail payload to component state. */
+    function applyPayload(payload: {
+      product: Product;
+      store: import("@/lib/api").Store | null;
+      reviews: Review[];
+      relatedProducts: Product[];
+    }) {
+      setProduct(payload.product);
+      setReviews(payload.reviews);
+      if (!isOwnerView && payload.store) {
+        setStoreWhatsapp(payload.store.whatsapp ?? "");
+        setStoreSlug(payload.store.slug ?? "");
+        setStoreId(payload.store.id ?? "");
+        setRelatedProducts(payload.relatedProducts);
+      }
+    }
+
     async function load() {
+      // ── Buyer view: check module-level cache first ──────────────────────
+      if (!isOwnerView) {
+        const hit = pdCache.get(id!);
+        if (hit && Date.now() - hit.ts < PD_CACHE_TTL) {
+          // Serve immediately from cache (zero network calls)
+          applyPayload(hit);
+          setLoading(false);
+          // Revalidate silently in the background
+          getProductDetail(id!).then(fresh => {
+            if (cancelled) return;
+            pdCache.set(id!, { ...fresh, ts: Date.now() });
+            applyPayload(fresh);
+          }).catch(() => {/* ignore background errors */});
+          return;
+        }
+
+        // Cache miss — single round-trip combined endpoint
+        setLoading(true);
+        try {
+          const fresh = await getProductDetail(id!);
+          if (cancelled) return;
+          pdCache.set(id!, { ...fresh, ts: Date.now() });
+          applyPayload(fresh);
+        } catch {
+          // product not found — leave null
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+        return;
+      }
+
+      // ── Owner view: product + reviews + analytics in parallel ───────────
       setLoading(true);
       try {
-        // Kick off product + reviews + analytics all at once
-        const productPromise  = getProduct(id!);
-        const reviewsPromise  = getReviews(id!);
-        const analyticsPromise = isOwnerView ? getProductAnalytics(id!) : Promise.resolve(null);
-
-        // As soon as we have the product we know the storeId —
-        // start the store + catalogue fetch immediately, in parallel with reviews.
-        const loadedProduct = await productPromise;
-        if (cancelled) return;
-        setProduct(loadedProduct);
-
-        const storePromise      = !isOwnerView ? getStoreById(loadedProduct.storeId) : Promise.resolve(null);
-        const allProductsPromise = !isOwnerView ? getProducts(loadedProduct.storeId)  : Promise.resolve([]);
-
-        // Wait for everything in true parallel
-        const [reviews, analytics, store, allProducts] = await Promise.all([
-          reviewsPromise,
-          analyticsPromise,
-          storePromise,
-          allProductsPromise,
+        const [loadedProduct, reviews, analytics] = await Promise.all([
+          getProduct(id!),
+          getReviews(id!),
+          getProductAnalytics(id!),
         ]);
         if (cancelled) return;
-
+        setProduct(loadedProduct);
         setReviews(reviews ?? []);
-        if (isOwnerView && analytics) setProductAnalytics(analytics);
-
-        if (!isOwnerView && store) {
-          setStoreWhatsapp(store.whatsapp ?? "");
-          setStoreSlug(store.slug ?? "");
-          setStoreId(store.id ?? "");
-          const related = (allProducts as Product[])
-            .filter(p => p.id !== loadedProduct.id && p.category === loadedProduct.category)
-            .slice(0, 6);
-          setRelatedProducts(related);
-        }
+        if (analytics) setProductAnalytics(analytics);
       } catch {
         // product not found — leave null
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
+
     load();
     return () => { cancelled = true; };
   }, [id, isOwnerView]);
