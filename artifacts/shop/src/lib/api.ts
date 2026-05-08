@@ -406,21 +406,30 @@ export const createOrder = (payload: {
     body: JSON.stringify(payload),
   });
 
-export const createCashfreeOrder = (payload: {
+export const createAdvizeOrder = (payload: {
   store_id: string;
   amount_paise: number;
   items: OrderItem[];
   buyer: OrderBuyer;
   slug: string;
 }) =>
-  request<{ payment_session_id: string; order_doc_id: string; cf_order_id: string }>(
-    "/cashfree/create-order",
+  request<{ order_id: string; key_id: string; amount: number; currency: string }>(
+    "/advize-pay/create-order",
     { method: "POST", body: JSON.stringify(payload) }
   );
 
-export const verifyCashfreeOrder = (cf_order_id: string) =>
-  request<{ id: string; payment_status: PaymentStatus; status: OrderStatus; amount_paise: number }>(
-    `/cashfree/verify/${cf_order_id}`
+export const verifyAdvizePayment = (payload: {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+  store_id: string;
+  amount_paise: number;
+  items: OrderItem[];
+  buyer: OrderBuyer;
+}) =>
+  request<{ verified: boolean; order_id?: string }>(
+    "/advize-pay/verify",
+    { method: "POST", body: JSON.stringify(payload) }
   );
 
 export const getOrderStats = (store_id: string) =>

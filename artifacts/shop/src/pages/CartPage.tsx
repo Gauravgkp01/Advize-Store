@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createCashfreeOrder, verifyCashfreeOrder } from "@/lib/api";
+import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, verifyAdvizePayment } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 
 type Screen = "cart" | "checkout" | "success";
@@ -37,7 +37,6 @@ function unitPrice(p: { price: number; salePrice?: number }) {
 
 export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const params = useParams();
-  const search = useSearch();
   const slug = forcedSlug ?? params.slug ?? "";
   const onSubdomain = !!forcedSlug;
   const { items, updateQty, removeItem, clearCart, totalItems, totalPrice } = useCart();
@@ -72,43 +71,6 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     document.body.appendChild(s);
   }, []);
 
-  /* Inject Cashfree SDK once */
-  useEffect(() => {
-    if (document.getElementById("cf-script")) return;
-    const s = document.createElement("script");
-    s.id = "cf-script";
-    s.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
-    s.async = true;
-    document.body.appendChild(s);
-  }, []);
-
-  /* Handle Cashfree redirect return */
-  useEffect(() => {
-    const p = new URLSearchParams(search);
-    const advizeOid = p.get("advize_oid");
-    const advizeStatus = p.get("advize_status");
-    if (!advizeOid) return;
-
-    if (advizeStatus === "SUCCESS") {
-      const saved = sessionStorage.getItem("advize_buyer");
-      if (saved) { try { setBuyer(JSON.parse(saved)); } catch {} }
-      verifyCashfreeOrder(advizeOid)
-        .then(result => {
-          if (result.payment_status === "paid" || result.status === "confirmed") {
-            clearCart();
-            setScreen("success");
-          } else {
-            clearCart();
-            setScreen("success");
-          }
-        })
-        .catch(() => { clearCart(); setScreen("success"); });
-      sessionStorage.removeItem("advize_buyer");
-    } else if (advizeStatus === "FAILED" || advizeStatus === "CANCELLED") {
-      toast({ variant: "destructive", title: "Payment not completed", description: "Please try again." });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const hasRazorpay = !!(store?.razorpay_account_id || store?.razorpay_key_id);
   const hasAdvize   = !!(store?.advize_payment_enabled);
@@ -140,13 +102,12 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     return true;
   };
 
-  /* ── Cashfree checkout ── */
-  const handleCashfreeCheckout = async () => {
+  /* ── Advize checkout (platform Razorpay) ── */
+  const handleAdvizeCheckout = async () => {
     if (!validateBuyer() || !store) return;
     setPaymentLoading(true);
     try {
-      sessionStorage.setItem("advize_buyer", JSON.stringify(buyer));
-      const result = await createCashfreeOrder({
+      const orderData = await createAdvizeOrder({
         store_id: store.id,
         amount_paise: Math.round(totalPrice * 100),
         items: items.map(i => ({
@@ -159,15 +120,62 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
         slug,
       });
 
-      const Cashfree = (window as any).Cashfree;
-      if (!Cashfree) {
+      const Razorpay = (window as any).Razorpay;
+      if (!Razorpay) {
         toast({ variant: "destructive", title: "Payment not ready", description: "Please refresh and try again." });
         setPaymentLoading(false);
         return;
       }
 
-      const cf = Cashfree({ mode: "production" });
-      cf.checkout({ paymentSessionId: result.payment_session_id, redirectTarget: "_self" });
+      const linesSummary = items.map(i => `${i.product.name} ×${i.quantity}`).join(", ");
+
+      const options: any = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: store.name,
+        description: linesSummary.slice(0, 80),
+        order_id: orderData.order_id,
+        prefill: {
+          name: buyer.name,
+          contact: `+91${buyer.phone.replace(/\D/g, "")}`,
+        },
+        notes: {
+          delivery_address: `${buyer.addressLine}, ${buyer.city} - ${buyer.pincode}`,
+          items: linesSummary,
+        },
+        theme: { color: "#16a34a" },
+        handler: async (response: any) => {
+          try {
+            const result = await verifyAdvizePayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              store_id: store.id,
+              amount_paise: Math.round(totalPrice * 100),
+              items: items.map(i => ({
+                productId: i.product.id,
+                name: i.product.name,
+                quantity: i.quantity,
+                price: unitPrice(i.product),
+              })),
+              buyer,
+            });
+            if (result.verified) {
+              clearCart();
+              setScreen("success");
+            } else {
+              toast({ variant: "destructive", title: "Payment verification failed", description: "Contact the seller." });
+            }
+          } catch {
+            toast({ variant: "destructive", title: "Could not verify payment", description: "Contact the seller with your payment ID." });
+          }
+          setPaymentLoading(false);
+        },
+        modal: { ondismiss: () => setPaymentLoading(false) },
+      };
+
+      new Razorpay(options).open();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Could not initiate payment", description: err.message ?? "Please try again." });
       setPaymentLoading(false);
@@ -427,7 +435,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           {/* Pay button */}
           <Button
             className="w-full h-12 rounded-2xl text-base font-bold gap-2 shadow-md"
-            onClick={hasAdvize ? handleCashfreeCheckout : handleRazorpayCheckout}
+            onClick={hasAdvize ? handleAdvizeCheckout : handleRazorpayCheckout}
             disabled={paymentLoading}
           >
             {paymentLoading
@@ -438,9 +446,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           </Button>
 
           <p className="text-center text-[11px] text-muted-foreground">
-            {hasAdvize
-              ? "Secured by Cashfree · 100% safe & encrypted"
-              : "Secured by Razorpay · 100% safe & encrypted"}
+            Secured by Razorpay · 100% safe & encrypted
           </p>
         </main>
       </div>
