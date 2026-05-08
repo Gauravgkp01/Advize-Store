@@ -5,7 +5,7 @@ import {
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
   Pencil, Phone, MapPin, Tag, Mail, FileText, Download,
-  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer,
+  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer, Zap,
   ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
   Settings, Bell, Shield, User, ChevronRight, HelpCircle, Trash2,
   Search, X, SlidersHorizontal,
@@ -822,12 +822,27 @@ const ACCOUNT_STATUS_LABEL: Record<string, string> = {
 
 function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onStoreChange: (updated: StoreType) => void }) {
   const { toast } = useToast();
-  const hasAccount = !!(store?.razorpay_account_id);
-  const legacyKeys  = !!(store?.razorpay_key_id) && !hasAccount;
-  const paymentActive = hasAccount || legacyKeys;
+  const hasAccount    = !!(store?.razorpay_account_id);
+  const legacyKeys    = !!(store?.razorpay_key_id) && !hasAccount;
+  const advizeEnabled = !!(store?.advize_payment_enabled);
 
-  const [showOnboard, setShowOnboard] = useState(false);
-  const [saving, setSaving]           = useState(false);
+  const [showOnboard, setShowOnboard]       = useState(false);
+  const [saving, setSaving]                 = useState(false);
+  const [savingAdvize, setSavingAdvize]     = useState(false);
+
+  const handleToggleAdvize = async () => {
+    if (!store?.id) return;
+    setSavingAdvize(true);
+    try {
+      const updated = await updateStore(store.id, { advize_payment_enabled: !advizeEnabled });
+      onStoreChange(updated);
+      toast({ title: advizeEnabled ? "Advize Payment disabled" : "Advize Payment enabled!" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Failed", description: err.message ?? "Please try again." });
+    } finally {
+      setSavingAdvize(false);
+    }
+  };
 
   const [bizName,    setBizName]    = useState("");
   const [contactName, setContactName] = useState("");
@@ -916,8 +931,60 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
       {/* Plugin cards */}
       <div className="flex flex-col gap-4">
 
-        {/* ── Payment Integration (Razorpay Partner) ── */}
-        <div className={`bg-card border rounded-2xl overflow-hidden shadow-sm transition-all ${paymentActive ? "border-green-400/60 dark:border-green-600/40" : ""}`}>
+        {/* ── Payment Gateway section ── */}
+        <div className="space-y-3">
+          {/* Section label */}
+          <div className="flex items-center gap-2 px-1 pt-1">
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Payment Gateway</p>
+          </div>
+
+          {/* ── Option 1: Advize Payment ── */}
+          <div className={`bg-card border rounded-2xl overflow-hidden shadow-sm transition-all ${advizeEnabled ? "border-green-400/60 dark:border-green-600/40" : ""}`}>
+            <div className="p-5">
+              <div className="flex gap-4 items-start">
+                <div className={`p-3 rounded-xl flex-shrink-0 ${advizeEnabled ? "bg-green-50 dark:bg-green-950/40" : "bg-primary/10"}`}>
+                  <Zap className={`h-6 w-6 ${advizeEnabled ? "text-green-600 dark:text-green-400" : "text-primary"}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h3 className="text-base font-semibold text-foreground leading-tight">Advize Payment</h3>
+                    {advizeEnabled ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                        Recommended
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                    Accept UPI, cards &amp; wallets with Advize's built-in payment solution. No setup or API keys needed.
+                  </p>
+                  <button
+                    onClick={handleToggleAdvize}
+                    disabled={savingAdvize}
+                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 ${
+                      advizeEnabled
+                        ? "bg-muted text-muted-foreground hover:bg-muted/80"
+                        : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                    }`}
+                  >
+                    {savingAdvize
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : advizeEnabled
+                        ? "Disable"
+                        : <><Zap className="h-3.5 w-3.5" /> Enable</>
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Option 2: Razorpay ── */}
+          <div className={`bg-card border rounded-2xl overflow-hidden shadow-sm transition-all ${hasAccount ? "border-green-400/60 dark:border-green-600/40" : ""}`}>
           <div className="p-5">
             <div className="flex gap-4 items-start">
               <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl flex-shrink-0">
@@ -925,7 +992,7 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h3 className="text-base font-semibold text-foreground leading-tight">Razorpay Payments</h3>
+                  <h3 className="text-base font-semibold text-foreground leading-tight">Razorpay</h3>
                   {hasAccount ? (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
                       Connected
@@ -976,7 +1043,7 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
                 ) : (
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Accept UPI, cards & wallets. No API keys needed — we handle Razorpay setup for you.
+                      Connect your Razorpay account to accept UPI, cards &amp; wallets with your own keys.
                     </p>
                     {!showOnboard && (
                       <button
@@ -1109,6 +1176,7 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
               </p>
             </div>
           )}
+          </div>
         </div>
 
         {/* ── Custom Domain ── */}

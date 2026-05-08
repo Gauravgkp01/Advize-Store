@@ -82,6 +82,7 @@ export interface Store {
   razorpay_enabled?: boolean;
   razorpay_account_id?: string;
   razorpay_account_status?: string;
+  advize_payment_enabled?: boolean;
 }
 
 export const getStore = (slug: string) =>
