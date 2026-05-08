@@ -446,27 +446,29 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               </h1>
             </div>
 
-            {/* Right: my orders + cart icons */}
-            <div className="ml-auto flex items-center gap-1">
-              <Link
-                href={onSubdomain ? "/orders" : `/store/${slug}/orders`}
-                className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted-foreground/10 transition-colors"
-                title="My Orders"
-              >
-                <Package className="h-5 w-5 text-foreground" />
-              </Link>
-              <Link
-                href={onSubdomain ? "/cart" : `/store/${slug}/cart`}
-                className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted-foreground/10 transition-colors"
-              >
-                <ShoppingCart className="h-5 w-5 text-foreground" />
-                {totalItems > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center leading-none shadow">
-                    {totalItems > 9 ? "9+" : totalItems}
-                  </span>
-                )}
-              </Link>
-            </div>
+            {/* Right: my orders + cart icons (only shown when payment is set up) */}
+            {(store.razorpay_account_id || store.razorpay_key_id || store.advize_payment_enabled) ? (
+              <div className="ml-auto flex items-center gap-1">
+                <Link
+                  href={onSubdomain ? "/orders" : `/store/${slug}/orders`}
+                  className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted-foreground/10 transition-colors"
+                  title="My Orders"
+                >
+                  <Package className="h-5 w-5 text-foreground" />
+                </Link>
+                <Link
+                  href={onSubdomain ? "/cart" : `/store/${slug}/cart`}
+                  className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted-foreground/10 transition-colors"
+                >
+                  <ShoppingCart className="h-5 w-5 text-foreground" />
+                  {totalItems > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center leading-none shadow">
+                      {totalItems > 9 ? "9+" : totalItems}
+                    </span>
+                  )}
+                </Link>
+              </div>
+            ) : <div className="ml-auto" />}
           </div>
 
           {/* Metadata row */}

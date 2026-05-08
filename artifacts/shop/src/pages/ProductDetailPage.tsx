@@ -519,13 +519,14 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
 }
 
 /* ── Buyer (public) view ──────────────────────────────── */
-function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relatedProducts }: {
+function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relatedProducts, hasPayment }: {
   product: Product;
   reviews: Review[];
   storeWhatsapp: string;
   storeSlug: string;
   storeId: string;
   relatedProducts: Product[];
+  hasPayment: boolean;
 }) {
   const onSubdomain = !!getSubdomainSlug();
   const storePath = onSubdomain ? "/" : `/store/${storeSlug}`;
@@ -631,8 +632,8 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="font-semibold text-base">Product Details</span>
           </div>
-          {/* Cart icon */}
-          {storeSlug && (
+          {/* Cart icon — only when store has payment gateway */}
+          {storeSlug && hasPayment && (
             <Link
               href={cartPath}
               className="ml-auto relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors"
@@ -755,28 +756,30 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
             )}
 
             <div className="flex gap-3">
+              {hasPayment && (
+                <Button
+                  variant="outline"
+                  className="flex-1 h-14 text-base rounded-xl border-2 font-semibold gap-2"
+                  onClick={handleAddToCart}
+                  disabled={product.units === 0}
+                  data-testid="btn-add-to-cart"
+                >
+                  <ShoppingBag className={`h-5 w-5 ${addedToCart ? "fill-primary" : ""}`} />
+                  {addedToCart ? "Added!" : "Add to Cart"}
+                </Button>
+              )}
               <Button
-                variant="outline"
-                className="flex-1 h-14 text-base rounded-xl border-2 font-semibold gap-2"
-                onClick={handleAddToCart}
-                disabled={product.units === 0}
-                data-testid="btn-add-to-cart"
-              >
-                <ShoppingBag className={`h-5 w-5 ${addedToCart ? "fill-primary" : ""}`} />
-                {addedToCart ? "Added!" : "Add to Cart"}
-              </Button>
-              <Button
-                className="flex-1 h-14 text-base rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent gap-2 font-semibold"
+                className={`${hasPayment ? "flex-1" : "w-full"} h-14 text-base rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent gap-2 font-semibold`}
                 onClick={handleOrder}
                 data-testid="btn-order-whatsapp"
               >
                 <MessageCircle className="h-5 w-5" />
-                WhatsApp
+                {hasPayment ? "WhatsApp" : "Order on WhatsApp"}
               </Button>
             </div>
 
-            {/* View Cart pill — slides in once items are in the cart */}
-            {storeSlug && totalItems > 0 && (
+            {/* View Cart pill — only when store has payment and items in cart */}
+            {hasPayment && storeSlug && totalItems > 0 && (
               <Link
                 href={cartPath}
                 className="flex items-center justify-between gap-3 bg-primary/10 hover:bg-primary/15 border border-primary/30 rounded-2xl px-4 py-2.5 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
@@ -852,6 +855,7 @@ export function ProductDetailPage() {
   const [storeWhatsapp, setStoreWhatsapp] = useState("");
   const [storeSlug, setStoreSlug] = useState("");
   const [storeId, setStoreId] = useState("");
+  const [storeHasPayment, setStoreHasPayment] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -873,6 +877,11 @@ export function ProductDetailPage() {
         setStoreWhatsapp(payload.store.whatsapp ?? "");
         setStoreSlug(payload.store.slug ?? "");
         setStoreId(payload.store.id ?? "");
+        setStoreHasPayment(!!(
+          payload.store.razorpay_account_id ||
+          payload.store.razorpay_key_id ||
+          payload.store.advize_payment_enabled
+        ));
         setRelatedProducts(payload.relatedProducts);
       }
     }
@@ -953,6 +962,6 @@ export function ProductDetailPage() {
   }
 
   return (
-    <BuyerView product={product} reviews={reviews} storeWhatsapp={storeWhatsapp} storeSlug={storeSlug} storeId={storeId} relatedProducts={relatedProducts} />
+    <BuyerView product={product} reviews={reviews} storeWhatsapp={storeWhatsapp} storeSlug={storeSlug} storeId={storeId} relatedProducts={relatedProducts} hasPayment={storeHasPayment} />
   );
 }
