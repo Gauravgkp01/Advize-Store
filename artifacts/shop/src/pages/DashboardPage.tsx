@@ -1742,53 +1742,68 @@ function EarningsPanel({ store, orderStats, onStatusChange }: {
             <div className="space-y-3">
               {filtered.map(order => (
                 <div key={order.id} className="bg-card border rounded-2xl p-4 shadow-sm space-y-3">
-                  {/* Header row */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <span className="text-[10px] font-mono text-muted-foreground/60">
-                          #{order.id.slice(0, 8).toUpperCase()}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">{formatDate(order.created_at)}</span>
-                      </div>
-                      <p className="text-sm font-bold text-foreground">{order.buyer?.name ?? "–"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {order.buyer?.phone ? `+91 ${order.buyer.phone}` : ""}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-lg font-extrabold text-foreground">
-                        ₹{Math.round((order.amount_paise ?? 0) / 100).toLocaleString("en-IN")}
-                      </p>
-                      <span className={`text-[10px] font-bold ${
-                        order.payment_status === "paid"
-                          ? "text-green-600 dark:text-green-400"
-                          : order.payment_status === "failed"
-                            ? "text-red-500"
-                            : "text-amber-500"
-                      }`}>
-                        {order.payment_status === "paid" ? "Paid" : order.payment_status === "failed" ? "Failed" : "Pending payment"}
-                      </span>
-                    </div>
+
+                  {/* Order meta: ID + time */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-mono font-semibold text-primary/80 bg-primary/10 px-2 py-0.5 rounded-md">
+                      #{order.id.slice(0, 12).toUpperCase()}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{formatDate(order.created_at)}</span>
+                  </div>
+
+                  {/* Amount + payment status */}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-2xl font-extrabold text-foreground">
+                      ₹{Math.round((order.amount_paise ?? 0) / 100).toLocaleString("en-IN")}
+                    </p>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                      order.payment_status === "paid"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : order.payment_status === "failed"
+                          ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                    }`}>
+                      {order.payment_status === "paid" ? "✓ Paid" : order.payment_status === "failed" ? "✗ Failed" : "⏳ Pending"}
+                    </span>
+                  </div>
+
+                  {/* Customer info */}
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-bold text-foreground">{order.buyer?.name ?? "–"}</p>
+                    {order.buyer?.phone && (
+                      <p className="text-sm text-muted-foreground">+91 {order.buyer.phone}</p>
+                    )}
                   </div>
 
                   {/* Items */}
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {order.items?.map(i => `${i.name} ×${i.quantity}`).join(" · ") ?? "–"}
-                  </p>
-
-                  {/* Address + status change */}
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t">
-                    <p className="text-[11px] text-muted-foreground truncate flex-1">
-                      {order.buyer?.addressLine
-                        ? `${order.buyer.addressLine}, ${order.buyer.city} – ${order.buyer.pincode}`
-                        : "–"}
+                  <div className="bg-muted/40 rounded-xl px-3 py-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Items</p>
+                    <p className="text-sm text-foreground leading-relaxed">
+                      {order.items?.map(i => `${i.name} ×${i.quantity}`).join(" · ") ?? "–"}
                     </p>
+                  </div>
+
+                  {/* Delivery address — full, no truncation */}
+                  {order.buyer?.addressLine && (
+                    <div className="bg-muted/40 rounded-xl px-3 py-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Delivery Address</p>
+                      <p className="text-sm text-foreground leading-relaxed break-words">
+                        {order.buyer.addressLine}
+                      </p>
+                      <p className="text-sm text-foreground">
+                        {order.buyer.city}{order.buyer.pincode ? ` – ${order.buyer.pincode}` : ""}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Status dropdown — full width row */}
+                  <div className="pt-1 border-t flex items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground font-medium">Order Status</p>
                     <select
                       value={order.status}
                       disabled={updatingId === order.id}
                       onChange={e => handleStatusChange(order.id, e.target.value)}
-                      className={`text-[11px] font-bold px-2 py-1 rounded-lg border-0 outline-none cursor-pointer shrink-0 transition-colors ${STATUS_COLORS[order.status] ?? ""}`}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-xl border-0 outline-none cursor-pointer transition-colors ${STATUS_COLORS[order.status] ?? ""}`}
                     >
                       <option value="pending">Pending</option>
                       <option value="confirmed">Confirmed</option>
