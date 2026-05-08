@@ -374,6 +374,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
   const [editEmail, setEditEmail] = useState("");
   const [editContactPhone, setEditContactPhone] = useState("");
   const [editTerms, setEditTerms] = useState("");
+  const [editDeliveryCharge, setEditDeliveryCharge] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -387,6 +388,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
     setEditEmail(store?.email ?? "");
     setEditContactPhone(store?.contact_phone ?? "");
     setEditTerms(store?.terms_and_conditions ?? "");
+    setEditDeliveryCharge(store?.delivery_charge != null ? String(store.delivery_charge) : "");
     setShowSecret(false);
     setEditing(true);
   };
@@ -400,6 +402,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
     if (!store?.id) return;
     setSaving(true);
     try {
+      const deliveryChargeParsed = parseFloat(editDeliveryCharge);
       const payload: Record<string, any> = {
         name: editName.trim() || store.name,
         whatsapp: editPhone.trim(),
@@ -408,6 +411,9 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
         email: editEmail.trim(),
         contact_phone: editContactPhone.trim(),
         terms_and_conditions: editTerms.trim(),
+        delivery_charge: (!isNaN(deliveryChargeParsed) && deliveryChargeParsed >= 0)
+          ? deliveryChargeParsed
+          : 0,
       };
       if (editRazorpayKeyId.trim()) payload.razorpay_key_id = editRazorpayKeyId.trim();
       if (editRazorpaySecret.trim()) payload.razorpay_key_secret = editRazorpaySecret.trim();
@@ -543,6 +549,24 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
           <div className="space-y-1">
             <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Location</label>
             <Input value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="e.g. Mumbai, Maharashtra" className="h-11 rounded-xl" />
+          </div>
+
+          {/* ── Delivery Charge ── */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+              <Truck className="h-3.5 w-3.5" /> Delivery Charge (₹)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">₹</span>
+              <Input
+                value={editDeliveryCharge}
+                onChange={e => setEditDeliveryCharge(e.target.value.replace(/[^0-9.]/g, ""))}
+                placeholder="0"
+                className="h-11 rounded-xl pl-7"
+                inputMode="decimal"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">Set to 0 for free delivery. Shown to customers at checkout.</p>
           </div>
 
           {/* ── Contact & Legal section ── */}

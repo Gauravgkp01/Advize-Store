@@ -3,7 +3,7 @@ import { useParams, useSearch, Link } from "wouter";
 import {
   ArrowLeft, ShoppingCart, Trash2, Plus, Minus,
   MessageCircle, Store, CreditCard, MapPin,
-  User, Phone, CheckCircle2, Loader2,
+  User, Phone, CheckCircle2, Loader2, Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +75,8 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const hasRazorpay = !!(store?.razorpay_account_id || store?.razorpay_key_id);
   const hasAdvize   = !!(store?.advize_payment_enabled);
   const hasPayment  = hasAdvize || hasRazorpay;
+  const deliveryCharge = store?.delivery_charge ?? 0;
+  const grandTotal = totalPrice + deliveryCharge;
 
   /* ── WhatsApp order (no payment) ── */
   const handleWhatsAppOrder = (extraInfo?: string) => {
@@ -83,7 +85,10 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
       `• ${item.product.name} × ${item.quantity} — ₹${itemPrice(item).toLocaleString("en-IN")}`
     );
     const info = extraInfo ?? "";
-    const message = `Hello 👋,\n\nI'd like to order the following:\n\n${lines.join("\n")}\n\n💰 Total: ₹${totalPrice.toLocaleString("en-IN")}${info}\n\nPlease confirm availability and delivery details. Thank you!`;
+    const deliveryLine = deliveryCharge > 0
+      ? `\n🚚 Delivery: ₹${deliveryCharge.toLocaleString("en-IN")}`
+      : "\n🚚 Delivery: Free";
+    const message = `Hello 👋,\n\nI'd like to order the following:\n\n${lines.join("\n")}\n\n🛒 Subtotal: ₹${totalPrice.toLocaleString("en-IN")}${deliveryLine}\n💰 Total: ₹${grandTotal.toLocaleString("en-IN")}${info}\n\nPlease confirm availability and delivery details. Thank you!`;
     const number = store.whatsapp.replace(/[^0-9]/g, "");
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank");
   };
@@ -109,7 +114,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     try {
       const orderData = await createAdvizeOrder({
         store_id: store.id,
-        amount_paise: Math.round(totalPrice * 100),
+        amount_paise: Math.round(grandTotal * 100),
         items: items.map(i => ({
           productId: i.product.id,
           name: i.product.name,
@@ -152,7 +157,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               store_id: store.id,
-              amount_paise: Math.round(totalPrice * 100),
+              amount_paise: Math.round(grandTotal * 100),
               items: items.map(i => ({
                 productId: i.product.id,
                 name: i.product.name,
@@ -189,7 +194,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     try {
       const orderData = await createRazorpayOrder(
         store.id,
-        Math.round(totalPrice * 100),
+        Math.round(grandTotal * 100),
         `cart_${store.id}_${Date.now()}`
       );
 
@@ -231,7 +236,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 store_id: store.id,
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
-                amount_paise: Math.round(totalPrice * 100),
+                amount_paise: Math.round(grandTotal * 100),
                 items: items.map(i => ({
                   productId: i.product.id,
                   name: i.product.name,
@@ -348,9 +353,20 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 <span className="font-semibold shrink-0">₹{itemPrice(item).toLocaleString("en-IN")}</span>
               </div>
             ))}
+            <div className="flex items-center justify-between border-t pt-2 mt-1 text-sm text-muted-foreground">
+              <span>Subtotal</span>
+              <span className="font-semibold">₹{totalPrice.toLocaleString("en-IN")}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5"><Truck className="h-3.5 w-3.5" /> Delivery</span>
+              {deliveryCharge > 0
+                ? <span className="font-semibold">₹{deliveryCharge.toLocaleString("en-IN")}</span>
+                : <span className="font-semibold text-green-600 dark:text-green-400">Free</span>
+              }
+            </div>
             <div className="flex items-center justify-between border-t pt-2 mt-1">
               <span className="font-bold">Total</span>
-              <span className="font-extrabold text-primary text-lg">₹{totalPrice.toLocaleString("en-IN")}</span>
+              <span className="font-extrabold text-primary text-lg">₹{grandTotal.toLocaleString("en-IN")}</span>
             </div>
           </div>
 
@@ -442,7 +458,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               ? <Loader2 className="h-5 w-5 animate-spin" />
               : <CreditCard className="h-5 w-5" />
             }
-            {paymentLoading ? "Redirecting to payment..." : `Pay ₹${totalPrice.toLocaleString("en-IN")} Securely`}
+            {paymentLoading ? "Redirecting to payment..." : `Pay ₹${grandTotal.toLocaleString("en-IN")} Securely`}
           </Button>
 
           <p className="text-center text-[11px] text-muted-foreground">
@@ -510,9 +526,16 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
             <span className="text-muted-foreground">Subtotal ({totalItems} item{totalItems !== 1 ? "s" : ""})</span>
             <span className="font-semibold">₹{totalPrice.toLocaleString("en-IN")}</span>
           </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground flex items-center gap-1.5"><Truck className="h-3.5 w-3.5" /> Delivery</span>
+            {deliveryCharge > 0
+              ? <span className="font-semibold">₹{deliveryCharge.toLocaleString("en-IN")}</span>
+              : <span className="font-semibold text-green-600 dark:text-green-400">Free</span>
+            }
+          </div>
           <div className="flex items-center justify-between border-t pt-2">
             <span className="font-bold text-foreground">Total</span>
-            <span className="font-extrabold text-primary text-xl">₹{totalPrice.toLocaleString("en-IN")}</span>
+            <span className="font-extrabold text-primary text-xl">₹{grandTotal.toLocaleString("en-IN")}</span>
           </div>
         </div>
 

@@ -84,6 +84,7 @@ export interface Store {
   razorpay_account_status?: string;
   advize_payment_enabled?: boolean;
   upi_id?: string;
+  delivery_charge?: number;
 }
 
 export const getStore = (slug: string) =>
