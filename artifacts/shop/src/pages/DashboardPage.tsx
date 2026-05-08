@@ -5,7 +5,7 @@ import {
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
   Pencil, Phone, MapPin, Tag, Mail, FileText, Download,
-  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer, Zap,
+  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer, Zap, ChevronDown,
   ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
   Settings, Bell, Shield, User, ChevronRight, HelpCircle, Trash2,
   Search, X, SlidersHorizontal,
@@ -826,6 +826,7 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
   const legacyKeys    = !!(store?.razorpay_key_id) && !hasAccount;
   const advizeEnabled = !!(store?.advize_payment_enabled);
 
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [showOnboard, setShowOnboard]       = useState(false);
   const [saving, setSaving]                 = useState(false);
   const [savingAdvize, setSavingAdvize]     = useState(false);
@@ -931,252 +932,266 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
       {/* Plugin cards */}
       <div className="flex flex-col gap-4">
 
-        {/* ── Payment Gateway section ── */}
-        <div className="space-y-3">
-          {/* Section label */}
-          <div className="flex items-center gap-2 px-1 pt-1">
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Payment Gateway</p>
-          </div>
-
-          {/* ── Option 1: Advize Payment ── */}
-          <div className={`bg-card border rounded-2xl overflow-hidden shadow-sm transition-all ${advizeEnabled ? "border-green-400/60 dark:border-green-600/40" : ""}`}>
-            <div className="p-5">
-              <div className="flex gap-4 items-start">
-                <div className={`p-3 rounded-xl flex-shrink-0 ${advizeEnabled ? "bg-green-50 dark:bg-green-950/40" : "bg-primary/10"}`}>
-                  <Zap className={`h-6 w-6 ${advizeEnabled ? "text-green-600 dark:text-green-400" : "text-primary"}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h3 className="text-base font-semibold text-foreground leading-tight">Advize Payment</h3>
-                    {advizeEnabled ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                        Recommended
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                    Accept UPI, cards &amp; wallets with Advize's built-in payment solution. No setup or API keys needed.
-                  </p>
-                  <button
-                    onClick={handleToggleAdvize}
-                    disabled={savingAdvize}
-                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 ${
-                      advizeEnabled
-                        ? "bg-muted text-muted-foreground hover:bg-muted/80"
-                        : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                    }`}
-                  >
-                    {savingAdvize
-                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      : advizeEnabled
-                        ? "Disable"
-                        : <><Zap className="h-3.5 w-3.5" /> Enable</>
-                    }
-                  </button>
-                </div>
-              </div>
+        {/* ── Payment Gateway (accordion) ── */}
+        <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+          {/* Header row – click to expand */}
+          <button
+            className="w-full p-5 flex gap-4 items-center text-left"
+            onClick={() => setShowPaymentOptions(p => !p)}
+          >
+            <div className={`p-3 rounded-xl flex-shrink-0 ${advizeEnabled || hasAccount ? "bg-green-50 dark:bg-green-950/40" : "bg-primary/10"}`}>
+              <CreditCard className={`h-6 w-6 ${advizeEnabled || hasAccount ? "text-green-600 dark:text-green-400" : "text-primary"}`} />
             </div>
-          </div>
-
-          {/* ── Option 2: Razorpay ── */}
-          <div className={`bg-card border rounded-2xl overflow-hidden shadow-sm transition-all ${hasAccount ? "border-green-400/60 dark:border-green-600/40" : ""}`}>
-          <div className="p-5">
-            <div className="flex gap-4 items-start">
-              <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl flex-shrink-0">
-                <CreditCard className="h-6 w-6 text-blue-600" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                <h3 className="text-base font-semibold text-foreground leading-tight">Payment Gateway</h3>
+                {advizeEnabled ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Advize Active</span>
+                ) : hasAccount ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Razorpay Connected</span>
+                ) : legacyKeys ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Razorpay Legacy</span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Not set up</span>
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h3 className="text-base font-semibold text-foreground leading-tight">Razorpay</h3>
-                  {hasAccount ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
-                      Connected
-                    </span>
-                  ) : legacyKeys ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
-                      Legacy
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                      Available
-                    </span>
-                  )}
+              <p className="text-sm text-muted-foreground">Choose how to accept payments in your store</p>
+            </div>
+            <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 flex-shrink-0 ${showPaymentOptions ? "rotate-180" : ""}`} />
+          </button>
+
+          {/* Expanded: both options */}
+          {showPaymentOptions && (
+            <div className="border-t divide-y">
+
+              {/* Option 1: Advize Payment */}
+              <div className="p-5">
+                <div className="flex gap-4 items-start">
+                  <div className={`p-3 rounded-xl flex-shrink-0 ${advizeEnabled ? "bg-green-50 dark:bg-green-950/40" : "bg-primary/10"}`}>
+                    <Zap className={`h-6 w-6 ${advizeEnabled ? "text-green-600 dark:text-green-400" : "text-primary"}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="text-sm font-semibold text-foreground leading-tight">Advize Payment</h3>
+                      {advizeEnabled ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Active</span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">Recommended</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                      Accept UPI, cards &amp; wallets with Advize's built-in payment solution. No setup or API keys needed.
+                    </p>
+                    <button
+                      onClick={handleToggleAdvize}
+                      disabled={savingAdvize}
+                      className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 ${
+                        advizeEnabled
+                          ? "bg-muted text-muted-foreground hover:bg-muted/80"
+                          : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                      }`}
+                    >
+                      {savingAdvize
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : advizeEnabled
+                          ? "Disable"
+                          : <><Zap className="h-3.5 w-3.5" /> Enable</>
+                      }
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 2: Razorpay */}
+              <div>
+                <div className="p-5">
+                  <div className="flex gap-4 items-start">
+                    <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl flex-shrink-0">
+                      <CreditCard className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="text-sm font-semibold text-foreground leading-tight">Razorpay</h3>
+                        {hasAccount ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Connected</span>
+                        ) : legacyKeys ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Legacy</span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">Available</span>
+                        )}
+                      </div>
+
+                      {hasAccount ? (
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {ACCOUNT_STATUS_LABEL[store?.razorpay_account_status ?? ""] ?? "Account created."}
+                          </p>
+                          <p className="text-[11px] font-mono text-muted-foreground/60 truncate">
+                            {store?.razorpay_account_id}
+                          </p>
+                          <a
+                            href="https://dashboard.razorpay.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block text-xs font-semibold text-primary underline underline-offset-2 mt-1"
+                          >
+                            Complete KYC on Razorpay →
+                          </a>
+                        </div>
+                      ) : legacyKeys ? (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            You're using your own Razorpay API keys. Upgrade to the Partner flow for a seamless, no-API-key experience.
+                          </p>
+                          {!showOnboard && (
+                            <button
+                              onClick={openOnboard}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Upgrade to Partner Flow
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Connect your Razorpay account to accept UPI, cards &amp; wallets with your own keys.
+                          </p>
+                          {!showOnboard && (
+                            <button
+                              onClick={openOnboard}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              <CreditCard className="h-3.5 w-3.5" />
+                              Connect Razorpay
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {hasAccount ? (
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {ACCOUNT_STATUS_LABEL[store?.razorpay_account_status ?? ""] ?? "Account created."}
+                {/* Partner onboarding form */}
+                {showOnboard && (
+                  <div className="border-t bg-muted/30 px-5 py-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">Business Details</p>
+                      <button
+                        onClick={() => setShowOnboard(false)}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-muted-foreground -mt-2">
+                      Razorpay will verify your business and handle KYC — no manual API keys needed.
                     </p>
-                    <p className="text-[11px] font-mono text-muted-foreground/60 truncate">
-                      {store?.razorpay_account_id}
-                    </p>
-                    <a
-                      href="https://dashboard.razorpay.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block text-xs font-semibold text-primary underline underline-offset-2 mt-1"
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">Legal Business Name *</label>
+                      <Input value={bizName} onChange={e => setBizName(e.target.value)}
+                        placeholder="e.g. Acme Traders" className="h-10 rounded-xl text-sm bg-background" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">Contact Name (Owner / Director) *</label>
+                      <Input value={contactName} onChange={e => setContactName(e.target.value)}
+                        placeholder="Full name" className="h-10 rounded-xl text-sm bg-background" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-muted-foreground">Business Type *</label>
+                        <select
+                          value={bizType}
+                          onChange={e => setBizType(e.target.value)}
+                          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          {BIZ_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-muted-foreground">Category *</label>
+                        <select
+                          value={catIndex}
+                          onChange={e => setCatIndex(Number(e.target.value))}
+                          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          {BIZ_CATEGORIES.map((c, i) => <option key={i} value={i}>{c.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-muted-foreground">Business Email *</label>
+                        <Input value={email} onChange={e => setEmail(e.target.value)}
+                          type="email" placeholder="you@business.com"
+                          className="h-10 rounded-xl text-sm bg-background" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-muted-foreground">Phone *</label>
+                        <Input value={phone} onChange={e => setPhone(e.target.value)}
+                          type="tel" placeholder="9876543210"
+                          className="h-10 rounded-xl text-sm bg-background" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">PAN Number *</label>
+                      <Input value={pan} onChange={e => setPan(e.target.value.toUpperCase())}
+                        placeholder="ABCDE1234F" maxLength={10}
+                        className="h-10 rounded-xl font-mono text-sm bg-background tracking-widest"
+                        autoCorrect="off" autoCapitalize="characters" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">Street Address</label>
+                      <Input value={street} onChange={e => setStreet(e.target.value)}
+                        placeholder="Shop / flat / street" className="h-10 rounded-xl text-sm bg-background" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-muted-foreground">City *</label>
+                        <Input value={city} onChange={e => setCity(e.target.value)}
+                          placeholder="Mumbai" className="h-10 rounded-xl text-sm bg-background" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-muted-foreground">State *</label>
+                        <Input value={bizState} onChange={e => setBizState(e.target.value)}
+                          placeholder="Maharashtra" className="h-10 rounded-xl text-sm bg-background" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">PIN Code *</label>
+                      <Input value={pincode} onChange={e => setPincode(e.target.value)}
+                        placeholder="400001" maxLength={6} inputMode="numeric"
+                        className="h-10 rounded-xl text-sm bg-background" />
+                    </div>
+
+                    <Button
+                      onClick={handleOnboard}
+                      disabled={saving}
+                      className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white border-transparent"
                     >
-                      Complete KYC on Razorpay →
-                    </a>
-                  </div>
-                ) : legacyKeys ? (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      You're using your own Razorpay API keys. Upgrade to the Partner flow for a seamless, no-API-key experience.
+                      {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {saving ? "Creating Account..." : "Connect Razorpay"}
+                    </Button>
+
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      Razorpay will send a KYC link to your email after account creation.
                     </p>
-                    {!showOnboard && (
-                      <button
-                        onClick={openOnboard}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Upgrade to Partner Flow
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Connect your Razorpay account to accept UPI, cards &amp; wallets with your own keys.
-                    </p>
-                    {!showOnboard && (
-                      <button
-                        onClick={openOnboard}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        <CreditCard className="h-3.5 w-3.5" />
-                        Connect Razorpay
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* ── Partner onboarding form ── */}
-          {showOnboard && (
-            <div className="border-t bg-muted/30 px-5 py-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold">Business Details</p>
-                <button
-                  onClick={() => setShowOnboard(false)}
-                  className="text-xs text-muted-foreground hover:text-foreground underline"
-                >
-                  Cancel
-                </button>
-              </div>
-
-              <p className="text-[11px] text-muted-foreground -mt-2">
-                Razorpay will verify your business and handle KYC — no manual API keys needed.
-              </p>
-
-              {/* Row 1 */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">Legal Business Name *</label>
-                <Input value={bizName} onChange={e => setBizName(e.target.value)}
-                  placeholder="e.g. Acme Traders" className="h-10 rounded-xl text-sm bg-background" />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">Contact Name (Owner / Director) *</label>
-                <Input value={contactName} onChange={e => setContactName(e.target.value)}
-                  placeholder="Full name" className="h-10 rounded-xl text-sm bg-background" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Business Type *</label>
-                  <select
-                    value={bizType}
-                    onChange={e => setBizType(e.target.value)}
-                    className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    {BIZ_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Category *</label>
-                  <select
-                    value={catIndex}
-                    onChange={e => setCatIndex(Number(e.target.value))}
-                    className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    {BIZ_CATEGORIES.map((c, i) => <option key={i} value={i}>{c.label}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Business Email *</label>
-                  <Input value={email} onChange={e => setEmail(e.target.value)}
-                    type="email" placeholder="you@business.com"
-                    className="h-10 rounded-xl text-sm bg-background" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Phone *</label>
-                  <Input value={phone} onChange={e => setPhone(e.target.value)}
-                    type="tel" placeholder="9876543210"
-                    className="h-10 rounded-xl text-sm bg-background" />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">PAN Number *</label>
-                <Input value={pan} onChange={e => setPan(e.target.value.toUpperCase())}
-                  placeholder="ABCDE1234F" maxLength={10}
-                  className="h-10 rounded-xl font-mono text-sm bg-background tracking-widest"
-                  autoCorrect="off" autoCapitalize="characters" />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">Street Address</label>
-                <Input value={street} onChange={e => setStreet(e.target.value)}
-                  placeholder="Shop / flat / street" className="h-10 rounded-xl text-sm bg-background" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">City *</label>
-                  <Input value={city} onChange={e => setCity(e.target.value)}
-                    placeholder="Mumbai" className="h-10 rounded-xl text-sm bg-background" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">State *</label>
-                  <Input value={bizState} onChange={e => setBizState(e.target.value)}
-                    placeholder="Maharashtra" className="h-10 rounded-xl text-sm bg-background" />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">PIN Code *</label>
-                <Input value={pincode} onChange={e => setPincode(e.target.value)}
-                  placeholder="400001" maxLength={6} inputMode="numeric"
-                  className="h-10 rounded-xl text-sm bg-background" />
-              </div>
-
-              <Button
-                onClick={handleOnboard}
-                disabled={saving}
-                className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white border-transparent"
-              >
-                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {saving ? "Creating Account..." : "Connect Razorpay"}
-              </Button>
-
-              <p className="text-[10px] text-muted-foreground text-center">
-                Razorpay will send a KYC link to your email after account creation.
-              </p>
             </div>
           )}
-          </div>
         </div>
 
         {/* ── Custom Domain ── */}
