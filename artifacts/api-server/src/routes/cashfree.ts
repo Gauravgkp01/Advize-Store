@@ -10,7 +10,7 @@ const CF_BASE = process.env.CASHFREE_ENV === "production"
   ? "https://api.cashfree.com/pg"
   : "https://sandbox.cashfree.com/pg";
 
-const CF_VERSION = "2022-09-01";
+const CF_VERSION = "2023-08-01";
 
 function cfHeaders() {
   return {
