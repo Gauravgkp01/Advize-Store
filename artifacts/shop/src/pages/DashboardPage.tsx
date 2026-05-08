@@ -1882,6 +1882,14 @@ export function DashboardPage() {
     }
   }, [store?.id, loadData]);
 
+  // Hide Earnings tab if Advize Payment is disabled
+  const advizeEnabled = !!(store?.advize_payment_enabled);
+  const visibleTabs = TABS.filter((_, i) => i !== 4 || advizeEnabled);
+
+  useEffect(() => {
+    if (!advizeEnabled && active === 4) setActive(0);
+  }, [advizeEnabled, active]);
+
   // Save old tab scroll → restore new tab scroll
   useEffect(() => {
     const prev = prevActive.current;
@@ -2033,15 +2041,18 @@ export function DashboardPage() {
         {/* Mobile dot nav */}
         {!showMobileSearch && (
           <div className="flex sm:hidden justify-center gap-1.5 pb-2">
-            {TABS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActive(i)}
-                className={`rounded-full transition-all duration-300 ${
-                  active === i ? "w-5 h-1.5 bg-primary" : "w-1.5 h-1.5 bg-muted-foreground/30"
-                }`}
-              />
-            ))}
+            {visibleTabs.map((_, idx) => {
+              const i = TABS.indexOf(visibleTabs[idx]);
+              return (
+                <button
+                  key={i}
+                  onClick={() => setActive(i)}
+                  className={`rounded-full transition-all duration-300 ${
+                    active === i ? "w-5 h-1.5 bg-primary" : "w-1.5 h-1.5 bg-muted-foreground/30"
+                  }`}
+                />
+              );
+            })}
           </div>
         )}
       </header>
@@ -2056,7 +2067,8 @@ export function DashboardPage() {
           {/* ── Desktop sidebar ────────────────────────────────── */}
           <aside className="hidden lg:flex flex-col w-56 border-r bg-background/60 shrink-0">
             <div className="flex-1 py-4 flex flex-col gap-0.5">
-              {TABS.map((tab, i) => {
+              {visibleTabs.map((tab) => {
+                const i = TABS.indexOf(tab);
                 const Icon = tab.icon;
                 const isActive = active === i;
                 return (
@@ -2175,7 +2187,8 @@ export function DashboardPage() {
 
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-t">
         <div className="flex">
-          {TABS.map((tab, i) => {
+          {visibleTabs.map((tab) => {
+            const i = TABS.indexOf(tab);
             const Icon = tab.icon;
             const isActive = active === i;
             return (
