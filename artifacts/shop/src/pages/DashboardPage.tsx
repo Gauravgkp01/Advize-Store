@@ -1914,7 +1914,7 @@ export function DashboardPage() {
     if (touchStartX.current === null) return;
     const delta = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(delta) < 50) return;
-    if (delta > 0) setActive(p => Math.min(p + 1, TABS.length - 1));
+    if (delta > 0) setActive(p => Math.min(p + 1, visibleTabs.length > 0 ? TABS.indexOf(visibleTabs[visibleTabs.length - 1]) : TABS.length - 1));
     else           setActive(p => Math.max(p - 1, 0));
     touchStartX.current = null;
   };
@@ -1989,20 +1989,23 @@ export function DashboardPage() {
 
           {/* Tablet tab pills (sm → lg) */}
           <div className="hidden sm:flex lg:hidden items-center gap-1 bg-muted rounded-full p-1 shrink-0">
-            {TABS.map((tab, i) => (
-              <button
-                key={tab.label}
-                onClick={() => setActive(i)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  active === i
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <tab.icon className="h-3.5 w-3.5" />
-                <span className="hidden md:inline">{tab.label}</span>
-              </button>
-            ))}
+            {visibleTabs.map((tab) => {
+              const i = TABS.indexOf(tab);
+              return (
+                <button
+                  key={tab.label}
+                  onClick={() => setActive(i)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    active === i
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <tab.icon className="h-3.5 w-3.5" />
+                  <span className="hidden md:inline">{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Mobile: search icon toggle */}
