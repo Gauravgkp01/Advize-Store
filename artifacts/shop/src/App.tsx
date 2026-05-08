@@ -18,6 +18,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { TermsPage } from "@/pages/TermsPage";
 import { CartPage } from "@/pages/CartPage";
+import { OrderHistoryPage } from "@/pages/OrderHistoryPage";
 import { CartProvider } from "@/contexts/CartContext";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ function Router() {
         </Route>
         <Route path="/store/:slug" component={StorefrontPage} />
         <Route path="/store/:slug/cart" component={CartPage} />
+        <Route path="/store/:slug/orders" component={OrderHistoryPage} />
         <Route path="/product/:id" component={ProductDetailPage} />
         <Route path="/terms" component={TermsPage} />
         <Route component={NotFound} />
@@ -72,6 +74,9 @@ function SubdomainRouter({ slug }: { slug: string }) {
       <Switch>
         <Route path="/cart">
           <CartPage forcedSlug={slug} />
+        </Route>
+        <Route path="/orders">
+          <OrderHistoryPage forcedSlug={slug} />
         </Route>
         <Route path="/product/:id" component={ProductDetailPage} />
         <Route path="/terms" component={TermsPage} />

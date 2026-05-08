@@ -103,6 +103,42 @@ router.get("/orders/store/:store_id", verifyToken, async (req, res) => {
   return res.json(result);
 });
 
+// Public endpoint — customer looks up their orders by phone number
+router.get("/orders/by-phone", async (req, res) => {
+  const { store_id, phone } = req.query as { store_id?: string; phone?: string };
+  if (!store_id || !phone) {
+    return res.status(400).json({ error: "store_id and phone are required" });
+  }
+  const normalized = phone.replace(/\D/g, "").slice(-10);
+  const snap = await db.collection("orders")
+    .where("store_id", "==", store_id)
+    .orderBy("created_at", "desc")
+    .get();
+
+  const orders = snap.docs
+    .map(d => ({ id: d.id, ...d.data() })) as any[];
+
+  const matched = orders.filter((o: any) => {
+    const p = (o.buyer?.phone ?? "").replace(/\D/g, "").slice(-10);
+    return p === normalized;
+  }).map((o: any) => ({
+    id: o.id,
+    payment_method: o.payment_method ?? "razorpay",
+    payment_status: o.payment_status ?? "paid",
+    razorpay_order_id: o.razorpay_order_id ?? null,
+    razorpay_payment_id: o.razorpay_payment_id ?? null,
+    cashfree_payment_id: o.cashfree_payment_id ?? null,
+    amount_paise: o.amount_paise ?? 0,
+    items: o.items ?? [],
+    buyer: o.buyer ?? null,
+    status: o.status ?? "pending",
+    created_at: o.created_at,
+    updated_at: o.updated_at ?? null,
+  }));
+
+  return res.json({ orders: matched });
+});
+
 router.patch("/orders/:order_id/status", verifyToken, async (req, res) => {
   const uid = (req as any).uid as string;
   const { order_id } = req.params;

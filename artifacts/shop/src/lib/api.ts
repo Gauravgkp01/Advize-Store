@@ -436,6 +436,9 @@ export const verifyAdvizePayment = (payload: {
 export const getOrderStats = (store_id: string) =>
   request<OrderStats>(`/orders/store/${store_id}`);
 
+export const getOrdersByPhone = (store_id: string, phone: string) =>
+  request<{ orders: Order[] }>(`/orders/by-phone?store_id=${encodeURIComponent(store_id)}&phone=${encodeURIComponent(phone)}`);
+
 export const updateOrderStatus = (order_id: string, status: OrderStatus) =>
   request<{ ok: boolean; status: string }>(`/orders/${order_id}/status`, {
     method: "PATCH",
