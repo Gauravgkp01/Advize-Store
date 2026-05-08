@@ -2132,6 +2132,9 @@ export function DashboardPage() {
               <div ref={el => { panelRefs.current[3] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
                 <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />
               </div>
+              <div ref={el => { panelRefs.current[4] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
+                <EarningsPanel store={store} orderStats={orderStats} onStatusChange={handleOrderStatusChange} />
+              </div>
             </div>
           </div>
 
@@ -2163,6 +2166,7 @@ export function DashboardPage() {
                 />
               )}
               {active === 3 && <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />}
+              {active === 4 && <EarningsPanel store={store} orderStats={orderStats} onStatusChange={handleOrderStatusChange} />}
             </div>
           </div>
 

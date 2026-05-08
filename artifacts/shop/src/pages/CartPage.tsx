@@ -154,9 +154,6 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           name: i.product.name,
           quantity: i.quantity,
           price: unitPrice(i.product),
-          variant: i.selectedVariants
-            ? Object.values(i.selectedVariants).filter(Boolean).join(", ")
-            : undefined,
         })),
         buyer,
         slug,
@@ -232,9 +229,6 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                   name: i.product.name,
                   quantity: i.quantity,
                   price: unitPrice(i.product),
-                  variant: i.selectedVariants
-                    ? Object.values(i.selectedVariants).filter(Boolean).join(", ")
-                    : undefined,
                 })),
                 buyer,
               }).catch(() => {}); // fire-and-forget — don't block success screen
