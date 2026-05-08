@@ -1623,10 +1623,13 @@ function EarningsPanel({ store, orderStats, onStatusChange }: {
     .reduce((s, o) => s + (o.amount_paise ?? 0), 0) / 100;
 
   const FILTER_TABS = [
-    { key: "all",       label: "All",       count: advizeOrders.length },
-    { key: "pending",   label: "Pending",   count: advizeOrders.filter(o => o.status === "pending").length },
-    { key: "confirmed", label: "Confirmed", count: advizeOrders.filter(o => o.status === "confirmed").length },
-    { key: "delivered", label: "Delivered", count: advizeOrders.filter(o => o.status === "delivered").length },
+    { key: "all",              label: "All",              count: advizeOrders.length },
+    { key: "pending",          label: "Pending",          count: advizeOrders.filter(o => o.status === "pending").length },
+    { key: "confirmed",        label: "Confirmed",        count: advizeOrders.filter(o => o.status === "confirmed").length },
+    { key: "packed",           label: "Packed",           count: advizeOrders.filter(o => o.status === "packed").length },
+    { key: "out_for_delivery", label: "Out for Delivery", count: advizeOrders.filter(o => o.status === "out_for_delivery").length },
+    { key: "delivered",        label: "Delivered",        count: advizeOrders.filter(o => o.status === "delivered").length },
+    { key: "cancelled",        label: "Cancelled",        count: advizeOrders.filter(o => o.status === "cancelled").length },
   ] as const;
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
@@ -1649,10 +1652,21 @@ function EarningsPanel({ store, orderStats, onStatusChange }: {
   };
 
   const STATUS_COLORS: Record<string, string> = {
-    pending:   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    delivered: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    pending:          "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    confirmed:        "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    packed:           "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+    out_for_delivery: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    delivered:        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    cancelled:        "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  };
+
+  const STATUS_LABELS: Record<string, string> = {
+    pending:          "📦 Pending",
+    confirmed:        "✅ Confirmed",
+    packed:           "🎁 Packed",
+    out_for_delivery: "🚚 Out for Delivery",
+    delivered:        "🏠 Delivered",
+    cancelled:        "❌ Cancelled",
   };
 
   return (
@@ -1796,19 +1810,31 @@ function EarningsPanel({ store, orderStats, onStatusChange }: {
                     </div>
                   )}
 
-                  {/* Status dropdown — full width row */}
-                  <div className="pt-1 border-t flex items-center justify-between gap-3">
-                    <p className="text-xs text-muted-foreground font-medium">Order Status</p>
+                  {/* Status section */}
+                  <div className="pt-2 border-t space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground font-medium">Fulfillment Status</p>
+                      {updatingId === order.id && (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    {/* Current status badge */}
+                    <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${STATUS_COLORS[order.status] ?? ""}`}>
+                      {STATUS_LABELS[order.status] ?? order.status}
+                    </span>
+                    {/* Change status dropdown */}
                     <select
                       value={order.status}
                       disabled={updatingId === order.id}
                       onChange={e => handleStatusChange(order.id, e.target.value)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-xl border-0 outline-none cursor-pointer transition-colors ${STATUS_COLORS[order.status] ?? ""}`}
+                      className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl bg-muted/50 border border-border outline-none cursor-pointer transition-colors mt-1"
                     >
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
+                      <option value="pending">📦 Pending</option>
+                      <option value="confirmed">✅ Confirmed</option>
+                      <option value="packed">🎁 Packed</option>
+                      <option value="out_for_delivery">🚚 Out for Delivery</option>
+                      <option value="delivered">🏠 Delivered</option>
+                      <option value="cancelled">❌ Cancelled</option>
                     </select>
                   </div>
                 </div>
