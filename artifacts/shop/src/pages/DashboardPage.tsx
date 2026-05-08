@@ -28,7 +28,7 @@ import {
 import {
   Sheet, SheetContent, SheetTitle,
 } from "@/components/ui/sheet";
-import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, onboardRazorpay, getOrderStats, updateOrderStatus, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus } from "@/lib/api";
+import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, onboardRazorpay, getOrderStats, updateOrderStatus, requestPayout, getPayoutRequests, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus, type PayoutRequest } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
 
@@ -1604,14 +1604,22 @@ function SettingsPanel({
 }
 
 /* ── Earnings / Payments panel ───────────────────────── */
-function EarningsPanel({ store, orderStats, onStatusChange }: {
+function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
   store: StoreType | null;
   orderStats: OrderStats | null;
   onStatusChange: (orderId: string, status: OrderStatus) => void;
+  onStoreChange: (s: StoreType) => void;
 }) {
   const { toast } = useToast();
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Payout modal state
+  const [showPayout, setShowPayout] = useState(false);
+  const [upiId, setUpiId] = useState(store?.upi_id ?? "");
+  const [payoutLoading, setPayoutLoading] = useState(false);
+  const [payoutHistory, setPayoutHistory] = useState<PayoutRequest[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const advizeEnabled = !!(store?.advize_payment_enabled);
   const allOrders = orderStats?.orders ?? [];
@@ -1631,6 +1639,45 @@ function EarningsPanel({ store, orderStats, onStatusChange }: {
     { key: "delivered",        label: "Delivered",        count: advizeOrders.filter(o => o.status === "delivered").length },
     { key: "cancelled",        label: "Cancelled",        count: advizeOrders.filter(o => o.status === "cancelled").length },
   ] as const;
+
+  // Open payout sheet and load history
+  const handlePayoutOpen = async () => {
+    setUpiId(store?.upi_id ?? "");
+    setShowPayout(true);
+    if (!store?.id) return;
+    setHistoryLoading(true);
+    try {
+      const data = await getPayoutRequests(store.id);
+      setPayoutHistory(data.requests);
+    } catch {
+      setPayoutHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handlePayoutSubmit = async () => {
+    if (!store) return;
+    const trimmed = upiId.trim();
+    if (!trimmed) { toast({ variant: "destructive", title: "Please enter your UPI ID" }); return; }
+    if (totalCollected <= 0) { toast({ variant: "destructive", title: "No earnings to withdraw" }); return; }
+    setPayoutLoading(true);
+    try {
+      await requestPayout({ store_id: store.id, upi_id: trimmed, amount_requested: totalCollected });
+      // Update store profile with UPI ID
+      const updated = await updateStore(store.id, { upi_id: trimmed });
+      onStoreChange(updated);
+      toast({ title: "Payout request submitted!", description: `₹${totalCollected.toLocaleString("en-IN")} will be sent to ${trimmed}` });
+      // Refresh history
+      const data = await getPayoutRequests(store.id);
+      setPayoutHistory(data.requests);
+      setShowPayout(false);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Request failed", description: err.message ?? "Please try again." });
+    } finally {
+      setPayoutLoading(false);
+    }
+  };
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId);
@@ -1676,6 +1723,12 @@ function EarningsPanel({ store, orderStats, onStatusChange }: {
           <h1 className="text-lg sm:text-2xl font-bold">Earnings</h1>
           <p className="text-muted-foreground text-xs mt-0.5">Orders paid through Advize Payment</p>
         </div>
+        {advizeEnabled && (
+          <Button size="sm" className="rounded-xl gap-1.5 font-semibold" onClick={handlePayoutOpen}>
+            <IndianRupee className="h-3.5 w-3.5" />
+            Withdraw
+          </Button>
+        )}
       </div>
 
       {!advizeEnabled ? (
@@ -1843,6 +1896,83 @@ function EarningsPanel({ store, orderStats, onStatusChange }: {
           )}
         </>
       )}
+
+      {/* ── Payout Sheet ── */}
+      <Sheet open={showPayout} onOpenChange={setShowPayout}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90dvh] overflow-y-auto">
+          <SheetTitle className="text-lg font-bold mb-1">Request Payout</SheetTitle>
+          <p className="text-sm text-muted-foreground mb-5">Enter your UPI ID to withdraw your earnings. Your ID will be saved to your profile.</p>
+
+          {/* Amount available */}
+          <div className="bg-primary/10 rounded-2xl p-4 mb-5 text-center">
+            <p className="text-xs font-semibold text-primary/70 uppercase tracking-wide mb-1">Amount to Withdraw</p>
+            <p className="text-4xl font-extrabold text-primary">₹{totalCollected.toLocaleString("en-IN")}</p>
+            <p className="text-xs text-muted-foreground mt-1">Total collected from paid orders</p>
+          </div>
+
+          {/* UPI ID input */}
+          <div className="space-y-2 mb-5">
+            <label className="text-sm font-semibold">Your UPI ID</label>
+            <Input
+              placeholder="yourname@upi or yourname@okicici"
+              value={upiId}
+              onChange={e => setUpiId(e.target.value)}
+              className="h-12 rounded-xl text-base"
+              autoCapitalize="none"
+              autoCorrect="off"
+            />
+            <p className="text-xs text-muted-foreground">Example: gaurav@okaxis, 9876543210@upi</p>
+          </div>
+
+          <Button
+            className="w-full h-12 rounded-2xl text-base font-bold gap-2"
+            onClick={handlePayoutSubmit}
+            disabled={payoutLoading || totalCollected <= 0}
+          >
+            {payoutLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <IndianRupee className="h-5 w-5" />}
+            {payoutLoading ? "Submitting..." : `Withdraw ₹${totalCollected.toLocaleString("en-IN")}`}
+          </Button>
+
+          {totalCollected <= 0 && (
+            <p className="text-center text-xs text-muted-foreground mt-2">No earnings available to withdraw yet.</p>
+          )}
+
+          {/* Payout history */}
+          <div className="mt-8">
+            <p className="text-sm font-bold mb-3">Past Requests</p>
+            {historyLoading ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+            ) : payoutHistory.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No payout requests yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {payoutHistory.map(p => {
+                  const d = p.created_at?.seconds
+                    ? new Date(p.created_at.seconds * 1000)
+                    : new Date(p.created_at ?? Date.now());
+                  const dateStr = isNaN(d.getTime()) ? "–" : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+                  return (
+                    <div key={p.id} className="bg-card border rounded-2xl p-4 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-foreground">₹{p.amount_requested.toLocaleString("en-IN")}</p>
+                        <p className="text-xs text-muted-foreground truncate">{p.upi_id}</p>
+                        <p className="text-xs text-muted-foreground">{dateStr}</p>
+                      </div>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${
+                        p.status === "processed" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : p.status === "rejected"  ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      }`}>
+                        {p.status === "processed" ? "✓ Paid" : p.status === "rejected" ? "✗ Rejected" : "⏳ Pending"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -2189,7 +2319,7 @@ export function DashboardPage() {
                 <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />
               </div>
               <div ref={el => { panelRefs.current[4] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-                <EarningsPanel store={store} orderStats={orderStats} onStatusChange={handleOrderStatusChange} />
+                <EarningsPanel store={store} orderStats={orderStats} onStatusChange={handleOrderStatusChange} onStoreChange={(updated) => setStore(updated)} />
               </div>
             </div>
           </div>
@@ -2222,7 +2352,7 @@ export function DashboardPage() {
                 />
               )}
               {active === 3 && <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />}
-              {active === 4 && <EarningsPanel store={store} orderStats={orderStats} onStatusChange={handleOrderStatusChange} />}
+              {active === 4 && <EarningsPanel store={store} orderStats={orderStats} onStatusChange={handleOrderStatusChange} onStoreChange={(updated) => setStore(updated)} />}
             </div>
           </div>
 

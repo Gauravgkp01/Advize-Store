@@ -9,6 +9,7 @@ import uploadRouter from "./upload";
 import paymentsRouter from "./payments";
 import ordersRouter from "./orders";
 import advizePayRouter from "./advize-pay";
+import payoutsRouter from "./payouts";
 import sitemapRouter from "./sitemap";
 import storefrontRouter from "./storefront";
 import productDetailRouter from "./product-detail";
@@ -29,6 +30,7 @@ router.use(uploadRouter);
 router.use(paymentsRouter);
 router.use(ordersRouter);
 router.use(advizePayRouter);
+router.use(payoutsRouter);
 router.use(sitemapRouter);
 
 export default router;

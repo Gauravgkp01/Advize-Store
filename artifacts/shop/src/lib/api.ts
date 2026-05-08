@@ -83,6 +83,7 @@ export interface Store {
   razorpay_account_id?: string;
   razorpay_account_status?: string;
   advize_payment_enabled?: boolean;
+  upi_id?: string;
 }
 
 export const getStore = (slug: string) =>
@@ -440,3 +441,26 @@ export const updateOrderStatus = (order_id: string, status: OrderStatus) =>
     method: "PATCH",
     body: JSON.stringify({ status }),
   });
+
+// ── Payouts ──────────────────────────────────────────────────
+export interface PayoutRequest {
+  id: string;
+  store_id: string;
+  upi_id: string;
+  amount_requested: number;
+  status: "pending" | "processed" | "rejected";
+  created_at: any;
+}
+
+export const requestPayout = (payload: {
+  store_id: string;
+  upi_id: string;
+  amount_requested: number;
+}) =>
+  request<{ id: string; status: string }>("/payouts/request", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const getPayoutRequests = (store_id: string) =>
+  request<{ requests: PayoutRequest[] }>(`/payouts/requests/${store_id}`);
