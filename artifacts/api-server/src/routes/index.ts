@@ -8,6 +8,7 @@ import analyticsRouter from "./analytics";
 import uploadRouter from "./upload";
 import paymentsRouter from "./payments";
 import ordersRouter from "./orders";
+import cashfreeRouter from "./cashfree";
 import sitemapRouter from "./sitemap";
 import storefrontRouter from "./storefront";
 import productDetailRouter from "./product-detail";
@@ -27,6 +28,7 @@ router.use(analyticsRouter);
 router.use(uploadRouter);
 router.use(paymentsRouter);
 router.use(ordersRouter);
+router.use(cashfreeRouter);
 router.use(sitemapRouter);
 
 export default router;

@@ -365,10 +365,16 @@ export interface OrderBuyer {
 }
 
 export type OrderStatus = "pending" | "confirmed" | "delivered" | "cancelled";
+export type PaymentMethod = "advize" | "razorpay";
+export type PaymentStatus = "pending" | "paid" | "failed";
 
 export interface Order {
   id: string;
-  razorpay_payment_id: string;
+  payment_method?: PaymentMethod;
+  payment_status?: PaymentStatus;
+  cashfree_order_id?: string;
+  cashfree_payment_id?: string;
+  razorpay_payment_id?: string;
   amount_paise: number;
   items: OrderItem[];
   buyer: OrderBuyer;
@@ -384,6 +390,7 @@ export interface OrderStats {
   deliveredOrders: number;
   cancelledOrders: number;
   recentOrders: Order[];
+  orders: Order[];
 }
 
 export const createOrder = (payload: {
@@ -398,6 +405,23 @@ export const createOrder = (payload: {
     method: "POST",
     body: JSON.stringify(payload),
   });
+
+export const createCashfreeOrder = (payload: {
+  store_id: string;
+  amount_paise: number;
+  items: OrderItem[];
+  buyer: OrderBuyer;
+  slug: string;
+}) =>
+  request<{ payment_session_id: string; order_doc_id: string; cf_order_id: string }>(
+    "/cashfree/create-order",
+    { method: "POST", body: JSON.stringify(payload) }
+  );
+
+export const verifyCashfreeOrder = (cf_order_id: string) =>
+  request<{ id: string; payment_status: PaymentStatus; status: OrderStatus; amount_paise: number }>(
+    `/cashfree/verify/${cf_order_id}`
+  );
 
 export const getOrderStats = (store_id: string) =>
   request<OrderStats>(`/orders/store/${store_id}`);

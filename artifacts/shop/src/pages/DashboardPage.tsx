@@ -1603,12 +1603,216 @@ function SettingsPanel({
   );
 }
 
+/* ── Earnings / Payments panel ───────────────────────── */
+function EarningsPanel({ store, orderStats, onStatusChange }: {
+  store: StoreType | null;
+  orderStats: OrderStats | null;
+  onStatusChange: (orderId: string, status: OrderStatus) => void;
+}) {
+  const { toast } = useToast();
+  const [filter, setFilter] = useState<"all" | OrderStatus>("all");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const advizeEnabled = !!(store?.advize_payment_enabled);
+  const allOrders = orderStats?.orders ?? [];
+  const advizeOrders = allOrders.filter(o => o.payment_method === "advize");
+  const filtered = filter === "all" ? advizeOrders : advizeOrders.filter(o => o.status === filter);
+
+  const totalCollected = advizeOrders
+    .filter(o => o.payment_status === "paid")
+    .reduce((s, o) => s + (o.amount_paise ?? 0), 0) / 100;
+
+  const FILTER_TABS = [
+    { key: "all",       label: "All",       count: advizeOrders.length },
+    { key: "pending",   label: "Pending",   count: advizeOrders.filter(o => o.status === "pending").length },
+    { key: "confirmed", label: "Confirmed", count: advizeOrders.filter(o => o.status === "confirmed").length },
+    { key: "delivered", label: "Delivered", count: advizeOrders.filter(o => o.status === "delivered").length },
+  ] as const;
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    setUpdatingId(orderId);
+    try {
+      await updateOrderStatus(orderId, newStatus as OrderStatus);
+      onStatusChange(orderId, newStatus as OrderStatus);
+    } catch {
+      toast({ variant: "destructive", title: "Failed to update status" });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const formatDate = (ts: any): string => {
+    if (!ts) return "–";
+    const d = ts?.toDate ? ts.toDate() : new Date(ts?.seconds ? ts.seconds * 1000 : ts);
+    if (isNaN(d.getTime())) return "–";
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  };
+
+  const STATUS_COLORS: Record<string, string> = {
+    pending:   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    delivered: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  };
+
+  return (
+    <div className="p-3 sm:p-6 space-y-4 pb-28">
+      <div className="flex items-center justify-between pt-1">
+        <div>
+          <h1 className="text-lg sm:text-2xl font-bold">Earnings</h1>
+          <p className="text-muted-foreground text-xs mt-0.5">Orders paid through Advize Payment</p>
+        </div>
+      </div>
+
+      {!advizeEnabled ? (
+        <div className="bg-card border rounded-2xl p-8 flex flex-col items-center text-center gap-3">
+          <div className="bg-primary/10 p-4 rounded-2xl">
+            <IndianRupee className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <p className="font-bold text-foreground">Advize Payment not enabled</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Enable Advize Payment in the Plugins tab to start accepting payments and track your earnings here.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-card border rounded-2xl p-4 shadow-sm col-span-2">
+              <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                <IndianRupee className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-medium uppercase tracking-wide">Total Collected</span>
+              </div>
+              <p className="text-3xl font-extrabold text-foreground">₹{totalCollected.toLocaleString("en-IN")}</p>
+            </div>
+            <div className="bg-card border rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+                <ShoppingCart className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-medium uppercase tracking-wide">Orders</span>
+              </div>
+              <p className="text-2xl font-extrabold text-foreground">{advizeOrders.length}</p>
+            </div>
+            <div className="bg-card border rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center gap-1.5 text-amber-500 mb-1">
+                <Clock className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-medium uppercase tracking-wide">Pending</span>
+              </div>
+              <p className="text-2xl font-extrabold text-amber-500">
+                {advizeOrders.filter(o => o.status === "pending").length}
+              </p>
+            </div>
+          </div>
+
+          {/* Filter tabs */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {FILTER_TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key as any)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                  filter === tab.key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {tab.label}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  filter === tab.key ? "bg-white/20 text-white" : "bg-background text-foreground"
+                }`}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Orders list */}
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+              <ShoppingCart className="h-10 w-10 opacity-20" />
+              <p className="text-sm font-medium">No orders yet</p>
+              <p className="text-xs opacity-60">
+                {filter === "all"
+                  ? "Orders placed through Advize Payment will appear here."
+                  : `No ${filter} orders.`}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map(order => (
+                <div key={order.id} className="bg-card border rounded-2xl p-4 shadow-sm space-y-3">
+                  {/* Header row */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span className="text-[10px] font-mono text-muted-foreground/60">
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">{formatDate(order.created_at)}</span>
+                      </div>
+                      <p className="text-sm font-bold text-foreground">{order.buyer?.name ?? "–"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {order.buyer?.phone ? `+91 ${order.buyer.phone}` : ""}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-lg font-extrabold text-foreground">
+                        ₹{Math.round((order.amount_paise ?? 0) / 100).toLocaleString("en-IN")}
+                      </p>
+                      <span className={`text-[10px] font-bold ${
+                        order.payment_status === "paid"
+                          ? "text-green-600 dark:text-green-400"
+                          : order.payment_status === "failed"
+                            ? "text-red-500"
+                            : "text-amber-500"
+                      }`}>
+                        {order.payment_status === "paid" ? "Paid" : order.payment_status === "failed" ? "Failed" : "Pending payment"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Items */}
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {order.items?.map(i => `${i.name} ×${i.quantity}`).join(" · ") ?? "–"}
+                  </p>
+
+                  {/* Address + status change */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                    <p className="text-[11px] text-muted-foreground truncate flex-1">
+                      {order.buyer?.addressLine
+                        ? `${order.buyer.addressLine}, ${order.buyer.city} – ${order.buyer.pincode}`
+                        : "–"}
+                    </p>
+                    <select
+                      value={order.status}
+                      disabled={updatingId === order.id}
+                      onChange={e => handleStatusChange(order.id, e.target.value)}
+                      className={`text-[11px] font-bold px-2 py-1 rounded-lg border-0 outline-none cursor-pointer shrink-0 transition-colors ${STATUS_COLORS[order.status] ?? ""}`}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ── main layout ─────────────────────────────────────── */
 const TABS = [
   { label: "Home",       icon: LayoutDashboard },
   { label: "My Store",   icon: Store           },
   { label: "Listings",   icon: ListOrdered     },
   { label: "Plugins",    icon: Puzzle          },
+  { label: "Earnings",   icon: IndianRupee     },
 ] as const;
 
 export function DashboardPage() {
@@ -1617,8 +1821,8 @@ export function DashboardPage() {
   const [active, setActive] = useState(initialTab);
   const prevActive = useRef(initialTab);
   const touchStartX = useRef<number | null>(null);
-  const panelScrollTops = useRef<number[]>([0, 0, 0, 0]);
-  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null]);
+  const panelScrollTops = useRef<number[]>([0, 0, 0, 0, 0]);
+  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null, null]);
   const [showSettings, setShowSettings] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -1637,7 +1841,7 @@ export function DashboardPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [storeEditTrigger, setStoreEditTrigger] = useState(0);
 
-  const loadData = useCallback(async (storeId: string, hasPayment: boolean) => {
+  const loadData = useCallback(async (storeId: string) => {
     setDataLoading(true);
     try {
       const [prods, anal] = await Promise.all([
@@ -1652,17 +1856,31 @@ export function DashboardPage() {
       setDataLoading(false);
     }
     // order stats fetched independently so any failure doesn't break products
-    if (hasPayment) {
-      getOrderStats(storeId).then(setOrderStats).catch(() => {});
-    }
+    getOrderStats(storeId).then(setOrderStats).catch(() => {});
+  }, []);
+
+  const handleOrderStatusChange = useCallback((orderId: string, newStatus: OrderStatus) => {
+    setOrderStats(prev => {
+      if (!prev) return prev;
+      const update = (o: Order) => o.id === orderId ? { ...o, status: newStatus } : o;
+      const updatedOrders = prev.orders.map(update);
+      return {
+        ...prev,
+        orders: updatedOrders,
+        recentOrders: prev.recentOrders.map(update),
+        pendingOrders:   updatedOrders.filter(o => o.status === "pending").length,
+        confirmedOrders: updatedOrders.filter(o => o.status === "confirmed").length,
+        deliveredOrders: updatedOrders.filter(o => o.status === "delivered").length,
+        cancelledOrders: updatedOrders.filter(o => o.status === "cancelled").length,
+      };
+    });
   }, []);
 
   useEffect(() => {
     if (store?.id) {
-      const hasPayment = !!(store.razorpay_account_id || store.razorpay_key_id);
-      loadData(store.id, hasPayment);
+      loadData(store.id);
     }
-  }, [store?.id, store?.razorpay_account_id, store?.razorpay_key_id, loadData]);
+  }, [store?.id, loadData]);
 
   // Save old tab scroll → restore new tab scroll
   useEffect(() => {

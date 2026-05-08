@@ -6,7 +6,7 @@ import { cacheGet, cacheSet, cacheDeleteByPrefix } from "../lib/cache.js";
 
 const router = Router();
 
-const ORDERS_TTL = 30_000; // 30 seconds
+const ORDERS_TTL = 30_000;
 
 router.post("/orders", async (req, res) => {
   const {
@@ -14,21 +14,23 @@ router.post("/orders", async (req, res) => {
     amount_paise, items, buyer,
   } = req.body as {
     store_id: string;
-    razorpay_order_id: string;
-    razorpay_payment_id: string;
+    razorpay_order_id?: string;
+    razorpay_payment_id?: string;
     amount_paise: number;
     items: { productId: string; name: string; quantity: number; price: number; variant?: string }[];
     buyer: { name: string; phone: string; addressLine: string; city: string; pincode: string };
   };
 
-  if (!store_id || !razorpay_order_id || !razorpay_payment_id || !amount_paise || !items) {
+  if (!store_id || !amount_paise || !items) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
   const ref = await db.collection("orders").add({
     store_id,
-    razorpay_order_id,
-    razorpay_payment_id,
+    payment_method: "razorpay",
+    razorpay_order_id: razorpay_order_id ?? null,
+    razorpay_payment_id: razorpay_payment_id ?? null,
+    payment_status: "paid",
     amount_paise,
     items,
     buyer: buyer ?? null,
@@ -60,24 +62,30 @@ router.get("/orders/store/:store_id", verifyToken, async (req, res) => {
     .orderBy("created_at", "desc")
     .get();
 
-  const orders = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+  const rawOrders = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+
+  const orders = rawOrders.map((o: any) => ({
+    id: o.id,
+    payment_method: o.payment_method ?? "razorpay",
+    payment_status: o.payment_status ?? "paid",
+    cashfree_order_id: o.cashfree_order_id ?? null,
+    cashfree_payment_id: o.cashfree_payment_id ?? null,
+    razorpay_payment_id: o.razorpay_payment_id ?? null,
+    amount_paise: o.amount_paise ?? 0,
+    items: o.items ?? [],
+    buyer: o.buyer ?? null,
+    status: o.status ?? "pending",
+    created_at: o.created_at,
+  }));
 
   const totalOrders = orders.length;
-  const totalRevenuePaise = orders.reduce((s: number, o: any) => s + (o.amount_paise ?? 0), 0);
+  const totalRevenuePaise = orders
+    .filter((o: any) => o.payment_status === "paid")
+    .reduce((s: number, o: any) => s + (o.amount_paise ?? 0), 0);
   const pendingOrders = orders.filter((o: any) => o.status === "pending").length;
   const confirmedOrders = orders.filter((o: any) => o.status === "confirmed").length;
   const deliveredOrders = orders.filter((o: any) => o.status === "delivered").length;
   const cancelledOrders = orders.filter((o: any) => o.status === "cancelled").length;
-
-  const recentOrders = orders.slice(0, 10).map((o: any) => ({
-    id: o.id,
-    razorpay_payment_id: o.razorpay_payment_id,
-    amount_paise: o.amount_paise,
-    items: o.items,
-    buyer: o.buyer,
-    status: o.status,
-    created_at: o.created_at,
-  }));
 
   const result = {
     totalOrders,
@@ -87,7 +95,8 @@ router.get("/orders/store/:store_id", verifyToken, async (req, res) => {
     confirmedOrders,
     deliveredOrders,
     cancelledOrders,
-    recentOrders,
+    recentOrders: orders.slice(0, 10),
+    orders,
   };
 
   cacheSet(cacheKey, result, ORDERS_TTL);
