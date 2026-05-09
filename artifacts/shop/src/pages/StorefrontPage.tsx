@@ -228,6 +228,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reviewsOpen, setReviewsOpen] = useState(false);
 
   const [search, setSearch] = useState("");
   const trendingScrollRef = useRef<HTMLDivElement>(null);
@@ -649,35 +650,39 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
         </div>
 
         {/* ── Reviews Section ──────────────────────────────────── */}
-        <div className="border-t pt-7 mt-2 px-2.5 sm:px-0">
-          <div className="flex items-center justify-between mb-4">
+        <div className="border-t mt-2 px-2.5 sm:px-0">
+          <button
+            onClick={() => setReviewsOpen(o => !o)}
+            className="w-full flex items-center justify-between py-5 text-left"
+          >
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-primary" />
               <h2 className="text-base font-bold text-foreground">Customer Reviews</h2>
+              {reviews.length > 0 && avgRating && (
+                <span className="text-xs text-muted-foreground font-normal">
+                  · {avgRating}★ ({reviews.length})
+                </span>
+              )}
             </div>
-            {reviews.length > 0 && avgRating && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xl font-extrabold text-foreground">{avgRating}</span>
-                <div className="flex flex-col gap-0.5">
-                  <StarRating rating={parseFloat(avgRating)} size={12} />
-                  <span className="text-[10px] text-muted-foreground">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</span>
-                </div>
-              </div>
-            )}
-          </div>
+            {reviewsOpen
+              ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+              : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+          </button>
 
-          {reviews.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-2xl">
-              <Star className="h-8 w-8 mx-auto mb-2 opacity-20" />
-              <p className="font-medium text-sm">No reviews yet</p>
-              <p className="text-xs mt-1">Be the first to leave a review after ordering!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {reviews.map(review => (
-                <ReviewCard key={review.id} review={review} />
-              ))}
-            </div>
+          {reviewsOpen && (
+            reviews.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-2xl mb-5">
+                <Star className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                <p className="font-medium text-sm">No reviews yet</p>
+                <p className="text-xs mt-1">Be the first to leave a review after ordering!</p>
+              </div>
+            ) : (
+              <div className="space-y-3 pb-6">
+                {reviews.map(review => (
+                  <ReviewCard key={review.id} review={review} />
+                ))}
+              </div>
+            )
           )}
         </div>
 
