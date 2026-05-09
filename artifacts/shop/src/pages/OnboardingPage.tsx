@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import * as z from "zod";
-import { Store, Tag, Phone, ArrowRight, ArrowLeft, MapPin, Loader2, Link2 } from "lucide-react";
+import { Store, Phone, ArrowRight, ArrowLeft, MapPin, Loader2, Link2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,11 +29,6 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   businessName: z.string().min(2, { message: "Business name must be at least 2 characters." }),
-  storeHandle: z
-    .string()
-    .min(3, { message: "Handle must be at least 3 characters." })
-    .max(30, { message: "Handle must be 30 characters or less." })
-    .regex(/^[a-z0-9-]+$/, { message: "Only lowercase letters, numbers, and hyphens allowed." }),
   category: z.string().min(1, { message: "Please select a category." }),
   whatsapp: z.string().min(10, { message: "Please enter a valid phone number." }),
   shopLocation: z.string().min(3, { message: "Please enter your shop location." }),
@@ -49,19 +44,23 @@ function toHandle(name: string): string {
     .slice(0, 30);
 }
 
+function toHandleWithSuffix(name: string): string {
+  const base = toHandle(name).slice(0, 25);
+  const suffix = Math.floor(1000 + Math.random() * 9000);
+  return `${base}-${suffix}`;
+}
+
 export function OnboardingPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [handleEdited, setHandleEdited] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       businessName: "",
-      storeHandle: "",
       category: "",
       whatsapp: "",
       shopLocation: "",
@@ -69,19 +68,15 @@ export function OnboardingPage() {
   });
 
   const businessName = useWatch({ control: form.control, name: "businessName" });
-
-  useEffect(() => {
-    if (!handleEdited) {
-      form.setValue("storeHandle", toHandle(businessName), { shouldValidate: false });
-    }
-  }, [businessName, handleEdited]);
+  const previewSlug = toHandle(businessName);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
+    const baseSlug = toHandle(values.businessName);
     try {
       const store = await createStore({
         name: values.businessName,
-        slug: values.storeHandle,
+        slug: baseSlug,
         whatsapp: values.whatsapp,
         category: values.category,
         location: values.shopLocation,
@@ -99,13 +94,33 @@ export function OnboardingPage() {
     } catch (e: any) {
       const msg = e.message ?? "Please try again.";
       if (msg.toLowerCase().includes("slug") || msg.toLowerCase().includes("taken")) {
-        toast({
-          variant: "destructive",
-          title: "Store handle already taken",
-          description: "Please go back to step 1 and choose a different store handle.",
-        });
-        setStep(1);
-        form.setError("storeHandle", { message: "This handle is already taken. Try a different one." });
+        // Auto-retry with a random suffix — no user action needed
+        try {
+          const fallbackSlug = toHandleWithSuffix(values.businessName);
+          const store = await createStore({
+            name: values.businessName,
+            slug: fallbackSlug,
+            whatsapp: values.whatsapp,
+            category: values.category,
+            location: values.shopLocation,
+            owner_id: user?.uid ?? null,
+          } as any);
+
+          localStorage.setItem("shop_store_id", store.id);
+          localStorage.setItem("shop_store_slug", store.slug);
+
+          toast({
+            title: "Store Created!",
+            description: `Welcome to Advize Store, ${values.businessName}! Your store is ready.`,
+          });
+          setLocation("/dashboard");
+        } catch (e2: any) {
+          toast({
+            variant: "destructive",
+            title: "Could not create store",
+            description: e2.message ?? "Please try again.",
+          });
+        }
       } else {
         toast({
           variant: "destructive",
@@ -120,7 +135,7 @@ export function OnboardingPage() {
 
   const nextStep = async () => {
     const fieldsToValidate =
-      step === 1 ? ["businessName", "storeHandle"] as const :
+      step === 1 ? ["businessName"] as const :
       step === 2 ? ["category"] as const :
       step === 3 ? ["whatsapp"] as const :
       ["shopLocation"] as const;
@@ -134,8 +149,6 @@ export function OnboardingPage() {
   const prevStep = () => {
     setStep(s => Math.max(s - 1, 1));
   };
-
-  const storeHandle = useWatch({ control: form.control, name: "storeHandle" });
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-muted/20">
@@ -155,7 +168,7 @@ export function OnboardingPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-8">
 
-              {/* Step 1: Business Name + Store Handle */}
+              {/* Step 1: Business Name (slug is auto-generated) */}
               <div className={step === 1 ? "block animate-in fade-in slide-in-from-right-4 space-y-5" : "hidden"}>
                 <FormField
                   control={form.control}
@@ -174,36 +187,16 @@ export function OnboardingPage() {
                           />
                         </div>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="storeHandle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-semibold">Your store link</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Link2 className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                          <Input
-                            placeholder="priyas-boutique"
-                            className="pl-10 h-12 rounded-xl font-mono text-sm"
-                            {...field}
-                            onChange={e => {
-                              setHandleEdited(true);
-                              field.onChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
-                            }}
-                            data-testid="input-store-handle"
-                          />
+                      {previewSlug && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
+                          <Link2 className="h-3.5 w-3.5 shrink-0" />
+                          <span>
+                            Your link:{" "}
+                            <span className="font-medium text-foreground">
+                              store.advize.in/store/{previewSlug}
+                            </span>
+                          </span>
                         </div>
-                      </FormControl>
-                      {storeHandle && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Your link: <span className="font-medium text-foreground">store.advize.in/store/{storeHandle}</span>
-                        </p>
                       )}
                       <FormMessage />
                     </FormItem>
