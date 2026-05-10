@@ -14,6 +14,7 @@ import { getStorefront, trackClick } from "@/lib/api";
 import { populatePdCacheFromStorefront } from "@/lib/product-cache";
 import type { Store as StoreType, Product } from "@/lib/api";
 import type { Review } from "@/lib/api";
+import { setSEO, resetSEO, injectStoreJsonLd, removeStoreJsonLd } from "@/lib/seo";
 
 type PriceSort = "none" | "asc" | "desc";
 
@@ -279,6 +280,32 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
 
     return () => { cancelled = true; };
   }, [slug]);
+
+  // ── Dynamic SEO ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!store) return;
+    const storeUrl = `https://store.advize.in/store/${store.slug}`;
+    const desc = store.description?.trim()
+      ? store.description.trim()
+      : `Shop at ${store.name}${store.location ? ` in ${store.location}` : ""}. Browse products and order easily on WhatsApp.`;
+    setSEO({
+      title: `${store.name} — Online Store | Advize`,
+      description: desc,
+      url: storeUrl,
+      image: store.logoUrl || undefined,
+    });
+    injectStoreJsonLd({
+      name: store.name,
+      description: desc,
+      url: storeUrl,
+      image: store.logoUrl || undefined,
+      location: store.location,
+    });
+    return () => {
+      resetSEO();
+      removeStoreJsonLd();
+    };
+  }, [store]);
 
   const handleProductClick = (product: Product) => {
     if (store?.id) trackClick(product.id, store.id);

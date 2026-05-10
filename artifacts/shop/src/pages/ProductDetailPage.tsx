@@ -19,6 +19,7 @@ import type { Product, Review } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
 import { pdCache, PD_CACHE_TTL } from "@/lib/product-cache";
 import { useCart } from "@/contexts/CartContext";
+import { setSEO, resetSEO, injectProductJsonLd, removeProductJsonLd } from "@/lib/seo";
 
 /* ── shared sub-components ────────────────────────────── */
 function StarRating({ value, onChange, size = "md" }: { value: number; onChange?: (v: number) => void; size?: "sm" | "md" }) {
@@ -537,6 +538,36 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
     html.classList.add("dark");
     return () => {};
   }, []);
+
+  // ── Dynamic SEO ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!product || !storeSlug) return;
+    const productUrl = `https://store.advize.in/product/${product.id}`;
+    const effectivePrice = (product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price)
+      ? product.salePrice : product.price;
+    setSEO({
+      title: `${product.name} — ${storeSlug} | Advize Store`,
+      description: product.description?.trim()
+        ? product.description.trim().slice(0, 160)
+        : `Buy ${product.name} for ₹${effectivePrice.toLocaleString("en-IN")} online. Order directly on WhatsApp.`,
+      image: product.imageUrl,
+      url: productUrl,
+      type: "product",
+    });
+    injectProductJsonLd({
+      name: product.name,
+      description: product.description,
+      image: product.imageUrl,
+      price: effectivePrice,
+      availability: product.units === 0 ? "OutOfStock" : "InStock",
+      url: productUrl,
+      storeName: storeSlug,
+    });
+    return () => {
+      resetSEO();
+      removeProductJsonLd();
+    };
+  }, [product, storeSlug]);
 
   const { toast } = useToast();
   const { addItem, totalItems } = useCart();
