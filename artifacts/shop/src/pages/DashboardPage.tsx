@@ -1871,7 +1871,7 @@ function SettingsPanel({
           icon={<Shield className="h-4 w-4" />}
           label="Privacy Policy"
           description="How we handle your data"
-          onClick={() => window.open("/terms", "_blank")}
+          onClick={() => window.open("/privacy", "_blank")}
         />
         <SettingsRow
           icon={<FileText className="h-4 w-4" />}

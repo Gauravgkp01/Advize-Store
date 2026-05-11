@@ -15,278 +15,174 @@ export function TermsPage() {
         </Link>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-1">
-          Terms and Conditions
+          Terms of Service
         </h1>
-        <p className="text-sm text-muted-foreground mb-10">Last Updated: 29 April 2026</p>
+        <p className="text-sm text-muted-foreground mb-10">Effective Date: May 11, 2026</p>
 
         <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none space-y-8 text-foreground">
 
           <p>
-            Welcome to <strong>Advize Store</strong> ("Platform"), operated by <strong>Advize Technology Private Limited</strong>{" "}
-            ("Company", "we", "our", or "us"). By accessing or using our platform, including{" "}
-            <a href="https://store.advize.in" className="text-primary underline underline-offset-2">store.advize.in</a>,
-            you agree to comply with and be bound by these Terms and Conditions.
+            Welcome to <strong>Advize Store</strong> ("Advize", "we", "our", or "us"). By accessing or using our
+            platform, website, applications, or services, you agree to comply with and be bound by these Terms of Service.
           </p>
 
-          <Section num="1" title="Platform Nature">
-            <p>Advize Store is a <strong>technology platform</strong> that enables users to create content, run promotions, and operate online stores.</p>
-            <p>Advize Store allows independent sellers ("Sellers") to create digital storefronts and list products/services.</p>
+          <Section num="1" title="Overview">
+            <p>
+              Advize Store is a creator-commerce platform that enables store owners and creators to connect their social
+              media accounts, manage storefronts, automate customer interactions, and promote products.
+            </p>
+          </Section>
+
+          <Section num="2" title="Eligibility">
+            <p>By using Advize Store, you confirm that:</p>
             <ul>
-              <li>Does <strong>not own or manufacture</strong> products listed on stores</li>
-              <li>Does <strong>not directly sell</strong> products to customers</li>
-              <li>Acts only as an <strong>intermediary platform</strong></li>
+              <li>You are at least 18 years old or legally authorized to use the platform</li>
+              <li>You have the authority to connect and manage the social media accounts you authorize</li>
+              <li>You comply with all applicable laws and platform policies</li>
             </ul>
           </Section>
 
-          <Section num="2" title="User Eligibility">
-            <p>By using the Platform, you confirm:</p>
+          <Section num="3" title="Account Responsibilities">
+            <p>Users are responsible for:</p>
             <ul>
-              <li>You are at least 18 years old</li>
-              <li>You are capable of entering into a legally binding agreement</li>
+              <li>Maintaining the security of their accounts</li>
+              <li>Keeping login credentials confidential</li>
+              <li>Ensuring connected Instagram/Facebook accounts comply with Meta policies</li>
+              <li>All activities performed through their accounts</li>
+            </ul>
+            <p>Advize Store is not responsible for unauthorized access resulting from user negligence.</p>
+          </Section>
+
+          <Section num="4" title="Meta & Instagram Integrations">
+            <p>
+              Advize Store integrates with Meta Platforms, including Instagram and Facebook APIs. By connecting your
+              accounts, you authorize Advize Store to access permitted account information and messaging capabilities
+              necessary to provide automation and storefront services.
+            </p>
+            <p>Users must comply with:</p>
+            <ul>
+              <li>
+                <a href="https://developers.facebook.com/terms" target="_blank" rel="noopener noreferrer">
+                  Meta Platform Terms
+                </a>
+              </li>
+              <li>
+                <a href="https://help.instagram.com/581066165581870" target="_blank" rel="noopener noreferrer">
+                  Instagram Terms of Use
+                </a>
+              </li>
+              <li>Applicable API usage policies</li>
             </ul>
           </Section>
 
-          <Section num="3" title="Content Creators & Promotions">
-            <p>Users using Advize Store for content creation, promotions, or campaigns are responsible for:</p>
+          <Section num="5" title="Prohibited Activities">
+            <p>Users may not use Advize Store to:</p>
             <ul>
-              <li>Accuracy and legality of content</li>
-              <li>Avoiding misleading advertisements</li>
-              <li>Ensuring compliance with applicable laws</li>
-            </ul>
-            <p>Advize Store is not responsible for user-generated content.</p>
-          </Section>
-
-          <Section num="4" title="Advize Store — Marketplace Terms">
-            <p>For users accessing Advize Store (<a href="https://store.advize.in" className="text-primary underline underline-offset-2">store.advize.in</a>):</p>
-            <p>Sellers are solely responsible for:</p>
-            <ul>
-              <li>Product quality, authenticity, and accuracy</li>
-              <li>Pricing and descriptions</li>
-              <li>Order fulfillment, delivery, and returns</li>
-              <li>Customer support</li>
-            </ul>
-            <p>Advize Store acts only as a <strong>platform facilitator</strong> and is not liable for product defects, delivery issues, or seller misconduct.</p>
-          </Section>
-
-          <Section num="5" title="Orders & Payments">
-            <ul>
-              <li>Payments are processed via third-party gateways (such as Razorpay or similar providers)</li>
-              <li>Advize Store does not store sensitive payment details</li>
-              <li>Payment disputes must be resolved between the Buyer, Seller, and payment provider</li>
-            </ul>
-          </Section>
-
-          <Section num="6" title="Refunds & Returns">
-            <ul>
-              <li>Refund and return policies are defined by individual Sellers</li>
-              <li>Advize Store does not guarantee refunds unless explicitly stated</li>
-              <li>Buyers must contact Sellers directly for resolution</li>
-            </ul>
-          </Section>
-
-          <Section num="7" title="Prohibited Activities">
-            <p>Users agree NOT to:</p>
-            <ul>
-              <li>Post false, misleading, or illegal content</li>
-              <li>Sell prohibited or restricted items</li>
-              <li>Attempt fraud, hacking, or misuse of the platform</li>
-              <li>Violate any applicable laws</li>
+              <li>Send spam or unsolicited messages</li>
+              <li>Violate Instagram or Meta policies</li>
+              <li>Promote illegal products or services</li>
+              <li>Infringe intellectual property rights</li>
+              <li>Mislead customers or impersonate others</li>
+              <li>Abuse automation systems</li>
             </ul>
             <p>Advize Store reserves the right to suspend or terminate accounts violating these terms.</p>
           </Section>
 
-          <Section num="8" title="Intellectual Property">
+          <Section num="6" title="Platform Availability">
+            <p>We aim to provide reliable services but do not guarantee uninterrupted availability.</p>
+            <p>Features, APIs, or integrations may change due to:</p>
             <ul>
-              <li>All platform design, branding, and technology belong to Advize Store</li>
-              <li>Users retain ownership of their content</li>
-              <li>Unauthorized use of platform content is prohibited</li>
+              <li>Meta platform updates</li>
+              <li>Technical limitations</li>
+              <li>Maintenance</li>
+              <li>Regulatory requirements</li>
             </ul>
+          </Section>
+
+          <Section num="7" title="Payments & Transactions">
+            <p>Advize Store may offer paid services, subscriptions, or transaction-based features.</p>
+            <p>Users are responsible for:</p>
+            <ul>
+              <li>Applicable taxes</li>
+              <li>Payment processing fees</li>
+              <li>Compliance with local commerce regulations</li>
+            </ul>
+            <p>All payments are subject to the pricing displayed at the time of purchase.</p>
+          </Section>
+
+          <Section num="8" title="Intellectual Property">
+            <p>
+              All platform content, branding, software, and technology associated with Advize Store remain the property
+              of Advize Store unless otherwise stated.
+            </p>
+            <p>Users retain ownership of their own content and connected social media assets.</p>
           </Section>
 
           <Section num="9" title="Limitation of Liability">
-            <p>Advize Store shall not be liable for:</p>
+            <p>Advize Store is provided "as is" without warranties of any kind.</p>
+            <p>To the maximum extent permitted by law, Advize Store shall not be liable for:</p>
             <ul>
-              <li>Product defects, delays, or damages</li>
-              <li>Seller misconduct or fraud</li>
-              <li>Content inaccuracies</li>
-              <li>Payment failures or technical issues</li>
-            </ul>
-            <p>Use of the platform is at your own risk.</p>
-          </Section>
-
-          <Section num="10" title="Indemnification">
-            <p>Users agree to indemnify and hold Advize Store harmless from:</p>
-            <ul>
-              <li>Claims arising from their use of the platform</li>
-              <li>Violations of these Terms</li>
-              <li>Seller or content-related disputes</li>
+              <li>Business losses</li>
+              <li>Revenue loss</li>
+              <li>Account suspensions by third-party platforms</li>
+              <li>API limitations imposed by Meta</li>
+              <li>Indirect or consequential damages</li>
             </ul>
           </Section>
 
-          <Section num="11" title="Account Suspension">
-            <p>Advize Store reserves the right to:</p>
-            <ul>
-              <li>Suspend or terminate accounts</li>
-              <li>Remove listings or content</li>
-              <li>Restrict access</li>
-            </ul>
-            <p>Without prior notice in case of violations.</p>
-          </Section>
-
-          <Section num="12" title="Modifications">
-            <p>Advize Store may update these Terms at any time. Continued use of the Platform means you accept the updated Terms.</p>
-          </Section>
-
-          <Section num="13" title="Governing Law">
+          <Section num="10" title="Termination">
             <p>
-              These Terms shall be governed by the laws of India. Any disputes shall be subject to the jurisdiction of courts in{" "}
-              <strong>Gorakhpur</strong>.
+              We reserve the right to suspend or terminate access to the platform at our discretion if users violate
+              these Terms or applicable laws.
+            </p>
+            <p>Users may stop using the platform and disconnect integrations at any time.</p>
+          </Section>
+
+          <Section num="11" title="Privacy">
+            <p>
+              Use of Advize Store is also governed by our{" "}
+              <Link href="/privacy" className="text-primary underline underline-offset-2">Privacy Policy</Link>.
             </p>
           </Section>
 
-          <Section num="14" title="Contact">
-            <p>For any queries, contact:</p>
+          <Section num="12" title="Changes to Terms">
+            <p>
+              We may update these Terms periodically. Continued use of the platform after changes indicates acceptance
+              of the updated Terms.
+            </p>
+          </Section>
+
+          <Section num="13" title="Contact">
+            <p>For questions regarding these Terms, contact:</p>
             <ul>
-              <li>Email: <a href="mailto:Advizeteam@gmail.com" className="text-primary underline underline-offset-2">Advizeteam@gmail.com</a></li>
-              <li>Website: <a href="https://store.advize.in" className="text-primary underline underline-offset-2">store.advize.in</a></li>
+              <li>
+                Email:{" "}
+                <a href="mailto:contact@advize.in" className="text-primary underline underline-offset-2">
+                  contact@advize.in
+                </a>
+              </li>
+              <li>
+                Website:{" "}
+                <a href="https://store.advize.in" className="text-primary underline underline-offset-2">
+                  store.advize.in
+                </a>
+              </li>
             </ul>
           </Section>
 
           <div className="border-t pt-6 mt-8">
             <p className="text-sm text-muted-foreground">
-              By using Advize Store, you acknowledge that you have read, understood, and agreed to these Terms and Conditions.
+              By using Advize Store, you acknowledge that you have read, understood, and agreed to these Terms of Service.
             </p>
           </div>
 
         </div>
-
-        {/* ── Privacy Policy ─────────────────────────────────── */}
-        <div className="mt-20 pt-10 border-t">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-1">
-            Privacy Policy
-          </h1>
-          <p className="text-sm text-muted-foreground mb-10">Effective Date: May 11, 2026</p>
-
-          <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none space-y-8 text-foreground">
-
-            <p>
-              Advize Store ("we", "our", or "us") provides creator-commerce tools that integrate with Instagram and Meta
-              platforms to help creators and store owners automate messaging and customer engagement.
-            </p>
-
-            <Section num="1" title="Information We Collect">
-              <p>When users connect their Instagram or Facebook accounts through Meta Login, we may collect:</p>
-              <ul>
-                <li>Public profile information</li>
-                <li>Instagram account ID</li>
-                <li>Username and profile details</li>
-                <li>Connected Facebook Page information</li>
-                <li>Access tokens provided by Meta</li>
-                <li>Messaging permissions granted by the user</li>
-              </ul>
-              <p>We only access data necessary to provide automation and storefront-related services.</p>
-            </Section>
-
-            <Section num="2" title="How We Use Information">
-              <p>We use the collected information to:</p>
-              <ul>
-                <li>Enable Instagram messaging automation</li>
-                <li>Connect creators with storefronts</li>
-                <li>Send automated replies and order-related messages</li>
-                <li>Improve platform functionality and security</li>
-                <li>Maintain integrations with Meta APIs</li>
-              </ul>
-            </Section>
-
-            <Section num="3" title="Data Sharing">
-              <p>Advize Store does not sell personal data to third parties.</p>
-              <p>We may share data only:</p>
-              <ul>
-                <li>When required by law</li>
-                <li>With trusted infrastructure / service providers necessary to operate the platform</li>
-                <li>As required for Meta platform compliance</li>
-              </ul>
-            </Section>
-
-            <Section num="4" title="Data Security">
-              <p>
-                We implement reasonable security measures to protect user information and access tokens from unauthorized
-                access, misuse, or disclosure.
-              </p>
-            </Section>
-
-            <Section num="5" title="User Control">
-              <p>
-                Users may disconnect their Instagram or Facebook accounts at any time through the Advize Store dashboard
-                (Plugins → Instagram DM Automation → Disconnect) or directly through Meta account settings.
-              </p>
-            </Section>
-
-            <Section num="6" title="Data Deletion">
-              <p>
-                Users may request deletion of their connected account data by contacting us at{" "}
-                <a href="mailto:contact@advize.in" className="text-primary underline underline-offset-2">contact@advize.in</a>.
-                Upon verification, associated account data will be deleted within a reasonable timeframe.
-              </p>
-            </Section>
-
-            <Section num="7" title="Meta & Instagram Integration">
-              <p>
-                Advize Store integrates with Meta Platforms, including Instagram and Facebook APIs. When you connect your
-                Instagram account, you authorise Advize Store to access messaging data solely for the purpose of sending
-                automated keyword-based replies on your behalf.
-              </p>
-              <p>
-                Use of Instagram and Facebook APIs is also governed by{" "}
-                <a
-                  href="https://www.facebook.com/privacy/policy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline underline-offset-2"
-                >
-                  Meta's Privacy Policy
-                </a>{" "}
-                and{" "}
-                <a
-                  href="https://developers.facebook.com/terms"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline underline-offset-2"
-                >
-                  Meta Platform Terms
-                </a>.
-              </p>
-            </Section>
-
-            <Section num="8" title="Third-Party Services">
-              <p>
-                Advize Store integrates with Meta Platforms, including Instagram and Facebook APIs. Use of those services
-                is also governed by Meta's own policies and terms.
-              </p>
-            </Section>
-
-            <Section num="9" title="Changes to This Policy">
-              <p>
-                We may update this Privacy Policy periodically. Continued use of the platform after updates constitutes
-                acceptance of the revised policy.
-              </p>
-            </Section>
-
-            <Section num="10" title="Contact">
-              <p>For questions regarding this Privacy Policy, contact:</p>
-              <ul>
-                <li>Email: <a href="mailto:contact@advize.in" className="text-primary underline underline-offset-2">contact@advize.in</a></li>
-                <li>Website: <a href="https://store.advize.in" className="text-primary underline underline-offset-2">store.advize.in</a></li>
-              </ul>
-            </Section>
-
-          </div>
-        </div>
-
       </main>
 
       <footer className="border-t py-6 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()} Advize Technology Private Limited. All rights reserved.
+        {" · "}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground transition-colors">Privacy Policy</Link>
       </footer>
     </div>
   );
@@ -298,7 +194,7 @@ function Section({ num, title, children }: { num: string; title: string; childre
       <h2 className="text-lg font-bold text-foreground">
         {num}. {title}
       </h2>
-      <div className="space-y-2 text-muted-foreground leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_strong]:text-foreground [&_a]:text-primary">
+      <div className="space-y-2 text-muted-foreground leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_strong]:text-foreground [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2">
         {children}
       </div>
     </div>
