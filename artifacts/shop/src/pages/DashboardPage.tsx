@@ -5,7 +5,7 @@ import {
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
   Pencil, Phone, MapPin, Tag, Mail, FileText, Download,
-  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer, Zap, ChevronDown,
+  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer, Zap, ChevronDown, MessageCircle,
   ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
   Settings, Bell, Shield, User, ChevronRight, HelpCircle, Trash2,
   Search, X, SlidersHorizontal,
@@ -28,7 +28,7 @@ import {
 import {
   Sheet, SheetContent, SheetTitle,
 } from "@/components/ui/sheet";
-import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, onboardRazorpay, getOrderStats, updateOrderStatus, requestPayout, getPayoutRequests, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus, type PayoutRequest } from "@/lib/api";
+import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, onboardRazorpay, getOrderStats, updateOrderStatus, requestPayout, getPayoutRequests, getIgRules, createIgRule, updateIgRule, deleteIgRule, disconnectInstagram, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus, type PayoutRequest, type IgRule } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
 
@@ -810,6 +810,334 @@ function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct,
   );
 }
 
+/* ── Instagram DM Automation Plugin ─────────────────── */
+function IgIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="2" width="20" height="20" rx="6" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
+      <circle cx="17.5" cy="6.5" r="1.25" fill="currentColor" />
+    </svg>
+  );
+}
+
+function InstagramPlugin({ store, onStoreChange }: {
+  store: StoreType | null;
+  onStoreChange: (s: StoreType) => void;
+}) {
+  const { toast } = useToast();
+  const connected = !!(store?.ig_user_id);
+
+  const [open, setOpen]                   = useState(false);
+  const [rules, setRules]                 = useState<IgRule[]>([]);
+  const [loadingRules, setLoadingRules]   = useState(false);
+  const [rulesFetched, setRulesFetched]   = useState(false);
+  const [showForm, setShowForm]           = useState(false);
+  const [editingRule, setEditingRule]     = useState<IgRule | null>(null);
+  const [keyword, setKeyword]             = useState("");
+  const [matchType, setMatchType]         = useState<"exact" | "contains" | "starts_with">("contains");
+  const [reply, setReply]                 = useState("");
+  const [savingRule, setSavingRule]       = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("ig_connected") === "1") {
+      setOpen(true);
+      toast({ title: "Instagram connected!", description: "Your account is linked. Add keyword rules below." });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("ig_connected");
+      window.history.replaceState({}, "", url.toString());
+    }
+    const igErr = params.get("ig_error");
+    if (igErr) {
+      setOpen(true);
+      toast({ variant: "destructive", title: "Instagram connection failed", description: decodeURIComponent(igErr) });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("ig_error");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open || !connected || !store?.id || rulesFetched) return;
+    setLoadingRules(true);
+    getIgRules(store.id)
+      .then(r => { setRules(r.rules); setRulesFetched(true); })
+      .catch(() => {})
+      .finally(() => setLoadingRules(false));
+  }, [open, connected, store?.id]);
+
+  const resetForm = () => {
+    setKeyword(""); setMatchType("contains"); setReply("");
+    setEditingRule(null); setShowForm(false);
+  };
+
+  const openEdit = (rule: IgRule) => {
+    setEditingRule(rule);
+    setKeyword(rule.keyword);
+    setMatchType(rule.match_type);
+    setReply(rule.reply);
+    setShowForm(true);
+  };
+
+  const handleSaveRule = async () => {
+    if (!store?.id || !keyword.trim() || !reply.trim()) {
+      toast({ variant: "destructive", title: "Keyword and reply are required" });
+      return;
+    }
+    setSavingRule(true);
+    try {
+      if (editingRule) {
+        await updateIgRule(store.id, editingRule.id, {
+          keyword: keyword.trim(), match_type: matchType, reply: reply.trim(),
+        });
+        setRules(prev => prev.map(r =>
+          r.id === editingRule.id ? { ...r, keyword: keyword.trim(), match_type: matchType, reply: reply.trim() } : r
+        ));
+        toast({ title: "Rule updated!" });
+      } else {
+        const newRule = await createIgRule(store.id, {
+          keyword: keyword.trim(), match_type: matchType, reply: reply.trim(), enabled: true,
+        });
+        setRules(prev => [...prev, newRule]);
+        toast({ title: "Rule added!" });
+      }
+      resetForm();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Failed", description: e.message });
+    } finally {
+      setSavingRule(false);
+    }
+  };
+
+  const handleToggle = async (rule: IgRule) => {
+    if (!store?.id) return;
+    const next = !rule.enabled;
+    setRules(prev => prev.map(r => r.id === rule.id ? { ...r, enabled: next } : r));
+    try { await updateIgRule(store.id, rule.id, { enabled: next }); }
+    catch { setRules(prev => prev.map(r => r.id === rule.id ? { ...r, enabled: !next } : r)); }
+  };
+
+  const handleDelete = async (ruleId: string) => {
+    if (!store?.id) return;
+    setRules(prev => prev.filter(r => r.id !== ruleId));
+    try { await deleteIgRule(store.id, ruleId); }
+    catch (e: any) { toast({ variant: "destructive", title: "Delete failed", description: e.message }); }
+  };
+
+  const handleConnect = () => {
+    if (!store?.id) return;
+    window.location.href = `${import.meta.env.BASE_URL}api/instagram/connect?store_id=${store.id}`;
+  };
+
+  const handleDisconnect = async () => {
+    if (!store?.id) return;
+    setDisconnecting(true);
+    try {
+      await disconnectInstagram(store.id);
+      onStoreChange({ ...store, ig_user_id: undefined, ig_username: undefined });
+      setRules([]); setRulesFetched(false);
+      toast({ title: "Instagram disconnected" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Failed", description: e.message });
+    } finally { setDisconnecting(false); }
+  };
+
+  const MATCH_LABELS: Record<string, string> = {
+    exact: "Exact", contains: "Contains", starts_with: "Starts with",
+  };
+
+  return (
+    <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+      <button
+        className="w-full p-5 flex gap-4 items-center text-left"
+        onClick={() => setOpen(o => !o)}
+      >
+        <div className={`p-2.5 rounded-xl flex-shrink-0 ${connected ? "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600" : "bg-gradient-to-tr from-yellow-300/50 via-pink-400/50 to-purple-500/50"}`}>
+          <IgIcon className="h-6 w-6 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            <h3 className="text-base font-semibold text-foreground leading-tight">Instagram DM Automation</h3>
+            {connected ? (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Connected</span>
+            ) : (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Not connected</span>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">Auto-reply to DMs using keyword rules</p>
+        </div>
+        <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 flex-shrink-0 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="border-t">
+          <div className="p-5 space-y-4">
+            {!connected ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Connect your Instagram Business account to automatically reply to customer DMs based on keywords — no manual effort needed.
+                </p>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                  <p className="font-semibold">Requirements before connecting:</p>
+                  <p>• Instagram Business or Creator account</p>
+                  <p>• Account linked to a Facebook Page</p>
+                  <p>• <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">instagram_manage_messages</code> permission approved in your Meta App</p>
+                </div>
+                <button
+                  onClick={handleConnect}
+                  className="inline-flex items-center gap-2 text-sm font-semibold bg-gradient-to-r from-orange-400 via-pink-600 to-purple-600 hover:opacity-90 text-white px-4 py-2.5 rounded-xl transition-opacity"
+                >
+                  <IgIcon className="h-4 w-4 text-white" />
+                  Connect Instagram
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex-shrink-0">
+                    <IgIcon className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">@{store?.ig_username || "your_account"}</p>
+                    <p className="text-xs text-muted-foreground">Connected</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleDisconnect}
+                  disabled={disconnecting}
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors font-medium flex items-center gap-1 disabled:opacity-50"
+                >
+                  {disconnecting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Disconnect
+                </button>
+              </div>
+            )}
+          </div>
+
+          {connected && (
+            <div className="border-t px-5 pb-5 pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground">
+                  Keyword Rules
+                  {rules.length > 0 && <span className="ml-1 font-normal text-muted-foreground">({rules.length})</span>}
+                </p>
+                {!showForm && (
+                  <button
+                    onClick={() => { resetForm(); setShowForm(true); }}
+                    className="inline-flex items-center gap-1 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add Rule
+                  </button>
+                )}
+              </div>
+
+              {showForm && (
+                <div className="bg-muted/40 border rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-semibold text-foreground">{editingRule ? "Edit Rule" : "New Rule"}</p>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-medium">Keyword</label>
+                    <Input
+                      value={keyword}
+                      onChange={e => setKeyword(e.target.value)}
+                      placeholder="e.g. price, available, where to buy"
+                      className="h-9 rounded-lg text-sm bg-background"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-medium">Match Type</label>
+                    <select
+                      value={matchType}
+                      onChange={e => setMatchType(e.target.value as any)}
+                      className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="contains">Contains keyword</option>
+                      <option value="exact">Exact message</option>
+                      <option value="starts_with">Starts with keyword</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-medium">Auto-Reply Message</label>
+                    <textarea
+                      value={reply}
+                      onChange={e => setReply(e.target.value)}
+                      placeholder="e.g. Thanks for reaching out! Our price starts at ₹499. Tap the link to order 👇"
+                      rows={3}
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveRule}
+                      disabled={savingRule}
+                      className="flex-1 h-9 text-sm font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+                    >
+                      {savingRule && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      {editingRule ? "Save Changes" : "Add Rule"}
+                    </button>
+                    <button
+                      onClick={resetForm}
+                      className="px-4 h-9 text-sm text-muted-foreground hover:text-foreground border border-input rounded-lg transition-colors"
+                    >Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {loadingRules ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : rules.length === 0 && !showForm ? (
+                <div className="text-center py-6 text-muted-foreground bg-muted/20 rounded-xl">
+                  <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                  <p className="text-sm font-medium">No rules yet</p>
+                  <p className="text-xs mt-0.5">Add a rule to start auto-replying to customer DMs.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {rules.map(rule => (
+                    <div
+                      key={rule.id}
+                      className={`bg-background border rounded-xl px-4 py-3 flex gap-3 items-start transition-opacity ${rule.enabled ? "" : "opacity-50"}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          <span className="text-xs font-mono font-semibold bg-muted px-2 py-0.5 rounded">{rule.keyword}</span>
+                          <span className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">{MATCH_LABELS[rule.match_type]}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{rule.reply}</p>
+                      </div>
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <Switch
+                          checked={rule.enabled}
+                          onCheckedChange={() => handleToggle(rule)}
+                          className="scale-75 origin-right"
+                        />
+                        <button
+                          onClick={() => openEdit(rule)}
+                          className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+                        ><Pencil className="h-3.5 w-3.5" /></button>
+                        <button
+                          onClick={() => handleDelete(rule.id)}
+                          className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                        ><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Rules are matched in order — the first matching keyword wins. Matching is case-insensitive.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Plugins Panel ───────────────────────────────────── */
 const BIZ_TYPES = [
   { value: "proprietorship",  label: "Proprietorship" },
@@ -1217,6 +1545,9 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
             </div>
           )}
         </div>
+
+        {/* ── Instagram DM Automation ── */}
+        <InstagramPlugin store={store} onStoreChange={onStoreChange} />
 
         {/* ── Custom Domain ── */}
         <div className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm opacity-75">

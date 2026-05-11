@@ -85,6 +85,9 @@ export interface Store {
   advize_payment_enabled?: boolean;
   upi_id?: string;
   delivery_charge?: number;
+  ig_user_id?: string;
+  ig_username?: string;
+  description?: string;
 }
 
 export const getStore = (slug: string) =>
@@ -468,3 +471,44 @@ export const requestPayout = (payload: {
 
 export const getPayoutRequests = (store_id: string) =>
   request<{ requests: PayoutRequest[] }>(`/payouts/requests/${store_id}`);
+
+// ── Instagram DM Automation ───────────────────────────────────────────────────
+export interface IgRule {
+  id: string;
+  store_id: string;
+  keyword: string;
+  match_type: "exact" | "contains" | "starts_with";
+  reply: string;
+  enabled: boolean;
+}
+
+export const getIgRules = (storeId: string) =>
+  request<{ rules: IgRule[] }>(`/instagram/rules/${storeId}`);
+
+export const createIgRule = (
+  storeId: string,
+  data: { keyword: string; match_type: string; reply: string; enabled?: boolean },
+) =>
+  request<IgRule>(`/instagram/rules/${storeId}`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const updateIgRule = (
+  storeId: string,
+  ruleId: string,
+  data: Partial<{ keyword: string; match_type: string; reply: string; enabled: boolean }>,
+) =>
+  request<{ ok: boolean }>(`/instagram/rules/${storeId}/${ruleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
+export const deleteIgRule = (storeId: string, ruleId: string) =>
+  request<void>(`/instagram/rules/${storeId}/${ruleId}`, { method: "DELETE" });
+
+export const disconnectInstagram = (storeId: string) =>
+  request<{ ok: boolean }>("/instagram/disconnect", {
+    method: "POST",
+    body: JSON.stringify({ store_id: storeId }),
+  });

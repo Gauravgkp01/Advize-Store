@@ -13,6 +13,7 @@ import payoutsRouter from "./payouts";
 import sitemapRouter from "./sitemap";
 import storefrontRouter from "./storefront";
 import productDetailRouter from "./product-detail";
+import instagramRouter from "./instagram";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(ordersRouter);
 router.use(advizePayRouter);
 router.use(payoutsRouter);
 router.use(sitemapRouter);
+router.use(instagramRouter);
 
 export default router;

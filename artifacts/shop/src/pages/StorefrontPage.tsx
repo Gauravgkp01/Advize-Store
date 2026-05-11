@@ -292,13 +292,13 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
       title: `${store.name} — Online Store | Advize`,
       description: desc,
       url: storeUrl,
-      image: store.logoUrl || undefined,
+      image: store.logo_url || undefined,
     });
     injectStoreJsonLd({
       name: store.name,
       description: desc,
       url: storeUrl,
-      image: store.logoUrl || undefined,
+      image: store.logo_url || undefined,
       location: store.location,
     });
     return () => {

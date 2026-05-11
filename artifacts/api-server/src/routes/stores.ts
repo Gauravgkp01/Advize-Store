@@ -9,7 +9,7 @@ const router = Router();
 const STORE_TTL = 60_000; // 60 seconds
 
 function sanitizeStore(id: string, data: FirebaseFirestore.DocumentData) {
-  const { razorpay_key_secret: _secret, owner_id: _owner, ...safe } = data;
+  const { razorpay_key_secret: _secret, owner_id: _owner, ig_access_token: _igTok, ...safe } = data;
   return { id, ...safe };
 }
 
