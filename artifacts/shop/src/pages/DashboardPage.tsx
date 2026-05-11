@@ -5,7 +5,7 @@ import {
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
   Pencil, Phone, MapPin, Tag, Mail, FileText, Download,
-  Puzzle, CreditCard, Globe, Truck, Lock, Eye, EyeOff, Sparkles, ExternalLink, Bike, Printer, Zap, ChevronDown, MessageCircle,
+  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer, Zap, ChevronDown, MessageCircle,
   ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
   Settings, Bell, Shield, User, ChevronRight, HelpCircle, Trash2,
   Search, X, SlidersHorizontal,
@@ -840,38 +840,6 @@ function InstagramPlugin({ store, onStoreChange }: {
   const [savingRule, setSavingRule]       = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  const [metaAppId, setMetaAppId]           = useState(store?.meta_app_id ?? "");
-  const [metaAppSecret, setMetaAppSecret]   = useState("");
-  const [metaVerifyToken, setMetaVerifyToken] = useState(store?.meta_verify_token ?? "");
-  const [showAppSecret, setShowAppSecret]   = useState(false);
-  const [showVerifyToken, setShowVerifyToken] = useState(false);
-  const [savingMeta, setSavingMeta]         = useState(false);
-  const metaAlreadySaved = !!(store?.meta_app_id);
-
-  const handleSaveMeta = async () => {
-    if (!store?.id) return;
-    if (!metaAppId.trim()) {
-      toast({ variant: "destructive", title: "App ID is required" });
-      return;
-    }
-    setSavingMeta(true);
-    try {
-      const payload: Record<string, string> = {
-        meta_app_id: metaAppId.trim(),
-        meta_verify_token: metaVerifyToken.trim(),
-      };
-      if (metaAppSecret.trim()) payload.meta_app_secret = metaAppSecret.trim();
-      const updated = await updateStore(store.id, payload);
-      onStoreChange({ ...store, ...updated });
-      setMetaAppSecret("");
-      toast({ title: "Meta credentials saved", description: "Your App ID, Secret, and Verify Token are stored securely." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Failed to save", description: e.message });
-    } finally {
-      setSavingMeta(false);
-    }
-  };
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("ig_connected") === "1") {
@@ -1047,88 +1015,6 @@ function InstagramPlugin({ store, onStoreChange }: {
               </div>
             )}
 
-            {/* ── Meta App Credentials ── */}
-            <div className="mt-4 pt-4 border-t space-y-3">
-              <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold text-foreground">Meta App Credentials</p>
-                {metaAlreadySaved && (
-                  <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Saved</span>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Enter your Meta App credentials to enable the Instagram webhook and OAuth flow.{" "}
-                <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
-                  Get from Meta Developers →
-                </a>
-              </p>
-
-              {/* App ID */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">App ID</label>
-                <Input
-                  value={metaAppId}
-                  onChange={e => setMetaAppId(e.target.value)}
-                  placeholder="e.g. 1234567890123456"
-                  className="h-11 rounded-xl font-mono text-sm"
-                />
-              </div>
-
-              {/* App Secret */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">
-                  App Secret{metaAlreadySaved ? " (leave blank to keep existing)" : ""}
-                </label>
-                <div className="relative">
-                  <Input
-                    value={metaAppSecret}
-                    onChange={e => setMetaAppSecret(e.target.value)}
-                    type={showAppSecret ? "text" : "password"}
-                    placeholder={metaAlreadySaved ? "••••••••••••••••" : "Enter your app secret"}
-                    className="h-11 rounded-xl pr-10 font-mono text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowAppSecret(s => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showAppSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 opacity-50" />}
-                  </button>
-                </div>
-                <p className="text-[11px] text-muted-foreground">Stored securely and never exposed to customers.</p>
-              </div>
-
-              {/* Webhook Verify Token */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">Webhook Verify Token</label>
-                <div className="relative">
-                  <Input
-                    value={metaVerifyToken}
-                    onChange={e => setMetaVerifyToken(e.target.value)}
-                    type={showVerifyToken ? "text" : "password"}
-                    placeholder="A secret string you choose"
-                    className="h-11 rounded-xl pr-10 font-mono text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowVerifyToken(s => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showVerifyToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 opacity-50" />}
-                  </button>
-                </div>
-                <p className="text-[11px] text-muted-foreground">Must match the Verify Token set in your Meta App's webhook settings.</p>
-              </div>
-
-              <Button
-                onClick={handleSaveMeta}
-                disabled={savingMeta}
-                className="w-full h-10 rounded-xl text-sm"
-              >
-                {savingMeta ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
-                {savingMeta ? "Saving..." : "Save Credentials"}
-              </Button>
-            </div>
           </div>
 
           {connected && (

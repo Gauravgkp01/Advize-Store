@@ -9,7 +9,7 @@ const router = Router();
 const STORE_TTL = 60_000; // 60 seconds
 
 function sanitizeStore(id: string, data: FirebaseFirestore.DocumentData) {
-  const { razorpay_key_secret: _secret, owner_id: _owner, ig_access_token: _igTok, meta_app_secret: _metaSec, ...safe } = data;
+  const { razorpay_key_secret: _secret, owner_id: _owner, ig_access_token: _igTok, ...safe } = data;
   return { id, ...safe };
 }
 
@@ -91,7 +91,7 @@ router.patch("/stores/:id", verifyToken, async (req, res) => {
     return res.status(403).json({ error: "Forbidden" });
   }
 
-  const { razorpay_key_secret, meta_app_secret, ...safeBody } = req.body;
+  const { razorpay_key_secret, ...safeBody } = req.body;
 
   const updatePayload: Record<string, any> = {
     ...safeBody,
@@ -99,9 +99,6 @@ router.patch("/stores/:id", verifyToken, async (req, res) => {
   };
   if (razorpay_key_secret && typeof razorpay_key_secret === "string" && razorpay_key_secret.trim()) {
     updatePayload.razorpay_key_secret = razorpay_key_secret.trim();
-  }
-  if (meta_app_secret && typeof meta_app_secret === "string" && meta_app_secret.trim()) {
-    updatePayload.meta_app_secret = meta_app_secret.trim();
   }
 
   await ref.update(updatePayload);
