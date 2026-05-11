@@ -134,9 +134,15 @@ export function PrivacyPage() {
             </ul>
           </Section>
 
-          <div className="border-t pt-6 mt-8">
+          <div className="border-t pt-6 mt-8 space-y-3">
             <p className="text-sm text-muted-foreground">
               By using Advize Store, you acknowledge that you have read and understood this Privacy Policy.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              To request deletion of your data, visit our{" "}
+              <Link href="/data-deletion" className="text-primary underline underline-offset-2">
+                Data Deletion page
+              </Link>.
             </p>
           </div>
 

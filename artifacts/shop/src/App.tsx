@@ -18,6 +18,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { TermsPage } from "@/pages/TermsPage";
 import { PrivacyPage } from "@/pages/PrivacyPage";
+import { DataDeletionPage } from "@/pages/DataDeletionPage";
 import { CartPage } from "@/pages/CartPage";
 import { OrderHistoryPage } from "@/pages/OrderHistoryPage";
 import { CartProvider } from "@/contexts/CartContext";
@@ -62,6 +63,7 @@ function Router() {
         <Route path="/product/:id" component={ProductDetailPage} />
         <Route path="/terms" component={TermsPage} />
         <Route path="/privacy" component={PrivacyPage} />
+        <Route path="/data-deletion" component={DataDeletionPage} />
         <Route component={NotFound} />
       </Switch>
     </>
@@ -83,6 +85,7 @@ function SubdomainRouter({ slug }: { slug: string }) {
         <Route path="/product/:id" component={ProductDetailPage} />
         <Route path="/terms" component={TermsPage} />
         <Route path="/privacy" component={PrivacyPage} />
+        <Route path="/data-deletion" component={DataDeletionPage} />
         <Route>
           <StorefrontPage forcedSlug={slug} />
         </Route>
