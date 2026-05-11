@@ -975,16 +975,61 @@ function InstagramPlugin({ store, onStoreChange }: {
         <div className="border-t">
           <div className="p-5 space-y-4">
             {!connected ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Connect your Instagram Business account to automatically reply to customer DMs based on keywords — no manual effort needed.
                 </p>
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-xs text-amber-800 dark:text-amber-300 space-y-1">
-                  <p className="font-semibold">Requirements before connecting:</p>
-                  <p>• Instagram Business or Creator account</p>
-                  <p>• Account linked to a Facebook Page</p>
-                  <p>• <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">instagram_manage_messages</code> permission approved in your Meta App</p>
+
+                {/* ── Setup Steps ── */}
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-foreground uppercase tracking-wide">Setup Instructions</p>
+
+                  {[
+                    {
+                      step: 1,
+                      title: "Switch to a Business or Creator account",
+                      detail: "On Instagram → Settings → Account → Switch to Professional Account. Choose Business or Creator.",
+                    },
+                    {
+                      step: 2,
+                      title: "Link your Instagram to a Facebook Page",
+                      detail: "Instagram → Settings → Account → Linked Accounts → Facebook. If you don't have a Facebook Page, create one first at facebook.com/pages/create.",
+                    },
+                    {
+                      step: 3,
+                      title: "Enable message access on Facebook",
+                      detail: 'On your Facebook Page → Settings → Privacy → Messaging → turn on "Allow people to contact my Page privately". Also enable "Connected Tools — Allow access to messages".',
+                    },
+                    {
+                      step: 4,
+                      title: "Click Connect Instagram below",
+                      detail: 'Log in with the Facebook account that manages your Page. Accept all requested permissions — especially "Manage messages" and "Instagram messages".',
+                    },
+                    {
+                      step: 5,
+                      title: "Add keyword rules",
+                      detail: 'Once connected, add rules like: keyword "price" → reply "Hi! Check our latest prices here: store.advize.in/store/yourstore". Rules fire whenever a DM contains your keyword.',
+                    },
+                  ].map(({ step, title, detail }) => (
+                    <div key={step} className="flex gap-3 bg-muted/40 border rounded-xl px-3 py-3">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center mt-0.5">
+                        {step}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground leading-snug">{title}</p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">{detail}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-xs text-amber-800 dark:text-amber-300">
+                  <p className="font-semibold mb-1">Before you click Connect, make sure:</p>
+                  <p>• Your Instagram is a Business or Creator account</p>
+                  <p>• It is linked to a Facebook Page you manage</p>
+                  <p>• You are logged into the correct Facebook account</p>
+                </div>
+
                 <button
                   onClick={handleConnect}
                   className="inline-flex items-center gap-2 text-sm font-semibold bg-gradient-to-r from-orange-400 via-pink-600 to-purple-600 hover:opacity-90 text-white px-4 py-2.5 rounded-xl transition-opacity"
