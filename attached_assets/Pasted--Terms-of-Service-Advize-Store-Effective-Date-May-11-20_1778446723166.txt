@@ -1,0 +1,114 @@
+# Terms of Service – Advize Store
+
+Effective Date: May 11, 2026
+
+Welcome to Advize Store (“Advize”, “we”, “our”, or “us”). By accessing or using our platform, website, applications, or services, you agree to comply with and be bound by these Terms of Service.
+
+## 1. Overview
+
+Advize Store is a creator-commerce platform that enables store owners and creators to connect their social media accounts, manage storefronts, automate customer interactions, and promote products.
+
+## 2. Eligibility
+
+By using Advize Store, you confirm that:
+
+* You are at least 18 years old or legally authorized to use the platform
+* You have the authority to connect and manage the social media accounts you authorize
+* You comply with all applicable laws and platform policies
+
+## 3. Account Responsibilities
+
+Users are responsible for:
+
+* Maintaining the security of their accounts
+* Keeping login credentials confidential
+* Ensuring connected Instagram/Facebook accounts comply with Meta policies
+* All activities performed through their accounts
+
+Advize Store is not responsible for unauthorized access resulting from user negligence.
+
+## 4. Meta & Instagram Integrations
+
+Advize Store integrates with Meta Platforms, including Instagram and Facebook APIs.
+
+By connecting your accounts, you authorize Advize Store to access permitted account information and messaging capabilities necessary to provide automation and storefront services.
+
+Users must comply with:
+
+* Meta Platform Terms
+* Instagram Terms of Use
+* Applicable API usage policies
+
+## 5. Prohibited Activities
+
+Users may not use Advize Store to:
+
+* Send spam or unsolicited messages
+* Violate Instagram or Meta policies
+* Promote illegal products or services
+* Infringe intellectual property rights
+* Mislead customers or impersonate others
+* Abuse automation systems
+
+Advize Store reserves the right to suspend or terminate accounts violating these terms.
+
+## 6. Platform Availability
+
+We aim to provide reliable services but do not guarantee uninterrupted availability.
+
+Features, APIs, or integrations may change due to:
+
+* Meta platform updates
+* Technical limitations
+* Maintenance
+* Regulatory requirements
+
+## 7. Payments & Transactions
+
+Advize Store may offer paid services, subscriptions, or transaction-based features.
+
+Users are responsible for:
+
+* Applicable taxes
+* Payment processing fees
+* Compliance with local commerce regulations
+
+All payments are subject to the pricing displayed at the time of purchase.
+
+## 8. Intellectual Property
+
+All platform content, branding, software, and technology associated with Advize Store remain the property of Advize Store unless otherwise stated.
+
+Users retain ownership of their own content and connected social media assets.
+
+## 9. Limitation of Liability
+
+Advize Store is provided “as is” without warranties of any kind.
+
+To the maximum extent permitted by law, Advize Store shall not be liable for:
+
+* Business losses
+* Revenue loss
+* Account suspensions by third-party platforms
+* API limitations imposed by Meta
+* Indirect or consequential damages
+
+## 10. Termination
+
+We reserve the right to suspend or terminate access to the platform at our discretion if users violate these Terms or applicable laws.
+
+Users may stop using the platform and disconnect integrations at any time.
+
+## 11. Privacy
+
+Use of Advize Store is also governed by our Privacy Policy.
+
+## 12. Changes to Terms
+
+We may update these Terms periodically. Continued use of the platform after changes indicates acceptance of the updated Terms.
+
+## 13. Contact
+
+For questions regarding these Terms, contact:
+
+[contact@advize.in](mailto:contact@advize.in)

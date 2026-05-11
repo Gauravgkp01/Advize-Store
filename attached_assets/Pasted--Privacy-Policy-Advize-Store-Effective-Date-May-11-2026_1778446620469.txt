@@ -1,0 +1,68 @@
+# Privacy Policy – Advize Store
+
+Effective Date: May 11, 2026
+
+Advize Store (“we”, “our”, or “us”) provides creator-commerce tools that integrate with Instagram and Meta platforms to help creators and store owners automate messaging and customer engagement.
+
+## Information We Collect
+
+When users connect their Instagram or Facebook accounts through Meta Login, we may collect:
+
+* Public profile information
+* Instagram account ID
+* Username and profile details
+* Connected Facebook Page information
+* Access tokens provided by Meta
+* Messaging permissions granted by the user
+
+We only access data necessary to provide automation and storefront-related services.
+
+## How We Use Information
+
+We use the collected information to:
+
+* Enable Instagram messaging automation
+* Connect creators with storefronts
+* Send automated replies and order-related messages
+* Improve platform functionality and security
+* Maintain integrations with Meta APIs
+
+## Data Sharing
+
+Advize Store does not sell personal data to third parties.
+
+We may share data only:
+
+* When required by law
+* With trusted infrastructure/service providers necessary to operate the platform
+* As required for Meta platform compliance
+
+## Data Security
+
+We implement reasonable security measures to protect user information and access tokens from unauthorized access, misuse, or disclosure.
+
+## User Control
+
+Users may disconnect their Instagram or Facebook accounts at any time through platform settings or Meta account settings.
+
+## Data Deletion
+
+Users may request deletion of their connected account data by contacting us at:
+
+[contact@advize.](mailto:support@advize.store)in
+
+Upon verification, associated account data will be deleted within a reasonable timeframe.
+
+## Third-Party Services
+
+Advize Store integrates with Meta Platforms, including Instagram and Facebook APIs. Use of those services is also governed by Meta’s own policies and terms.
+
+## Changes to This Policy
+
+We may update this Privacy Policy periodically. Continued use of the platform after updates constitutes acceptance of the revised policy.
+
+## Contact
+
+For questions regarding this Privacy Policy, contact:
+
+[contact@advize.](mailto:support@advize.store)in
