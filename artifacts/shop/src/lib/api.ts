@@ -88,6 +88,8 @@ export interface Store {
   ig_user_id?: string;
   ig_username?: string;
   description?: string;
+  meta_app_id?: string;
+  meta_verify_token?: string;
 }
 
 export const getStore = (slug: string) =>
