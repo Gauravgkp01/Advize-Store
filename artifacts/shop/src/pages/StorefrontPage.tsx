@@ -197,20 +197,31 @@ function TrendingCard({
         </div>
         <div className="p-2 space-y-0.5">
           <p className="text-xs font-semibold text-foreground line-clamp-2 leading-snug">{product.name}</p>
-          <div className="flex items-center justify-between gap-1">
-            <p className="text-sm font-extrabold text-primary">
-              ₹{(product.productType === "mix_match" && product.pricingTiers && product.pricingTiers.length > 0
-                ? Math.min(...product.pricingTiers.map(t => t.price))
-                : product.price
-              ).toLocaleString("en-IN")}
-            </p>
-            {reviewSummary && reviewSummary.count > 0 && (
-              <div className="flex items-center gap-0.5">
-                <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                <span className="text-[9px] font-semibold text-foreground">{reviewSummary.avg.toFixed(1)}</span>
+          {(() => {
+            const isMix = product.productType === "mix_match";
+            const displayPrice = isMix && product.pricingTiers && product.pricingTiers.length > 0
+              ? Math.min(...product.pricingTiers.map(t => t.price))
+              : (product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price
+                ? product.salePrice
+                : product.price);
+            const hasSale = !isMix && product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
+            return (
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-baseline gap-1">
+                  <p className="text-sm font-extrabold text-primary">₹{displayPrice.toLocaleString("en-IN")}</p>
+                  {hasSale && (
+                    <p className="text-[9px] text-muted-foreground line-through">₹{product.price.toLocaleString("en-IN")}</p>
+                  )}
+                </div>
+                {reviewSummary && reviewSummary.count > 0 && (
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                    <span className="text-[9px] font-semibold text-foreground">{reviewSummary.avg.toFixed(1)}</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })()}
         </div>
       </div>
     </Link>

@@ -78,7 +78,21 @@ function RelatedProducts({ products }: { products: Product[] }) {
               </div>
               <div className="p-2.5">
                 <p className="text-xs font-semibold text-foreground line-clamp-2 leading-snug">{p.name}</p>
-                <p className="text-sm font-extrabold text-primary mt-1">₹{p.price.toLocaleString("en-IN")}</p>
+                {(() => {
+                  const isMix = p.productType === "mix_match";
+                  const displayPrice = isMix && p.pricingTiers && p.pricingTiers.length > 0
+                    ? Math.min(...p.pricingTiers.map(t => t.price))
+                    : (p.salePrice != null && p.salePrice > 0 && p.salePrice < p.price ? p.salePrice : p.price);
+                  const hasSale = !isMix && p.salePrice != null && p.salePrice > 0 && p.salePrice < p.price;
+                  return (
+                    <div className="mt-1">
+                      <p className="text-sm font-extrabold text-primary">₹{displayPrice.toLocaleString("en-IN")}</p>
+                      {hasSale && (
+                        <p className="text-[10px] text-muted-foreground line-through leading-none mt-0.5">₹{p.price.toLocaleString("en-IN")}</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </Link>
