@@ -502,13 +502,13 @@ export function EditProductPage() {
 
                     {mixOptions.length > 0 && (
                       <div className="space-y-2">
-                        <div className="grid grid-cols-[1fr_6rem_2rem] gap-2 text-xs font-semibold text-muted-foreground px-1">
+                        <div className="grid grid-cols-[1fr_4rem_2rem] gap-2 text-xs font-semibold text-muted-foreground px-1">
                           <span>{mixAttributeLabel || "Option"}</span>
                           <span>Stock</span>
                           <span />
                         </div>
                         {mixOptions.map(opt => (
-                          <div key={opt.id} className="grid grid-cols-[1fr_6rem_2rem] gap-2 items-center">
+                          <div key={opt.id} className="grid grid-cols-[1fr_4rem_2rem] gap-2 items-center">
                             <div className="h-10 px-3 rounded-xl border border-border bg-muted/30 flex items-center text-sm font-medium">
                               {opt.value}
                             </div>
@@ -527,7 +527,7 @@ export function EditProductPage() {
 
                     <div className="space-y-2 pt-1 border-t border-border/50">
                       <p className="text-sm font-semibold text-foreground pt-1">Add Option</p>
-                      <div className="grid grid-cols-[1fr_6rem] gap-2">
+                      <div className="grid grid-cols-[1fr_4rem] gap-2">
                         <input value={newMixValue} onChange={e => setNewMixValue(e.target.value)}
                           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addMixOption(); } }}
                           placeholder={mixAttributeLabel === "Colors" ? "e.g. Red" : "e.g. Option 1"}

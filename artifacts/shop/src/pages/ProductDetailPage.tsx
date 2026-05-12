@@ -592,7 +592,7 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
       {/* Step 1: Tier selector */}
       <div>
         <p className="text-sm font-semibold mb-4">Step 1: Choose a Pack</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {(() => {
             const base = tiers[0];
             const basePerUnit = base ? base.price / base.quantity : 0;
@@ -603,25 +603,25 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
               const savePct = hasSaving ? Math.round((originalPrice - tier.price) / originalPrice * 100) : 0;
               return (
                 <button key={tier.quantity} type="button" onClick={() => selectTier(tier)}
-                  className={`flex flex-col items-center w-full pt-5 pb-3 px-2 rounded-2xl border-2 transition-all relative overflow-visible ${
+                  className={`flex flex-col items-center w-full pt-4 pb-2 px-1 rounded-xl border-2 transition-all relative overflow-visible ${
                     isSelected
                       ? "border-primary bg-primary/10 shadow-sm"
                       : "border-border bg-background hover:border-primary/50"
                   }`}>
                   {hasSaving && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap z-10">
+                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap z-10">
                       Save {savePct}%
                     </span>
                   )}
-                  <span className={`font-bold text-sm leading-tight text-center ${isSelected ? "text-primary" : ""}`}>
+                  <span className={`font-bold text-xs leading-tight text-center ${isSelected ? "text-primary" : ""}`}>
                     {tier.quantity} pc{tier.quantity !== 1 ? "s" : ""}
                   </span>
                   {hasSaving && (
-                    <span className="text-xs text-muted-foreground line-through leading-snug mt-0.5">
+                    <span className="text-[10px] text-muted-foreground line-through leading-snug mt-0.5">
                       &#8377;{originalPrice.toLocaleString("en-IN")}
                     </span>
                   )}
-                  <span className={`text-base font-extrabold mt-0.5 leading-tight ${isSelected ? "text-primary" : hasSaving ? "text-green-600 dark:text-green-400" : "text-foreground"}`}>
+                  <span className={`text-sm font-extrabold mt-0.5 leading-tight ${isSelected ? "text-primary" : hasSaving ? "text-green-600 dark:text-green-400" : "text-foreground"}`}>
                     &#8377;{tier.price.toLocaleString("en-IN")}
                   </span>
                 </button>
