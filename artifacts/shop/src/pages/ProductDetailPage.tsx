@@ -924,11 +924,6 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
                           / {min.quantity} pc{min.quantity !== 1 ? "s" : ""}
                         </span>
                       </div>
-                      {sorted.length > 1 && (
-                        <p className="text-xs text-muted-foreground">
-                          {sorted.map(t => `${t.quantity} pcs @ &#8377;${t.price}`).join(" &bull; ")}
-                        </p>
-                      )}
                     </div>
                   );
                 })()
