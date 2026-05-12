@@ -198,7 +198,12 @@ function TrendingCard({
         <div className="p-2 space-y-0.5">
           <p className="text-xs font-semibold text-foreground line-clamp-2 leading-snug">{product.name}</p>
           <div className="flex items-center justify-between gap-1">
-            <p className="text-sm font-extrabold text-primary">₹{product.price.toLocaleString("en-IN")}</p>
+            <p className="text-sm font-extrabold text-primary">
+              ₹{(product.productType === "mix_match" && product.pricingTiers && product.pricingTiers.length > 0
+                ? Math.min(...product.pricingTiers.map(t => t.price))
+                : product.price
+              ).toLocaleString("en-IN")}
+            </p>
             {reviewSummary && reviewSummary.count > 0 && (
               <div className="flex items-center gap-0.5">
                 <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
@@ -381,8 +386,12 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
       );
     }
 
-    if (priceSort === "asc") list = [...list].sort((a, b) => (a.salePrice ?? a.price) - (b.salePrice ?? b.price));
-    if (priceSort === "desc") list = [...list].sort((a, b) => (b.salePrice ?? b.price) - (a.salePrice ?? a.price));
+    const effectivePrice = (p: Product) =>
+      p.productType === "mix_match" && p.pricingTiers && p.pricingTiers.length > 0
+        ? Math.min(...p.pricingTiers.map(t => t.price))
+        : (p.salePrice ?? p.price);
+    if (priceSort === "asc") list = [...list].sort((a, b) => effectivePrice(a) - effectivePrice(b));
+    if (priceSort === "desc") list = [...list].sort((a, b) => effectivePrice(b) - effectivePrice(a));
 
     return list;
   }, [products, activeCategory, search, priceSort]);
