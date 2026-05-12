@@ -591,8 +591,8 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
     <div className="space-y-5">
       {/* Step 1: Tier selector */}
       <div>
-        <p className="text-sm font-semibold mb-3">Step 1: Choose a Pack</p>
-        <div className="flex flex-wrap gap-2">
+        <p className="text-sm font-semibold mb-4">Step 1: Choose a Pack</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {(() => {
             const base = tiers[0];
             const basePerUnit = base ? base.price / base.quantity : 0;
@@ -603,25 +603,25 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
               const savePct = hasSaving ? Math.round((originalPrice - tier.price) / originalPrice * 100) : 0;
               return (
                 <button key={tier.quantity} type="button" onClick={() => selectTier(tier)}
-                  className={`flex flex-col items-center px-4 py-3 rounded-2xl border-2 transition-all relative ${
+                  className={`flex flex-col items-center w-full pt-5 pb-3 px-2 rounded-2xl border-2 transition-all relative overflow-visible ${
                     isSelected
                       ? "border-primary bg-primary/10 shadow-sm"
                       : "border-border bg-background hover:border-primary/50"
                   }`}>
                   {hasSaving && (
-                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap z-10">
                       Save {savePct}%
                     </span>
                   )}
-                  <span className={`font-bold text-base ${isSelected ? "text-primary" : ""}`}>
+                  <span className={`font-bold text-sm leading-tight text-center ${isSelected ? "text-primary" : ""}`}>
                     {tier.quantity} pc{tier.quantity !== 1 ? "s" : ""}
                   </span>
                   {hasSaving && (
-                    <span className="text-xs text-muted-foreground line-through leading-none">
+                    <span className="text-xs text-muted-foreground line-through leading-snug mt-0.5">
                       &#8377;{originalPrice.toLocaleString("en-IN")}
                     </span>
                   )}
-                  <span className={`text-sm font-bold mt-0.5 ${isSelected ? "text-primary" : hasSaving ? "text-green-600 dark:text-green-400" : ""}`}>
+                  <span className={`text-base font-extrabold mt-0.5 leading-tight ${isSelected ? "text-primary" : hasSaving ? "text-green-600 dark:text-green-400" : "text-foreground"}`}>
                     &#8377;{tier.price.toLocaleString("en-IN")}
                   </span>
                 </button>
