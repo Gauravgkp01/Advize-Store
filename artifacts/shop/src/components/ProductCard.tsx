@@ -67,8 +67,12 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
 
   /* ── STOREFRONT (buyer view) – compact Flipkart-style ── */
   if (!showActions) {
-    const hasSale = product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
-    const displayPrice = hasSale ? product.salePrice! : product.price;
+    const isMixMatch = product.productType === "mix_match";
+    const minTierPrice = isMixMatch && product.pricingTiers && product.pricingTiers.length > 0
+      ? Math.min(...product.pricingTiers.map(t => t.price))
+      : null;
+    const hasSale = !isMixMatch && product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
+    const displayPrice = isMixMatch ? (minTierPrice ?? 0) : (hasSale ? product.salePrice! : product.price);
     const savings = hasSale ? product.price - product.salePrice! : 0;
     const discountPct = hasSale ? Math.round((product.price - product.salePrice!) / product.price * 100) : 0;
     const hasDiscount = hasSale;
@@ -111,6 +115,9 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
             <div className="mt-auto space-y-0.5">
               {/* Price row */}
               <div className="flex items-baseline gap-1.5 flex-wrap">
+                {isMixMatch && (
+                  <p className="text-[10px] text-muted-foreground leading-tight font-medium">from</p>
+                )}
                 <p className="text-base sm:text-lg font-extrabold text-primary leading-tight">
                   ₹{displayPrice.toLocaleString("en-IN")}
                 </p>
@@ -158,6 +165,11 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
   }
 
   /* ── DASHBOARD (seller view) ── */
+  const isMixMatchSeller = product.productType === "mix_match";
+  const sellerDisplayPrice = isMixMatchSeller && product.pricingTiers && product.pricingTiers.length > 0
+    ? Math.min(...product.pricingTiers.map(t => t.price))
+    : product.price;
+
   return (
     <Link href={productHref ?? `/product/${product.id}`} className="group block" data-testid={`card-product-${product.id}`}>
       <div className="bg-card rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col h-full hover:border-primary/20">
@@ -192,9 +204,14 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
           <h3 className="text-xs sm:text-sm font-semibold text-foreground line-clamp-2 leading-snug">
             {product.name}
           </h3>
-          <p className="text-sm sm:text-base font-extrabold text-primary leading-tight">
-            ₹{product.price.toLocaleString("en-IN")}
-          </p>
+          <div className="flex items-baseline gap-1">
+            {isMixMatchSeller && (
+              <span className="text-[10px] text-muted-foreground font-medium">from</span>
+            )}
+            <p className="text-sm sm:text-base font-extrabold text-primary leading-tight">
+              ₹{sellerDisplayPrice.toLocaleString("en-IN")}
+            </p>
+          </div>
           <p className="text-[10px] sm:text-xs text-muted-foreground" data-testid={`text-units-${product.id}`}>
             {inStock ? `${product.units} unit${product.units !== 1 ? "s" : ""} left` : "No stock"}
           </p>
