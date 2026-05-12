@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DescriptionRenderer } from "@/components/DescriptionRenderer";
 import { useToast } from "@/hooks/use-toast";
 import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, getSubdomainSlug, getProductDetail } from "@/lib/api";
 import type { Product, Review, MixCartData } from "@/lib/api";
@@ -304,8 +305,8 @@ function OwnerView({ product, reviews, analytics }: {
         {/* Product description (read-only for owner) */}
         {product.description && (
           <div className="mx-2.5 sm:mx-0 bg-card border rounded-2xl p-4">
-            <p className="text-sm font-semibold mb-2">Product Description</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+            <p className="text-sm font-semibold mb-3">Product Description</p>
+            <DescriptionRenderer text={product.description} />
           </div>
         )}
 
@@ -972,7 +973,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
                 </div>
               )}
             </div>
-            <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">{product.description}</p>
+            <DescriptionRenderer text={product.description} className="text-sm sm:text-base" />
 
             {product.productType === "mix_match" ? (
               <MixMatchBuyerView

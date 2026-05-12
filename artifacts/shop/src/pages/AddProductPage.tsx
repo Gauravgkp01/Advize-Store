@@ -493,8 +493,12 @@ export function AddProductPage() {
                 <FormItem>
                   <FormLabel className="text-base font-semibold">Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Tell your customers about this product..."
-                      className="min-h-[120px] rounded-xl resize-none" {...field} data-testid="textarea-product-desc" />
+                    <Textarea
+                      placeholder={"Tell your customers about this product...\n\nTips:\n- Start a line with  -  for bullet points\n- Use **bold** for emphasis\n- Leave a blank line between paragraphs"}
+                      className="min-h-[160px] rounded-xl resize-y font-mono text-sm"
+                      {...field}
+                      data-testid="textarea-product-desc"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
