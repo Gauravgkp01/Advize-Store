@@ -115,9 +115,6 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
             <div className="mt-auto space-y-0.5">
               {/* Price row */}
               <div className="flex items-baseline gap-1.5 flex-wrap">
-                {isMixMatch && (
-                  <p className="text-[10px] text-muted-foreground leading-tight font-medium">from</p>
-                )}
                 <p className="text-base sm:text-lg font-extrabold text-primary leading-tight">
                   ₹{displayPrice.toLocaleString("en-IN")}
                 </p>
@@ -204,14 +201,9 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
           <h3 className="text-xs sm:text-sm font-semibold text-foreground line-clamp-2 leading-snug">
             {product.name}
           </h3>
-          <div className="flex items-baseline gap-1">
-            {isMixMatchSeller && (
-              <span className="text-[10px] text-muted-foreground font-medium">from</span>
-            )}
-            <p className="text-sm sm:text-base font-extrabold text-primary leading-tight">
-              ₹{sellerDisplayPrice.toLocaleString("en-IN")}
-            </p>
-          </div>
+          <p className="text-sm sm:text-base font-extrabold text-primary leading-tight">
+            ₹{sellerDisplayPrice.toLocaleString("en-IN")}
+          </p>
           <p className="text-[10px] sm:text-xs text-muted-foreground" data-testid={`text-units-${product.id}`}>
             {inStock ? `${product.units} unit${product.units !== 1 ? "s" : ""} left` : "No stock"}
           </p>
