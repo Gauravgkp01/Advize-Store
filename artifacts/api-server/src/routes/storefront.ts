@@ -46,7 +46,7 @@ router.get("/storefront/:slug", async (req, res) => {
   const cached = cacheGet<unknown>(cacheKey);
   if (cached) return res.json(cached);
 
-  // — Fetch store by slug —
+  // — Fetch store by slug (or document ID as fallback) —
   // (Check the individual store cache first to avoid a Firestore query.)
   let store: any = cacheGet(`store:slug:${slug}`);
   if (!store) {
@@ -54,9 +54,17 @@ router.get("/storefront/:slug", async (req, res) => {
       .where("slug", "==", slug)
       .limit(1)
       .get();
-    if (storeSnap.empty) return res.status(404).json({ error: "Store not found" });
-    const doc = storeSnap.docs[0];
-    store = sanitizeStore(doc.id, doc.data());
+    let doc: FirebaseFirestore.DocumentSnapshot | null = null;
+    if (!storeSnap.empty) {
+      doc = storeSnap.docs[0];
+    } else {
+      // Fallback: treat slug param as a Firestore document ID
+      // (handles legacy localStorage entries where ID was stored instead of slug)
+      const byId = await db.collection("stores").doc(slug).get();
+      if (byId.exists) doc = byId;
+    }
+    if (!doc) return res.status(404).json({ error: "Store not found" });
+    store = sanitizeStore(doc.id, doc.data()!);
     // Warm individual caches
     cacheSet(`store:slug:${slug}`, store, 60_000);
     cacheSet(`store:id:${store.id}`, store, 60_000);

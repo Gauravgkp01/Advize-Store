@@ -42,14 +42,22 @@ router.get("/stores/id/:id", async (req, res) => {
 });
 
 router.get("/stores/:slug", async (req, res) => {
-  const cacheKey = `store:slug:${req.params.slug}`;
+  const { slug } = req.params;
+  const cacheKey = `store:slug:${slug}`;
   const cached = cacheGet<unknown>(cacheKey);
   if (cached) return res.json(cached);
 
-  const snap = await db.collection("stores").where("slug", "==", req.params.slug).limit(1).get();
-  if (snap.empty) return res.status(404).json({ error: "Store not found" });
-  const doc = snap.docs[0];
-  const result = sanitizeStore(doc.id, doc.data());
+  const snap = await db.collection("stores").where("slug", "==", slug).limit(1).get();
+  let doc: FirebaseFirestore.DocumentSnapshot | null = null;
+  if (!snap.empty) {
+    doc = snap.docs[0];
+  } else {
+    // Fallback: treat the param as a document ID (handles legacy localStorage entries)
+    const byId = await db.collection("stores").doc(slug).get();
+    if (byId.exists) doc = byId;
+  }
+  if (!doc) return res.status(404).json({ error: "Store not found" });
+  const result = sanitizeStore(doc.id, doc.data()!);
   cacheSet(cacheKey, result, STORE_TTL);
   return res.json(result);
 });
