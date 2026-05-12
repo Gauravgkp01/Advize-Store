@@ -394,13 +394,13 @@ export function AddProductPage() {
                           <input type="number" min="1" placeholder="e.g. 6"
                             value={tier.quantity}
                             onChange={e => updateTier(tier.id, "quantity", e.target.value)}
-                            className="h-10 px-3 rounded-xl border border-border text-sm outline-none bg-background focus:border-primary transition-colors" />
-                          <div className="relative">
+                            className="h-10 w-full px-3 rounded-xl border border-border text-sm outline-none bg-background focus:border-primary transition-colors min-w-0" />
+                          <div className="relative min-w-0">
                             <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">&#8377;</span>
                             <input type="number" min="0" placeholder="0"
                               value={tier.price}
                               onChange={e => updateTier(tier.id, "price", e.target.value)}
-                              className="h-10 pl-7 pr-3 rounded-xl border border-border w-full text-sm outline-none bg-background focus:border-primary transition-colors" />
+                              className="h-10 w-full pl-7 pr-3 rounded-xl border border-border text-sm outline-none bg-background focus:border-primary transition-colors min-w-0" />
                           </div>
                           <button type="button" onClick={() => removeTier(tier.id)} disabled={pricingTiers.length === 1}
                             className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-30">
