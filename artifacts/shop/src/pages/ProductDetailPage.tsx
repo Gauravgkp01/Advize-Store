@@ -544,7 +544,9 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
   const totalSelected = Object.values(composition).reduce((s, n) => s + n, 0);
   const tierQty = selectedTier?.quantity ?? 0;
   const remaining = tierQty - totalSelected;
-  const isComplete = selectedTier !== null && remaining === 0;
+  const hasOptions = options.length > 0;
+  const isComplete = selectedTier !== null && (!hasOptions || remaining === 0);
+  const canAddToCart = selectedTier !== null;
 
   const selectTier = (tier: { quantity: number; price: number }) => {
     setSelectedTier(tier);
@@ -605,17 +607,20 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
         </div>
       </div>
 
-      {/* Step 2: Composition */}
-      {selectedTier && (
+      {/* Step 2: Composition (optional) */}
+      {selectedTier && hasOptions && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold">Step 2: Choose Your {attrLabel}</p>
+            <p className="text-sm font-semibold">
+              Step 2: Choose Your {attrLabel}
+              <span className="ml-1.5 text-xs font-normal text-muted-foreground">(optional)</span>
+            </p>
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-              isComplete
+              isComplete && totalSelected > 0
                 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                 : "bg-muted text-muted-foreground"
             }`}>
-              {remaining > 0 ? `${remaining} more to add` : "Pack complete!"}
+              {totalSelected === 0 ? "Skip or customize" : remaining > 0 ? `${remaining} more` : "Pack complete!"}
             </span>
           </div>
           <div className="border rounded-2xl overflow-hidden">
@@ -657,7 +662,7 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
           <Button variant="outline"
             className="flex-1 h-14 text-base rounded-xl border-2 font-semibold gap-2"
             onClick={handleAddToCart}
-            disabled={!isComplete}
+            disabled={!canAddToCart}
             data-testid="btn-add-to-cart">
             <ShoppingBag className={`h-5 w-5 ${addedToCart ? "fill-primary" : ""}`} />
             {addedToCart ? "Added!" : "Add to Cart"}

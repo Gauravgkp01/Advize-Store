@@ -162,10 +162,6 @@ export function AddProductPage() {
         toast({ variant: "destructive", title: "Add at least one pricing tier", description: "Fill in a quantity and price." });
         return;
       }
-      if (mixOptions.length === 0) {
-        toast({ variant: "destructive", title: "Add at least one mix option", description: `Add options under ${mixAttributeLabel}.` });
-        return;
-      }
     } else {
       if (!values.price || values.price <= 0) {
         toast({ variant: "destructive", title: "Price is required", description: "Enter the product MRP." });
