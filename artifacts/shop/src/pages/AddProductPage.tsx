@@ -64,6 +64,7 @@ export function AddProductPage() {
   const [mixAttributeLabel, setMixAttributeLabel] = useState("Colors");
   const [newMixValue, setNewMixValue] = useState("");
   const [newMixStock, setNewMixStock] = useState("");
+  const [mixTotalStock, setMixTotalStock] = useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -202,7 +203,7 @@ export function AddProductPage() {
           price: 0,
           description: values.description,
           category: values.category ?? "",
-          units: 0,
+          units: mixTotalStock ? Number(mixTotalStock) : 0,
           image_url: imageUrls[0],
           image_urls: imageUrls,
           product_type: "mix_match",
@@ -412,6 +413,18 @@ export function AddProductPage() {
                       className="flex items-center gap-2 text-sm text-primary font-medium hover:underline">
                       <Plus className="h-4 w-4" />Add tier
                     </button>
+                    <div className="pt-3 border-t border-border/50 space-y-1.5">
+                      <p className="text-sm font-semibold text-foreground">Total Items Available</p>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 100"
+                        value={mixTotalStock}
+                        onChange={e => setMixTotalStock(e.target.value)}
+                        className="h-10 px-3 rounded-xl border border-border w-full text-sm outline-none bg-background focus:border-primary transition-colors"
+                      />
+                      <p className="text-xs text-muted-foreground">Overall stock across all options. Leave blank for unlimited.</p>
+                    </div>
                   </div>
 
                   {/* Mix Options */}
