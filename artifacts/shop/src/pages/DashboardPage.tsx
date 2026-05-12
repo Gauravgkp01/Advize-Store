@@ -28,7 +28,7 @@ import {
 import {
   Sheet, SheetContent, SheetTitle,
 } from "@/components/ui/sheet";
-import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, onboardRazorpay, getOrderStats, updateOrderStatus, requestPayout, getPayoutRequests, getIgRules, createIgRule, updateIgRule, deleteIgRule, disconnectInstagram, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus, type PayoutRequest, type IgRule } from "@/lib/api";
+import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, getOrderStats, updateOrderStatus, requestPayout, getPayoutRequests, getIgRules, createIgRule, updateIgRule, deleteIgRule, disconnectInstagram, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus, type PayoutRequest, type IgRule } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
 
@@ -1185,49 +1185,20 @@ function InstagramPlugin({ store, onStoreChange }: {
 }
 
 /* ── Plugins Panel ───────────────────────────────────── */
-const BIZ_TYPES = [
-  { value: "proprietorship",  label: "Proprietorship" },
-  { value: "individual",      label: "Individual" },
-  { value: "partnership",     label: "Partnership" },
-  { value: "private_limited", label: "Private Limited" },
-  { value: "public_limited",  label: "Public Limited" },
-  { value: "llp",             label: "LLP" },
-  { value: "ngo",             label: "NGO / Trust" },
-  { value: "other",           label: "Other" },
-];
-
-const BIZ_CATEGORIES = [
-  { value: "ecommerce",        sub: "fashion_and_lifestyle",    label: "Fashion & Lifestyle" },
-  { value: "ecommerce",        sub: "beauty_and_personal_care", label: "Beauty & Personal Care" },
-  { value: "ecommerce",        sub: "electronics",              label: "Electronics" },
-  { value: "ecommerce",        sub: "home_furnishings",         label: "Home & Furniture" },
-  { value: "ecommerce",        sub: "grocery",                  label: "Grocery" },
-  { value: "ecommerce",        sub: "books_and_stationery",     label: "Books & Stationery" },
-  { value: "ecommerce",        sub: "health_and_wellness",      label: "Health & Wellness" },
-  { value: "food",             sub: "online_food_ordering",     label: "Food & Beverages" },
-  { value: "education",        sub: "education",                label: "Education" },
-  { value: "healthcare",       sub: "pharmacy",                 label: "Healthcare / Pharmacy" },
-  { value: "ecommerce",        sub: "general_merchandise",      label: "General / Other" },
-];
-
-const ACCOUNT_STATUS_LABEL: Record<string, string> = {
-  created:   "Account Created — KYC Pending",
-  activated: "Active",
-  suspended: "Suspended",
-  under_review: "Under Review",
-  needs_clarification: "Needs Clarification",
-};
-
 function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onStoreChange: (updated: StoreType) => void }) {
   const { toast } = useToast();
-  const hasAccount    = !!(store?.razorpay_account_id);
-  const legacyKeys    = !!(store?.razorpay_key_id) && !hasAccount;
-  const advizeEnabled = !!(store?.advize_payment_enabled);
+  const razorpayActive = !!(store?.razorpay_key_id);
+  const advizeEnabled  = !!(store?.advize_payment_enabled);
 
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
-  const [showOnboard, setShowOnboard]       = useState(false);
-  const [saving, setSaving]                 = useState(false);
-  const [savingAdvize, setSavingAdvize]     = useState(false);
+  const [savingAdvize, setSavingAdvize] = useState(false);
+
+  // Razorpay direct key form
+  const [showRzpForm, setShowRzpForm]     = useState(false);
+  const [rzpKeyId, setRzpKeyId]           = useState("");
+  const [rzpSecret, setRzpSecret]         = useState("");
+  const [showRzpSecret, setShowRzpSecret] = useState(false);
+  const [savingRzp, setSavingRzp]         = useState(false);
 
   const handleToggleAdvize = async () => {
     if (!store?.id) return;
@@ -1243,74 +1214,59 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
     }
   };
 
-  const [bizName,    setBizName]    = useState("");
-  const [contactName, setContactName] = useState("");
-  const [bizType,    setBizType]    = useState("proprietorship");
-  const [email,      setEmail]      = useState("");
-  const [phone,      setPhone]      = useState("");
-  const [pan,        setPan]        = useState("");
-  const [catIndex,   setCatIndex]   = useState(0);
-  const [street,     setStreet]     = useState("");
-  const [city,       setCity]       = useState("");
-  const [bizState,   setBizState]   = useState("");
-  const [pincode,    setPincode]    = useState("");
-
-  const openOnboard = () => {
-    setBizName(store?.name ?? "");
-    setContactName("");
-    setBizType("proprietorship");
-    setEmail("");
-    setPhone("");
-    setPan("");
-    setCatIndex(0);
-    setStreet("");
-    setCity("");
-    setBizState("");
-    setPincode("");
-    setShowOnboard(true);
+  const openRzpForm = () => {
+    setRzpKeyId(store?.razorpay_key_id ?? "");
+    setRzpSecret("");
+    setShowRzpSecret(false);
+    setShowRzpForm(true);
   };
 
-  const handleOnboard = async () => {
+  const handleSaveRzp = async () => {
     if (!store?.id) return;
-    if (!bizName.trim() || !contactName.trim() || !email.trim() ||
-        !phone.trim() || !pan.trim() || !city.trim() || !bizState.trim() || !pincode.trim()) {
-      toast({ variant: "destructive", title: "Please fill all required fields" });
+    const keyId = rzpKeyId.trim();
+    const secret = rzpSecret.trim();
+    if (!keyId) {
+      toast({ variant: "destructive", title: "Key ID is required" });
       return;
     }
-    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(pan.trim())) {
-      toast({ variant: "destructive", title: "Invalid PAN", description: "PAN should be like ABCDE1234F" });
+    if (!secret && !razorpayActive) {
+      toast({ variant: "destructive", title: "Secret Key is required for first-time setup" });
       return;
     }
-    const cat = BIZ_CATEGORIES[catIndex];
-    setSaving(true);
+    setSavingRzp(true);
     try {
-      const result = await onboardRazorpay({
-        store_id:             store.id,
-        legal_business_name:  bizName.trim(),
-        contact_name:         contactName.trim(),
-        business_type:        bizType,
-        email:                email.trim(),
-        phone:                phone.trim(),
-        pan:                  pan.trim().toUpperCase(),
-        category:             cat.value,
-        subcategory:          cat.sub,
-        street1:              street.trim() || city.trim(),
-        city:                 city.trim(),
-        state:                bizState.trim(),
-        postal_code:          pincode.trim(),
-      });
-      onStoreChange({ ...store, razorpay_account_id: result.account_id, razorpay_account_status: result.status });
-      setShowOnboard(false);
-      toast({
-        title: "Razorpay Account Created! 🎉",
-        description: `Account ID: ${result.account_id}. Razorpay will guide you through KYC to activate payments.`,
-      });
+      const payload: Record<string, any> = {
+        razorpay_key_id: keyId,
+        razorpay_enabled: true,
+      };
+      if (secret) payload.razorpay_key_secret = secret;
+      const updated = await updateStore(store.id, payload);
+      onStoreChange(updated);
+      setShowRzpForm(false);
+      toast({ title: "Razorpay connected!", description: "Customers can now pay with UPI, cards and wallets." });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Connection Failed", description: err.message ?? "Please try again." });
+      toast({ variant: "destructive", title: "Failed to save", description: err.message ?? "Please try again." });
     } finally {
-      setSaving(false);
+      setSavingRzp(false);
     }
   };
+
+  const handleRemoveRzp = async () => {
+    if (!store?.id) return;
+    setSavingRzp(true);
+    try {
+      const updated = await updateStore(store.id, { razorpay_key_id: "", razorpay_enabled: false });
+      onStoreChange(updated);
+      setShowRzpForm(false);
+      toast({ title: "Razorpay disconnected" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Failed", description: err.message ?? "Please try again." });
+    } finally {
+      setSavingRzp(false);
+    }
+  };
+
+  const anyPaymentActive = advizeEnabled || razorpayActive;
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-6 pb-28">
@@ -1337,18 +1293,18 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
             className="w-full p-5 flex gap-4 items-center text-left"
             onClick={() => setShowPaymentOptions(p => !p)}
           >
-            <div className={`p-3 rounded-xl flex-shrink-0 ${advizeEnabled || hasAccount ? "bg-green-50 dark:bg-green-950/40" : "bg-primary/10"}`}>
-              <CreditCard className={`h-6 w-6 ${advizeEnabled || hasAccount ? "text-green-600 dark:text-green-400" : "text-primary"}`} />
+            <div className={`p-3 rounded-xl flex-shrink-0 ${anyPaymentActive ? "bg-green-50 dark:bg-green-950/40" : "bg-primary/10"}`}>
+              <CreditCard className={`h-6 w-6 ${anyPaymentActive ? "text-green-600 dark:text-green-400" : "text-primary"}`} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-0.5">
                 <h3 className="text-base font-semibold text-foreground leading-tight">Payment Gateway</h3>
-                {advizeEnabled ? (
+                {razorpayActive && advizeEnabled ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">2 Active</span>
+                ) : razorpayActive ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Razorpay Active</span>
+                ) : advizeEnabled ? (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Advize Active</span>
-                ) : hasAccount ? (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Razorpay Connected</span>
-                ) : legacyKeys ? (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Razorpay Legacy</span>
                 ) : (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Not set up</span>
                 )}
@@ -1362,7 +1318,128 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
           {showPaymentOptions && (
             <div className="border-t divide-y">
 
-              {/* Option 1: Advize Payment */}
+              {/* ── Option 1: Razorpay (own keys) ── */}
+              <div>
+                <div className="p-5">
+                  <div className="flex gap-4 items-start">
+                    <div className={`p-3 rounded-xl flex-shrink-0 ${razorpayActive ? "bg-green-50 dark:bg-green-950/40" : "bg-blue-50 dark:bg-blue-950/40"}`}>
+                      <CreditCard className={`h-6 w-6 ${razorpayActive ? "text-green-600 dark:text-green-400" : "text-blue-600"}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="text-sm font-semibold text-foreground leading-tight">Razorpay</h3>
+                        {razorpayActive ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Active</span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">Available</span>
+                        )}
+                      </div>
+
+                      {razorpayActive && !showRzpForm ? (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            Connected with Key ID ending in <span className="font-mono font-semibold text-foreground">...{(store?.razorpay_key_id ?? "").slice(-6)}</span>
+                          </p>
+                          <div className="flex gap-2 flex-wrap">
+                            <button onClick={openRzpForm}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground px-3 py-1.5 rounded-lg transition-colors">
+                              <Pencil className="h-3.5 w-3.5" /> Update Keys
+                            </button>
+                            <button onClick={handleRemoveRzp} disabled={savingRzp}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-destructive bg-destructive/10 hover:bg-destructive/20 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60">
+                              {savingRzp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                              Disconnect
+                            </button>
+                          </div>
+                        </div>
+                      ) : !showRzpForm ? (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Use your own Razorpay account — collect payments directly. UPI, cards, netbanking and wallets.
+                          </p>
+                          <button onClick={openRzpForm}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors">
+                            <CreditCard className="h-3.5 w-3.5" /> Connect Razorpay
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Razorpay key entry form */}
+                {showRzpForm && (
+                  <div className="border-t bg-muted/30 px-5 py-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">Enter Razorpay API Keys</p>
+                      <button onClick={() => setShowRzpForm(false)}
+                        className="text-xs text-muted-foreground hover:text-foreground underline">Cancel</button>
+                    </div>
+
+                    {/* Step guide */}
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3 space-y-1.5">
+                      <p className="text-xs font-bold text-blue-700 dark:text-blue-300 mb-2">How to get your Razorpay API keys:</p>
+                      <p className="text-[11px] text-blue-700 dark:text-blue-400 leading-relaxed">
+                        1. Log in at{" "}
+                        <a href="https://dashboard.razorpay.com/app/keys" target="_blank" rel="noopener noreferrer"
+                          className="font-bold underline underline-offset-2">
+                          dashboard.razorpay.com/app/keys
+                        </a>
+                      </p>
+                      <p className="text-[11px] text-blue-700 dark:text-blue-400">2. Click <strong>Generate Test Key</strong> (for testing) or <strong>Generate Live Key</strong> (for real payments)</p>
+                      <p className="text-[11px] text-blue-700 dark:text-blue-400">3. Copy the Key ID and Key Secret and paste them below</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">Key ID *</label>
+                      <Input
+                        value={rzpKeyId}
+                        onChange={e => setRzpKeyId(e.target.value)}
+                        placeholder="rzp_test_xxxxxxxxxxxx or rzp_live_xxxxxxxxxxxx"
+                        className="h-10 rounded-xl font-mono text-sm bg-background"
+                        autoCorrect="off"
+                        autoCapitalize="none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">
+                        Key Secret {razorpayActive ? "(leave blank to keep existing)" : "*"}
+                      </label>
+                      <div className="relative">
+                        <Input
+                          value={rzpSecret}
+                          onChange={e => setRzpSecret(e.target.value)}
+                          type={showRzpSecret ? "text" : "password"}
+                          placeholder={razorpayActive ? "Leave blank to keep existing secret" : "Paste your key secret here"}
+                          className="h-10 rounded-xl pr-10 font-mono text-sm bg-background"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowRzpSecret(s => !s)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <Lock className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">Your secret key is stored securely and never shown to customers.</p>
+                    </div>
+
+                    <Button
+                      onClick={handleSaveRzp}
+                      disabled={savingRzp}
+                      className="w-full h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white border-transparent"
+                    >
+                      {savingRzp && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {savingRzp ? "Saving..." : razorpayActive ? "Update Keys" : "Activate Razorpay"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Option 2: Advize Payment ── */}
               <div className="p-5">
                 <div className="flex gap-4 items-start">
                   <div className={`p-3 rounded-xl flex-shrink-0 ${advizeEnabled ? "bg-green-50 dark:bg-green-950/40" : "bg-primary/10"}`}>
@@ -1374,11 +1451,11 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
                       {advizeEnabled ? (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Active</span>
                       ) : (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">Recommended</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">No API keys needed</span>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                      Accept UPI, cards &amp; wallets with Advize's built-in payment solution. No setup or API keys needed.
+                      Accept UPI, cards &amp; wallets with Advize's built-in payment solution. No Razorpay account needed.
                     </p>
                     <button
                       onClick={handleToggleAdvize}
@@ -1398,194 +1475,6 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
                     </button>
                   </div>
                 </div>
-              </div>
-
-              {/* Option 2: Razorpay */}
-              <div>
-                <div className="p-5">
-                  <div className="flex gap-4 items-start">
-                    <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-xl flex-shrink-0">
-                      <CreditCard className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="text-sm font-semibold text-foreground leading-tight">Razorpay</h3>
-                        {hasAccount ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Connected</span>
-                        ) : legacyKeys ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Legacy</span>
-                        ) : (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">Available</span>
-                        )}
-                      </div>
-
-                      {hasAccount ? (
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {ACCOUNT_STATUS_LABEL[store?.razorpay_account_status ?? ""] ?? "Account created."}
-                          </p>
-                          <p className="text-[11px] font-mono text-muted-foreground/60 truncate">
-                            {store?.razorpay_account_id}
-                          </p>
-                          <a
-                            href="https://dashboard.razorpay.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block text-xs font-semibold text-primary underline underline-offset-2 mt-1"
-                          >
-                            Complete KYC on Razorpay →
-                          </a>
-                        </div>
-                      ) : legacyKeys ? (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            You're using your own Razorpay API keys. Upgrade to the Partner flow for a seamless, no-API-key experience.
-                          </p>
-                          {!showOnboard && (
-                            <button
-                              onClick={openOnboard}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-                            >
-                              <Sparkles className="h-3.5 w-3.5" />
-                              Upgrade to Partner Flow
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            Connect your Razorpay account to accept UPI, cards &amp; wallets with your own keys.
-                          </p>
-                          {!showOnboard && (
-                            <button
-                              onClick={openOnboard}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-                            >
-                              <CreditCard className="h-3.5 w-3.5" />
-                              Connect Razorpay
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Partner onboarding form */}
-                {showOnboard && (
-                  <div className="border-t bg-muted/30 px-5 py-5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold">Business Details</p>
-                      <button
-                        onClick={() => setShowOnboard(false)}
-                        className="text-xs text-muted-foreground hover:text-foreground underline"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-
-                    <p className="text-[11px] text-muted-foreground -mt-2">
-                      Razorpay will verify your business and handle KYC — no manual API keys needed.
-                    </p>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Legal Business Name *</label>
-                      <Input value={bizName} onChange={e => setBizName(e.target.value)}
-                        placeholder="e.g. Acme Traders" className="h-10 rounded-xl text-sm bg-background" />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Contact Name (Owner / Director) *</label>
-                      <Input value={contactName} onChange={e => setContactName(e.target.value)}
-                        placeholder="Full name" className="h-10 rounded-xl text-sm bg-background" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-muted-foreground">Business Type *</label>
-                        <select
-                          value={bizType}
-                          onChange={e => setBizType(e.target.value)}
-                          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                          {BIZ_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-muted-foreground">Category *</label>
-                        <select
-                          value={catIndex}
-                          onChange={e => setCatIndex(Number(e.target.value))}
-                          className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                          {BIZ_CATEGORIES.map((c, i) => <option key={i} value={i}>{c.label}</option>)}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-muted-foreground">Business Email *</label>
-                        <Input value={email} onChange={e => setEmail(e.target.value)}
-                          type="email" placeholder="you@business.com"
-                          className="h-10 rounded-xl text-sm bg-background" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-muted-foreground">Phone *</label>
-                        <Input value={phone} onChange={e => setPhone(e.target.value)}
-                          type="tel" placeholder="9876543210"
-                          className="h-10 rounded-xl text-sm bg-background" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">PAN Number *</label>
-                      <Input value={pan} onChange={e => setPan(e.target.value.toUpperCase())}
-                        placeholder="ABCDE1234F" maxLength={10}
-                        className="h-10 rounded-xl font-mono text-sm bg-background tracking-widest"
-                        autoCorrect="off" autoCapitalize="characters" />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Street Address</label>
-                      <Input value={street} onChange={e => setStreet(e.target.value)}
-                        placeholder="Shop / flat / street" className="h-10 rounded-xl text-sm bg-background" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-muted-foreground">City *</label>
-                        <Input value={city} onChange={e => setCity(e.target.value)}
-                          placeholder="Mumbai" className="h-10 rounded-xl text-sm bg-background" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-muted-foreground">State *</label>
-                        <Input value={bizState} onChange={e => setBizState(e.target.value)}
-                          placeholder="Maharashtra" className="h-10 rounded-xl text-sm bg-background" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">PIN Code *</label>
-                      <Input value={pincode} onChange={e => setPincode(e.target.value)}
-                        placeholder="400001" maxLength={6} inputMode="numeric"
-                        className="h-10 rounded-xl text-sm bg-background" />
-                    </div>
-
-                    <Button
-                      onClick={handleOnboard}
-                      disabled={saving}
-                      className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white border-transparent"
-                    >
-                      {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      {saving ? "Creating Account..." : "Connect Razorpay"}
-                    </Button>
-
-                    <p className="text-[10px] text-muted-foreground text-center">
-                      Razorpay will send a KYC link to your email after account creation.
-                    </p>
-                  </div>
-                )}
               </div>
 
             </div>
@@ -2012,36 +1901,58 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
   onStoreChange: (s: StoreType) => void;
 }) {
   const { toast } = useToast();
-  const [filter, setFilter] = useState<"all" | OrderStatus>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
+  const [methodFilter, setMethodFilter] = useState<"all" | "razorpay" | "advize">("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  // Payout modal state
+  // Payout modal state (Advize only)
   const [showPayout, setShowPayout] = useState(false);
   const [upiId, setUpiId] = useState(store?.upi_id ?? "");
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutHistory, setPayoutHistory] = useState<PayoutRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const advizeEnabled = !!(store?.advize_payment_enabled);
-  const allOrders = orderStats?.orders ?? [];
-  const advizeOrders = allOrders.filter(o => o.payment_method === "advize");
-  const filtered = filter === "all" ? advizeOrders : advizeOrders.filter(o => o.status === filter);
+  const advizeEnabled  = !!(store?.advize_payment_enabled);
+  const razorpayActive = !!(store?.razorpay_key_id);
+  const anyPaymentActive = advizeEnabled || razorpayActive;
 
-  const totalCollected = advizeOrders
+  const allOrders = orderStats?.orders ?? [];
+
+  // Method-filtered orders
+  const methodFiltered = methodFilter === "all"
+    ? allOrders
+    : allOrders.filter(o => (o.payment_method ?? "razorpay") === methodFilter);
+
+  // Status-filtered orders
+  const filtered = statusFilter === "all"
+    ? methodFiltered
+    : methodFiltered.filter(o => o.status === statusFilter);
+
+  const advizeOrders  = allOrders.filter(o => o.payment_method === "advize");
+  const razorpayOrders = allOrders.filter(o => (o.payment_method ?? "razorpay") === "razorpay");
+
+  const totalRevenue = allOrders
     .filter(o => o.payment_status === "paid")
     .reduce((s, o) => s + (o.amount_paise ?? 0), 0) / 100;
 
-  const FILTER_TABS = [
-    { key: "all",              label: "All",              count: advizeOrders.length },
-    { key: "pending",          label: "Pending",          count: advizeOrders.filter(o => o.status === "pending").length },
-    { key: "confirmed",        label: "Confirmed",        count: advizeOrders.filter(o => o.status === "confirmed").length },
-    { key: "packed",           label: "Packed",           count: advizeOrders.filter(o => o.status === "packed").length },
-    { key: "out_for_delivery", label: "Out for Delivery", count: advizeOrders.filter(o => o.status === "out_for_delivery").length },
-    { key: "delivered",        label: "Delivered",        count: advizeOrders.filter(o => o.status === "delivered").length },
-    { key: "cancelled",        label: "Cancelled",        count: advizeOrders.filter(o => o.status === "cancelled").length },
+  const advizeRevenue = advizeOrders
+    .filter(o => o.payment_status === "paid")
+    .reduce((s, o) => s + (o.amount_paise ?? 0), 0) / 100;
+
+  const razorpayRevenue = razorpayOrders
+    .filter(o => o.payment_status === "paid")
+    .reduce((s, o) => s + (o.amount_paise ?? 0), 0) / 100;
+
+  const STATUS_FILTERS = [
+    { key: "all",              label: "All",              count: methodFiltered.length },
+    { key: "pending",          label: "Pending",          count: methodFiltered.filter(o => o.status === "pending").length },
+    { key: "confirmed",        label: "Confirmed",        count: methodFiltered.filter(o => o.status === "confirmed").length },
+    { key: "packed",           label: "Packed",           count: methodFiltered.filter(o => o.status === "packed").length },
+    { key: "out_for_delivery", label: "Delivery",         count: methodFiltered.filter(o => o.status === "out_for_delivery").length },
+    { key: "delivered",        label: "Delivered",        count: methodFiltered.filter(o => o.status === "delivered").length },
+    { key: "cancelled",        label: "Cancelled",        count: methodFiltered.filter(o => o.status === "cancelled").length },
   ] as const;
 
-  // Open payout sheet and load history
   const handlePayoutOpen = async () => {
     setUpiId(store?.upi_id ?? "");
     setShowPayout(true);
@@ -2061,15 +1972,13 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
     if (!store) return;
     const trimmed = upiId.trim();
     if (!trimmed) { toast({ variant: "destructive", title: "Please enter your UPI ID" }); return; }
-    if (totalCollected <= 0) { toast({ variant: "destructive", title: "No earnings to withdraw" }); return; }
+    if (advizeRevenue <= 0) { toast({ variant: "destructive", title: "No Advize earnings to withdraw" }); return; }
     setPayoutLoading(true);
     try {
-      await requestPayout({ store_id: store.id, upi_id: trimmed, amount_requested: totalCollected });
-      // Update store profile with UPI ID
+      await requestPayout({ store_id: store.id, upi_id: trimmed, amount_requested: advizeRevenue });
       const updated = await updateStore(store.id, { upi_id: trimmed });
       onStoreChange(updated);
-      toast({ title: "Payout request submitted!", description: `₹${totalCollected.toLocaleString("en-IN")} will be sent to ${trimmed}` });
-      // Refresh history
+      toast({ title: "Payout request submitted!", description: `₹${advizeRevenue.toLocaleString("en-IN")} will be sent to ${trimmed}` });
       const data = await getPayoutRequests(store.id);
       setPayoutHistory(data.requests);
       setShowPayout(false);
@@ -2119,10 +2028,11 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
 
   return (
     <div className="p-3 sm:p-6 space-y-4 pb-28">
+      {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
           <h1 className="text-lg sm:text-2xl font-bold">Earnings</h1>
-          <p className="text-muted-foreground text-xs mt-0.5">Orders paid through Advize Payment</p>
+          <p className="text-muted-foreground text-xs mt-0.5">All paid orders across payment methods</p>
         </div>
         {advizeEnabled && (
           <Button size="sm" className="rounded-xl gap-1.5 font-semibold" onClick={handlePayoutOpen}>
@@ -2132,62 +2042,107 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
         )}
       </div>
 
-      {!advizeEnabled ? (
+      {!anyPaymentActive ? (
+        /* No payment gateway configured yet */
         <div className="bg-card border rounded-2xl p-8 flex flex-col items-center text-center gap-3">
           <div className="bg-primary/10 p-4 rounded-2xl">
-            <IndianRupee className="h-8 w-8 text-primary" />
+            <CreditCard className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <p className="font-bold text-foreground">Advize Payment not enabled</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Enable Advize Payment in the Plugins tab to start accepting payments and track your earnings here.
+            <p className="font-bold text-foreground">No payment gateway active</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
+              Connect Razorpay or enable Advize Payment in the Plugins tab to start accepting payments and track earnings here.
             </p>
           </div>
         </div>
       ) : (
         <>
-          {/* Summary cards */}
+          {/* ── Revenue summary cards ── */}
           <div className="grid grid-cols-2 gap-3">
+            {/* Total revenue — full width */}
             <div className="bg-card border rounded-2xl p-4 shadow-sm col-span-2">
               <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                 <IndianRupee className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-medium uppercase tracking-wide">Total Collected</span>
+                <span className="text-[10px] font-medium uppercase tracking-wide">Total Revenue</span>
               </div>
-              <p className="text-3xl font-extrabold text-foreground">₹{totalCollected.toLocaleString("en-IN")}</p>
+              <p className="text-3xl font-extrabold text-foreground">
+                ₹{totalRevenue.toLocaleString("en-IN")}
+              </p>
+              {/* Per-method breakdown */}
+              {razorpayActive && advizeEnabled && (
+                <div className="flex gap-4 mt-2 pt-2 border-t">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="text-[11px] text-muted-foreground">Razorpay</span>
+                    <span className="text-[11px] font-bold text-foreground">₹{razorpayRevenue.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                    <span className="text-[11px] text-muted-foreground">Advize</span>
+                    <span className="text-[11px] font-bold text-foreground">₹{advizeRevenue.toLocaleString("en-IN")}</span>
+                  </div>
+                </div>
+              )}
             </div>
+
             <div className="bg-card border rounded-2xl p-4 shadow-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                 <ShoppingCart className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-medium uppercase tracking-wide">Orders</span>
+                <span className="text-[10px] font-medium uppercase tracking-wide">Total Orders</span>
               </div>
-              <p className="text-2xl font-extrabold text-foreground">{advizeOrders.length}</p>
+              <p className="text-2xl font-extrabold text-foreground">{allOrders.length}</p>
             </div>
+
             <div className="bg-card border rounded-2xl p-4 shadow-sm">
               <div className="flex items-center gap-1.5 text-amber-500 mb-1">
                 <Clock className="h-3.5 w-3.5" />
                 <span className="text-[10px] font-medium uppercase tracking-wide">Pending</span>
               </div>
               <p className="text-2xl font-extrabold text-amber-500">
-                {advizeOrders.filter(o => o.status === "pending").length}
+                {allOrders.filter(o => o.status === "pending").length}
               </p>
             </div>
           </div>
 
-          {/* Filter tabs */}
+          {/* ── Payment method filter (only if both are active) ── */}
+          {razorpayActive && advizeEnabled && (
+            <div className="flex gap-2">
+              {(["all", "razorpay", "advize"] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => { setMethodFilter(m); setStatusFilter("all"); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                    methodFilter === m
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {m === "all" ? "All" : m === "razorpay" ? "Razorpay" : "Advize"}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                    methodFilter === m ? "bg-white/20 text-white" : "bg-background text-foreground"
+                  }`}>
+                    {m === "all" ? allOrders.length : m === "razorpay" ? razorpayOrders.length : advizeOrders.length}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* ── Status filter tabs ── */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {FILTER_TABS.map(tab => (
+            {STATUS_FILTERS.map(tab => (
               <button
                 key={tab.key}
-                onClick={() => setFilter(tab.key as any)}
+                onClick={() => setStatusFilter(tab.key as any)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                  filter === tab.key
+                  statusFilter === tab.key
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
                 {tab.label}
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  filter === tab.key ? "bg-white/20 text-white" : "bg-background text-foreground"
+                  statusFilter === tab.key ? "bg-white/20 text-white" : "bg-background text-foreground"
                 }`}>
                   {tab.count}
                 </span>
@@ -2195,15 +2150,13 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
             ))}
           </div>
 
-          {/* Orders list */}
+          {/* ── Orders list ── */}
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
               <ShoppingCart className="h-10 w-10 opacity-20" />
               <p className="text-sm font-medium">No orders yet</p>
               <p className="text-xs opacity-60">
-                {filter === "all"
-                  ? "Orders placed through Advize Payment will appear here."
-                  : `No ${filter} orders.`}
+                {statusFilter === "all" ? "Paid orders will appear here." : `No ${statusFilter} orders.`}
               </p>
             </div>
           ) : (
@@ -2211,12 +2164,20 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
               {filtered.map(order => (
                 <div key={order.id} className="bg-card border rounded-2xl p-4 shadow-sm space-y-3">
 
-                  {/* Order meta: ID + time */}
+                  {/* Order meta */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-mono font-semibold text-primary/80 bg-primary/10 px-2 py-0.5 rounded-md">
                       #{order.id.slice(0, 12).toUpperCase()}
                     </span>
                     <span className="text-xs text-muted-foreground">{formatDate(order.created_at)}</span>
+                    {/* Payment method badge */}
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-auto ${
+                      (order.payment_method ?? "razorpay") === "razorpay"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                        : "bg-primary/10 text-primary"
+                    }`}>
+                      {(order.payment_method ?? "razorpay") === "razorpay" ? "Razorpay" : "Advize"}
+                    </span>
                   </div>
 
                   {/* Amount + payment status */}
@@ -2231,7 +2192,7 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
                           ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                           : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                     }`}>
-                      {order.payment_status === "paid" ? "✓ Paid" : order.payment_status === "failed" ? "✗ Failed" : "⏳ Pending"}
+                      {order.payment_status === "paid" ? "Paid" : order.payment_status === "failed" ? "Failed" : "Pending"}
                     </span>
                   </div>
 
@@ -2247,24 +2208,22 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
                   <div className="bg-muted/40 rounded-xl px-3 py-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Items</p>
                     <p className="text-sm text-foreground leading-relaxed">
-                      {order.items?.map(i => `${i.name} ×${i.quantity}`).join(" · ") ?? "–"}
+                      {order.items?.map(i => `${i.name} \u00d7${i.quantity}`).join(" \u00b7 ") ?? "–"}
                     </p>
                   </div>
 
-                  {/* Delivery address — full, no truncation */}
+                  {/* Delivery address */}
                   {order.buyer?.addressLine && (
                     <div className="bg-muted/40 rounded-xl px-3 py-2">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Delivery Address</p>
-                      <p className="text-sm text-foreground leading-relaxed break-words">
-                        {order.buyer.addressLine}
-                      </p>
+                      <p className="text-sm text-foreground leading-relaxed break-words">{order.buyer.addressLine}</p>
                       <p className="text-sm text-foreground">
-                        {order.buyer.city}{order.buyer.pincode ? ` – ${order.buyer.pincode}` : ""}
+                        {order.buyer.city}{order.buyer.pincode ? ` \u2013 ${order.buyer.pincode}` : ""}
                       </p>
                     </div>
                   )}
 
-                  {/* Status section */}
+                  {/* Fulfillment status */}
                   <div className="pt-2 border-t space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs text-muted-foreground font-medium">Fulfillment Status</p>
@@ -2272,11 +2231,9 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
                         <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                       )}
                     </div>
-                    {/* Current status badge */}
                     <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${STATUS_COLORS[order.status] ?? ""}`}>
                       {STATUS_LABELS[order.status] ?? order.status}
                     </span>
-                    {/* Change status dropdown */}
                     <select
                       value={order.status}
                       disabled={updatingId === order.id}
@@ -2307,8 +2264,8 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
           {/* Amount available */}
           <div className="bg-primary/10 rounded-2xl p-4 mb-5 text-center">
             <p className="text-xs font-semibold text-primary/70 uppercase tracking-wide mb-1">Amount to Withdraw</p>
-            <p className="text-4xl font-extrabold text-primary">₹{totalCollected.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-muted-foreground mt-1">Total collected from paid orders</p>
+            <p className="text-4xl font-extrabold text-primary">₹{advizeRevenue.toLocaleString("en-IN")}</p>
+            <p className="text-xs text-muted-foreground mt-1">Total collected via Advize Payment</p>
           </div>
 
           {/* UPI ID input */}
@@ -2328,13 +2285,13 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
           <Button
             className="w-full h-12 rounded-2xl text-base font-bold gap-2"
             onClick={handlePayoutSubmit}
-            disabled={payoutLoading || totalCollected <= 0}
+            disabled={payoutLoading || advizeRevenue <= 0}
           >
             {payoutLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <IndianRupee className="h-5 w-5" />}
-            {payoutLoading ? "Submitting..." : `Withdraw ₹${totalCollected.toLocaleString("en-IN")}`}
+            {payoutLoading ? "Submitting..." : `Withdraw ₹${advizeRevenue.toLocaleString("en-IN")}`}
           </Button>
 
-          {totalCollected <= 0 && (
+          {advizeRevenue <= 0 && (
             <p className="text-center text-xs text-muted-foreground mt-2">No earnings available to withdraw yet.</p>
           )}
 
@@ -2454,13 +2411,15 @@ export function DashboardPage() {
     }
   }, [store?.id, loadData]);
 
-  // Hide Earnings tab if Advize Payment is disabled
-  const advizeEnabled = !!(store?.advize_payment_enabled);
-  const visibleTabs = TABS.filter((_, i) => i !== 4 || advizeEnabled);
+  // Show Earnings tab when any payment gateway is active
+  const advizeEnabled  = !!(store?.advize_payment_enabled);
+  const razorpayActive = !!(store?.razorpay_key_id);
+  const earningsVisible = advizeEnabled || razorpayActive;
+  const visibleTabs = TABS.filter((_, i) => i !== 4 || earningsVisible);
 
   useEffect(() => {
-    if (!advizeEnabled && active === 4) setActive(0);
-  }, [advizeEnabled, active]);
+    if (!earningsVisible && active === 4) setActive(0);
+  }, [earningsVisible, active]);
 
   // Save old tab scroll → restore new tab scroll
   useEffect(() => {
