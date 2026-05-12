@@ -17,7 +17,10 @@ router.post("/orders", async (req, res) => {
     razorpay_order_id?: string;
     razorpay_payment_id?: string;
     amount_paise: number;
-    items: { productId: string; name: string; quantity: number; price: number; variant?: string }[];
+    items: {
+      productId: string; name: string; quantity: number; price: number; variant?: string;
+      mixData?: { selectedTier: { quantity: number; price: number }; composition: { option: string; qty: number }[] };
+    }[];
     buyer: { name: string; phone: string; addressLine: string; city: string; pincode: string };
   };
 
@@ -39,6 +42,31 @@ router.post("/orders", async (req, res) => {
   });
 
   cacheDeleteByPrefix(`orders:store:${store_id}`);
+
+  // Deduct mix_inventory for mix & match items (best-effort, non-blocking)
+  const mixItems = items.filter(i => i.mixData?.composition?.length);
+  if (mixItems.length > 0) {
+    (async () => {
+      try {
+        const batch = db.batch();
+        for (const item of mixItems) {
+          const productRef = db.collection("products").doc(item.productId);
+          const productSnap = await productRef.get();
+          if (!productSnap.exists) continue;
+          const existing = (productSnap.data()?.mix_inventory ?? {}) as Record<string, number>;
+          const updated: Record<string, number> = { ...existing };
+          for (const comp of item.mixData!.composition) {
+            const current = updated[comp.option] ?? 0;
+            updated[comp.option] = Math.max(0, current - comp.qty * item.quantity);
+          }
+          batch.update(productRef, { mix_inventory: updated });
+          cacheDeleteByPrefix(`products:detail:${item.productId}`);
+        }
+        await batch.commit();
+      } catch { /* best-effort */ }
+    })();
+  }
+
   return res.status(201).json({ id: ref.id });
 });
 

@@ -1,0 +1,176 @@
+Add a new optional product type called “Mix & Match Pack” without disturbing the existing normal product listing flow.
+
+Requirements:
+
+1. Existing product listing system must continue working exactly as it is.
+2. Seller should be able to choose:
+   - Normal Product
+   - Mix & Match Pack
+
+---------------------------------------------------
+MIX & MATCH PACK FEATURES
+---------------------------------------------------
+
+Add a new section in the listing form:
+
+Product Type:
+( ) Normal Product
+( ) Mix & Match Pack
+
+When “Mix & Match Pack” is selected:
+
+---------------------------------------------------
+1. PACK PRICING / TIER PRICING
+---------------------------------------------------
+
+Allow seller to add multiple pack tiers.
+
+Example:
+
+Qty    Price
+1      50
+2      90
+6      200
+12     300
+
+Add:
+- Add More Tier button
+- Remove Tier button
+
+Store as:
+
+pricingTiers: [
+  {
+    quantity: 1,
+    price: 50
+  },
+  {
+    quantity: 2,
+    price: 90
+  }
+]
+
+---------------------------------------------------
+2. ATTRIBUTE OPTIONS
+---------------------------------------------------
+
+Allow seller to define mixable attributes.
+
+Example:
+- Colors
+- Sizes
+- Designs
+- Patterns
+
+For bangles example:
+
+Available Colors:
+[ Red ]
+[ White ]
+[ Blue ]
+
+Add:
+- Add Attribute Option button
+- Remove Option button
+
+Store as:
+
+mixOptions: {
+  colors: ["Red", "White", "Blue"]
+}
+
+---------------------------------------------------
+3. INVENTORY MANAGEMENT
+---------------------------------------------------
+
+Maintain inventory per option.
+
+Example:
+
+inventory: {
+  Red: 100,
+  White: 50,
+  Blue: 70
+}
+
+When order is placed:
+- deduct selected quantities from respective inventory
+
+Example:
+3 Red
+2 White
+1 Blue
+
+Result:
+Red -= 3
+White -= 2
+Blue -= 1
+
+---------------------------------------------------
+4. CUSTOMER SIDE UI
+---------------------------------------------------
+
+On product page:
+
+STEP 1:
+Choose Pack Size
+
+○ 1 for ₹50
+○ 2 for ₹90
+● 6 for ₹200
+
+STEP 2:
+Customize Combination
+
+Red       [-] 3 [+]
+White     [-] 2 [+]
+Blue      [-] 1 [+]
+
+Show:
+6/6 Selected
+
+Rules:
+- Total selected quantity cannot exceed chosen pack quantity
+- Disable add button after limit reached
+- Prevent selection beyond stock quantity
+
+---------------------------------------------------
+5. CART STRUCTURE
+---------------------------------------------------
+
+Store order data like:
+
+{
+  selectedTier: {
+    quantity: 6,
+    price: 200
+  },
+
+  composition: [
+    {
+      option: "Red",
+      qty: 3
+    },
+    {
+      option: "White",
+      qty: 2
+    },
+    {
+      option: "Blue",
+      qty: 1
+    }
+  ]
+}
+
+---------------------------------------------------
+6. IMPORTANT
+---------------------------------------------------
+
+- Do NOT break existing product system
+- Existing normal products should continue working unchanged
+- Mix & Match Pack should be an additional optional product type
+- Keep UI mobile friendly
+- Use reusable components
+- Keep backend scalable
+- Validate total selected quantity before add to cart
+- Add proper TypeScript types/interfaces

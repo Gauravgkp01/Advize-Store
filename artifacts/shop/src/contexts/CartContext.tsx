@@ -1,9 +1,10 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import type { Product } from "@/lib/api";
+import type { Product, MixCartData } from "@/lib/api";
 
 export interface CartItem {
   product: Product;
   quantity: number;
+  mixData?: MixCartData;
 }
 
 interface CartContextType {
@@ -11,6 +12,7 @@ interface CartContextType {
   storeId: string | null;
   storeSlug: string | null;
   addItem: (product: Product, storeId: string, storeSlug: string) => void;
+  addMixItem: (product: Product, storeId: string, storeSlug: string, mixData: MixCartData) => void;
   removeItem: (productId: string) => void;
   updateQty: (productId: string, qty: number) => void;
   clearCart: () => void;
@@ -60,6 +62,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     persist(sid, slug, newItems);
   };
 
+  const addMixItem = (product: Product, sid: string, slug: string, mixData: MixCartData) => {
+    const baseItems = sid !== storeId ? [] : items;
+    const existing = baseItems.find(i => i.product.id === product.id);
+    const newItems = existing
+      ? baseItems.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1, mixData } : i)
+      : [...baseItems, { product, quantity: 1, mixData }];
+    persist(sid, slug, newItems);
+  };
+
   const removeItem = (productId: string) => {
     persist(storeId, storeSlug, items.filter(i => i.product.id !== productId));
   };
@@ -73,13 +84,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const totalItems = items.reduce((s, i) => s + i.quantity, 0);
   const totalPrice = items.reduce((s, i) => {
+    if (i.mixData) return s + i.mixData.selectedTier.price * i.quantity;
     const price = (i.product.salePrice != null && i.product.salePrice > 0 && i.product.salePrice < i.product.price)
       ? i.product.salePrice! : i.product.price;
     return s + price * i.quantity;
   }, 0);
 
   return (
-    <CartContext.Provider value={{ items, storeId, storeSlug, addItem, removeItem, updateQty, clearCart, totalItems, totalPrice }}>
+    <CartContext.Provider value={{ items, storeId, storeSlug, addItem, addMixItem, removeItem, updateQty, clearCart, totalItems, totalPrice }}>
       {children}
     </CartContext.Provider>
   );

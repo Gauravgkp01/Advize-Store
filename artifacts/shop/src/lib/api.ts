@@ -5,6 +5,21 @@ export type ProductVariant = {
   values: string[];
 };
 
+export type PricingTier = {
+  quantity: number;
+  price: number;
+};
+
+export type MixMatchComposition = {
+  option: string;
+  qty: number;
+};
+
+export type MixCartData = {
+  selectedTier: PricingTier;
+  composition: MixMatchComposition[];
+};
+
 export type Product = {
   id: string;
   storeId: string;
@@ -18,6 +33,11 @@ export type Product = {
   units: number;
   trending?: boolean;
   variants?: ProductVariant[];
+  productType?: "normal" | "mix_match";
+  pricingTiers?: PricingTier[];
+  mixOptions?: string[];
+  mixInventory?: Record<string, number>;
+  mixAttributeLabel?: string;
 };
 
 export type Review = {
@@ -141,6 +161,11 @@ export interface ApiProduct {
   units: number;
   trending?: boolean;
   variants: { id: string; label: string; values: string[] }[];
+  product_type?: "normal" | "mix_match";
+  pricing_tiers?: PricingTier[];
+  mix_options?: string[];
+  mix_inventory?: Record<string, number>;
+  mix_attribute_label?: string;
 }
 
 function toProduct(p: ApiProduct): Product {
@@ -163,6 +188,11 @@ function toProduct(p: ApiProduct): Product {
     units: p.units ?? 0,
     trending: p.trending ?? false,
     variants: (p.variants ?? []).map(v => ({ label: v.label, values: v.values })),
+    productType: p.product_type ?? "normal",
+    pricingTiers: p.pricing_tiers ?? [],
+    mixOptions: p.mix_options ?? [],
+    mixInventory: p.mix_inventory ?? {},
+    mixAttributeLabel: p.mix_attribute_label ?? "",
   };
 }
 
@@ -202,6 +232,11 @@ export const createProduct = (body: {
   category?: string;
   units?: number;
   variants?: ProductVariant[];
+  product_type?: "normal" | "mix_match";
+  pricing_tiers?: PricingTier[];
+  mix_options?: string[];
+  mix_inventory?: Record<string, number>;
+  mix_attribute_label?: string;
 }) => request<ApiProduct>("/products", { method: "POST", body: JSON.stringify(body) }).then(toProduct);
 
 export const updateProduct = (id: string, body: Partial<{

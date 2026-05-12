@@ -57,20 +57,30 @@ router.get("/products/:id", async (req, res) => {
 });
 
 router.post("/products", async (req, res) => {
-  const { store_id, name, price, description, image_url, image_urls, category, units, sale_price, variants } = req.body;
-  if (!store_id || !name || !price) {
-    return res.status(400).json({ error: "store_id, name, and price are required" });
+  const {
+    store_id, name, price, description, image_url, image_urls, category, units, sale_price, variants,
+    product_type, pricing_tiers, mix_options, mix_inventory, mix_attribute_label,
+  } = req.body;
+  if (!store_id || !name) {
+    return res.status(400).json({ error: "store_id and name are required" });
   }
   const primaryUrl = (image_urls && image_urls.length > 0) ? image_urls[0] : (image_url ?? "");
   const productData: Record<string, unknown> = {
-    store_id, name, price, description: description ?? "",
+    store_id, name, price: price ?? 0, description: description ?? "",
     image_url: primaryUrl,
     image_urls: image_urls ?? (primaryUrl ? [primaryUrl] : []),
     category: category ?? "",
     units: units ?? 0,
+    product_type: product_type ?? "normal",
     created_at: FieldValue.serverTimestamp(),
   };
   if (sale_price != null && Number(sale_price) > 0) productData.sale_price = Number(sale_price);
+  if (product_type === "mix_match") {
+    if (Array.isArray(pricing_tiers)) productData.pricing_tiers = pricing_tiers;
+    if (Array.isArray(mix_options)) productData.mix_options = mix_options;
+    if (mix_inventory && typeof mix_inventory === "object") productData.mix_inventory = mix_inventory;
+    if (mix_attribute_label) productData.mix_attribute_label = mix_attribute_label;
+  }
   const ref = await db.collection("products").add(productData);
 
   if (variants && Array.isArray(variants) && variants.length > 0) {

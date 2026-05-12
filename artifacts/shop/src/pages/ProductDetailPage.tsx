@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, getSubdomainSlug, getProductDetail } from "@/lib/api";
-import type { Product, Review } from "@/lib/api";
+import type { Product, Review, MixCartData } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
 import { pdCache, PD_CACHE_TTL } from "@/lib/product-cache";
 import { useCart } from "@/contexts/CartContext";
@@ -519,6 +519,177 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
+/* ── Mix & Match buyer UI ─────────────────────────────── */
+function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPayment }: {
+  product: Product;
+  storeWhatsapp: string;
+  storeSlug: string;
+  storeId: string;
+  hasPayment: boolean;
+}) {
+  const onSubdomain = !!getSubdomainSlug();
+  const cartPath = onSubdomain ? "/cart" : `/store/${storeSlug}/cart`;
+  const { addMixItem, totalItems } = useCart();
+  const { toast } = useToast();
+
+  const tiers = [...(product.pricingTiers ?? [])].sort((a, b) => a.quantity - b.quantity);
+  const options = product.mixOptions ?? [];
+  const inventory = product.mixInventory ?? {};
+  const attrLabel = product.mixAttributeLabel || "Options";
+
+  const [selectedTier, setSelectedTier] = useState<{ quantity: number; price: number } | null>(null);
+  const [composition, setComposition] = useState<Record<string, number>>({});
+  const [addedToCart, setAddedToCart] = useState(false);
+
+  const totalSelected = Object.values(composition).reduce((s, n) => s + n, 0);
+  const tierQty = selectedTier?.quantity ?? 0;
+  const remaining = tierQty - totalSelected;
+  const isComplete = selectedTier !== null && remaining === 0;
+
+  const selectTier = (tier: { quantity: number; price: number }) => {
+    setSelectedTier(tier);
+    setComposition({});
+  };
+
+  const adjust = (option: string, delta: number) => {
+    const current = composition[option] ?? 0;
+    const stock = inventory[option] ?? 0;
+    if (delta > 0 && remaining <= 0) return;
+    if (delta > 0 && current >= stock) return;
+    if (delta < 0 && current <= 0) return;
+    setComposition(prev => ({ ...prev, [option]: current + delta }));
+  };
+
+  const handleAddToCart = () => {
+    if (!isComplete || !selectedTier) return;
+    const comp = options
+      .map(opt => ({ option: opt, qty: composition[opt] ?? 0 }))
+      .filter(c => c.qty > 0);
+    const mixData: MixCartData = { selectedTier, composition: comp };
+    addMixItem(product, storeId, storeSlug, mixData);
+    setAddedToCart(true);
+    toast({ title: "Pack added to cart!", description: `${product.name} added. Tap the cart to checkout.` });
+    setTimeout(() => setAddedToCart(false), 2000);
+  };
+
+  const handleWhatsApp = () => {
+    if (!storeWhatsapp) return;
+    const tierText = selectedTier
+      ? `Pack of ${selectedTier.quantity} @ \u20b9${selectedTier.price}`
+      : "No pack selected";
+    const compText = isComplete
+      ? options.filter(o => (composition[o] ?? 0) > 0).map(o => `${o} \u00d7${composition[o]}`).join(", ")
+      : "Not customized yet";
+    const message = `Hello \ud83d\udc4b,\n\nI want to order:\n\ud83d\uded2 Product: ${product.name}\n\ud83d\udce6 Pack: ${tierText}\n\ud83c\udfa8 Mix: ${compText}\n\n\ud83d\udd17 Link: ${window.location.href}\n\nPlease confirm availability!`;
+    const number = storeWhatsapp.replace(/[^0-9]/g, "");
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank");
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Step 1: Tier selector */}
+      <div>
+        <p className="text-sm font-semibold mb-3">Step 1: Choose a Pack</p>
+        <div className="flex flex-wrap gap-2">
+          {tiers.map(tier => (
+            <button key={tier.quantity} type="button" onClick={() => selectTier(tier)}
+              className={`flex flex-col items-center px-5 py-3 rounded-2xl border-2 transition-all ${
+                selectedTier?.quantity === tier.quantity
+                  ? "border-primary bg-primary/10 text-primary shadow-sm"
+                  : "border-border bg-background hover:border-primary/50"
+              }`}>
+              <span className="font-bold text-base">{tier.quantity} pc{tier.quantity !== 1 ? "s" : ""}</span>
+              <span className="text-sm font-semibold mt-0.5">&#8377;{tier.price.toLocaleString("en-IN")}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Step 2: Composition */}
+      {selectedTier && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold">Step 2: Choose Your {attrLabel}</p>
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+              isComplete
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-muted text-muted-foreground"
+            }`}>
+              {remaining > 0 ? `${remaining} more to add` : "Pack complete!"}
+            </span>
+          </div>
+          <div className="border rounded-2xl overflow-hidden">
+            {options.map((option, idx) => {
+              const qty = composition[option] ?? 0;
+              const stock = inventory[option] ?? 0;
+              const canAdd = remaining > 0 && qty < stock;
+              return (
+                <div key={option}
+                  className={`flex items-center gap-3 px-4 py-3 ${idx < options.length - 1 ? "border-b" : ""}`}>
+                  <span className="flex-1 text-sm font-medium">{option}</span>
+                  <span className="text-xs text-muted-foreground w-14 text-right shrink-0">
+                    {stock} avail
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" onClick={() => adjust(option, -1)} disabled={qty === 0}
+                      className="w-8 h-8 rounded-full border flex items-center justify-center text-base font-bold transition-colors hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
+                      &#8722;
+                    </button>
+                    <span className="w-6 text-center text-sm font-bold tabular-nums">{qty}</span>
+                    <button type="button" onClick={() => adjust(option, 1)} disabled={!canAdd}
+                      className="w-8 h-8 rounded-full border flex items-center justify-center text-base font-bold transition-colors hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
+                      &#43;
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1.5">
+            {totalSelected} / {tierQty} selected &bull; &#8377;{selectedTier.price.toLocaleString("en-IN")} per pack
+          </p>
+        </div>
+      )}
+
+      {/* CTA buttons */}
+      <div className="flex gap-3">
+        {hasPayment && (
+          <Button variant="outline"
+            className="flex-1 h-14 text-base rounded-xl border-2 font-semibold gap-2"
+            onClick={handleAddToCart}
+            disabled={!isComplete}
+            data-testid="btn-add-to-cart">
+            <ShoppingBag className={`h-5 w-5 ${addedToCart ? "fill-primary" : ""}`} />
+            {addedToCart ? "Added!" : "Add to Cart"}
+          </Button>
+        )}
+        <Button
+          className={`${hasPayment ? "flex-1" : "w-full"} h-14 text-base rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent gap-2 font-semibold`}
+          onClick={handleWhatsApp}
+          data-testid="btn-order-whatsapp">
+          <MessageCircle className="h-5 w-5" />
+          {hasPayment ? "WhatsApp" : "Order on WhatsApp"}
+        </Button>
+      </div>
+
+      {/* View Cart pill */}
+      {hasPayment && storeSlug && totalItems > 0 && (
+        <Link href={cartPath}
+          className="flex items-center justify-between gap-3 bg-primary/10 hover:bg-primary/15 border border-primary/30 rounded-2xl px-4 py-2.5 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-semibold text-primary">View Cart</span>
+            <span className="bg-primary text-primary-foreground text-[10px] font-extrabold px-1.5 py-0.5 rounded-full leading-none">
+              {totalItems}
+            </span>
+          </div>
+          <ArrowLeft className="h-3.5 w-3.5 text-primary rotate-180 shrink-0" />
+        </Link>
+      )}
+    </div>
+  );
+}
+
 /* ── Buyer (public) view ──────────────────────────────── */
 function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relatedProducts, hasPayment }: {
   product: Product;
@@ -707,123 +878,162 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
-              {(() => {
-                const hasSale = product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
-                const displayPrice = hasSale ? product.salePrice! : product.price;
-                const savings = hasSale ? product.price - product.salePrice! : 0;
-                const discountPct = hasSale ? Math.round((product.price - product.salePrice!) / product.price * 100) : 0;
-                return (
-                  <div className="space-y-1">
-                    <div className="flex items-baseline gap-3 flex-wrap">
-                      <span className="text-3xl font-extrabold text-primary">
-                        ₹{displayPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                      </span>
-                      {hasSale && (
-                        <>
-                          <span className="text-lg text-muted-foreground line-through">
-                            MRP ₹{product.price.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                          </span>
-                          <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
-                            {discountPct}% OFF
-                          </span>
-                        </>
+              {product.productType === "mix_match" ? (
+                /* Mix & Match: show starting price from lowest tier */
+                (() => {
+                  const sorted = [...(product.pricingTiers ?? [])].sort((a, b) => a.quantity - b.quantity);
+                  const min = sorted[0];
+                  if (!min) return null;
+                  return (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Starting from</p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-extrabold text-primary">
+                          &#8377;{min.price.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          / {min.quantity} pc{min.quantity !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      {sorted.length > 1 && (
+                        <p className="text-xs text-muted-foreground">
+                          {sorted.map(t => `${t.quantity} pcs @ &#8377;${t.price}`).join(" &bull; ")}
+                        </p>
                       )}
                     </div>
-                    {hasSale && (
-                      <p className="text-sm font-semibold text-green-600">
-                        You save ₹{savings.toLocaleString("en-IN", { maximumFractionDigits: 0 })} on this order
-                      </p>
-                    )}
-                    {!hasSale && (
-                      <p className="text-xs text-muted-foreground">MRP ₹{product.price.toLocaleString("en-IN")}</p>
-                    )}
-                  </div>
-                );
-              })()}
+                  );
+                })()
+              ) : (
+                /* Normal product: existing price display */
+                (() => {
+                  const hasSale = product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
+                  const displayPrice = hasSale ? product.salePrice! : product.price;
+                  const savings = hasSale ? product.price - product.salePrice! : 0;
+                  const discountPct = hasSale ? Math.round((product.price - product.salePrice!) / product.price * 100) : 0;
+                  return (
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-3 flex-wrap">
+                        <span className="text-3xl font-extrabold text-primary">
+                          &#8377;{displayPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        </span>
+                        {hasSale && (
+                          <>
+                            <span className="text-lg text-muted-foreground line-through">
+                              MRP &#8377;{product.price.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                            </span>
+                            <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+                              {discountPct}% OFF
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {hasSale && (
+                        <p className="text-sm font-semibold text-green-600">
+                          You save &#8377;{savings.toLocaleString("en-IN", { maximumFractionDigits: 0 })} on this order
+                        </p>
+                      )}
+                      {!hasSale && (
+                        <p className="text-xs text-muted-foreground">MRP &#8377;{product.price.toLocaleString("en-IN")}</p>
+                      )}
+                    </div>
+                  );
+                })()
+              )}
               {localReviews.length > 0 && (
                 <div className="flex items-center gap-1.5 mt-2">
                   <StarRating value={Math.round(avgRating)} size="sm" />
                   <span className="text-sm text-muted-foreground">
-                    {avgRating.toFixed(1)} · {localReviews.length} review{localReviews.length !== 1 ? "s" : ""}
+                    {avgRating.toFixed(1)} &middot; {localReviews.length} review{localReviews.length !== 1 ? "s" : ""}
                   </span>
                 </div>
               )}
             </div>
             <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">{product.description}</p>
 
-            {product.variants && product.variants.length > 0 && (
-              <div className="space-y-4" data-testid="variants-section">
-                {product.variants.map(variant => (
-                  <div key={variant.label}>
-                    <p className="text-sm font-semibold mb-2">
-                      {variant.label}
-                      {selectedVariants[variant.label] && (
-                        <span className="ml-2 font-normal text-muted-foreground">— {selectedVariants[variant.label]}</span>
-                      )}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {variant.values.map(value => {
-                        const isSelected = selectedVariants[variant.label] === value;
-                        return (
-                          <button key={value} type="button" onClick={() => handleSelectVariant(variant.label, value)}
-                            className={`h-9 px-4 rounded-full border text-sm font-medium transition-all ${isSelected
-                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                              : "bg-background text-foreground border-border hover:border-primary/60 hover:bg-muted/50"}`}>
-                            {value}
-                          </button>
-                        );
-                      })}
-                    </div>
+            {product.productType === "mix_match" ? (
+              <MixMatchBuyerView
+                product={product}
+                storeWhatsapp={storeWhatsapp}
+                storeSlug={storeSlug}
+                storeId={storeId}
+                hasPayment={hasPayment}
+              />
+            ) : (
+              <>
+                {product.variants && product.variants.length > 0 && (
+                  <div className="space-y-4" data-testid="variants-section">
+                    {product.variants.map(variant => (
+                      <div key={variant.label}>
+                        <p className="text-sm font-semibold mb-2">
+                          {variant.label}
+                          {selectedVariants[variant.label] && (
+                            <span className="ml-2 font-normal text-muted-foreground">&mdash; {selectedVariants[variant.label]}</span>
+                          )}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {variant.values.map(value => {
+                            const isSelected = selectedVariants[variant.label] === value;
+                            return (
+                              <button key={value} type="button" onClick={() => handleSelectVariant(variant.label, value)}
+                                className={`h-9 px-4 rounded-full border text-sm font-medium transition-all ${isSelected
+                                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                  : "bg-background text-foreground border-border hover:border-primary/60 hover:bg-muted/50"}`}>
+                                {value}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                )}
 
-            {product.units === 0 && (
-              <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 rounded-xl px-4 py-3 border border-amber-200 dark:border-amber-800">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>This item is currently out of stock. You can still message the seller.</span>
-              </div>
-            )}
+                {product.units === 0 && (
+                  <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 rounded-xl px-4 py-3 border border-amber-200 dark:border-amber-800">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>This item is currently out of stock. You can still message the seller.</span>
+                  </div>
+                )}
 
-            <div className="flex gap-3">
-              {hasPayment && (
-                <Button
-                  variant="outline"
-                  className="flex-1 h-14 text-base rounded-xl border-2 font-semibold gap-2"
-                  onClick={handleAddToCart}
-                  disabled={product.units === 0}
-                  data-testid="btn-add-to-cart"
-                >
-                  <ShoppingBag className={`h-5 w-5 ${addedToCart ? "fill-primary" : ""}`} />
-                  {addedToCart ? "Added!" : "Add to Cart"}
-                </Button>
-              )}
-              <Button
-                className={`${hasPayment ? "flex-1" : "w-full"} h-14 text-base rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent gap-2 font-semibold`}
-                onClick={handleOrder}
-                data-testid="btn-order-whatsapp"
-              >
-                <MessageCircle className="h-5 w-5" />
-                {hasPayment ? "WhatsApp" : "Order on WhatsApp"}
-              </Button>
-            </div>
-
-            {/* View Cart pill — only when store has payment and items in cart */}
-            {hasPayment && storeSlug && totalItems > 0 && (
-              <Link
-                href={cartPath}
-                className="flex items-center justify-between gap-3 bg-primary/10 hover:bg-primary/15 border border-primary/30 rounded-2xl px-4 py-2.5 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
-              >
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4 text-primary shrink-0" />
-                  <span className="text-sm font-semibold text-primary">View Cart</span>
-                  <span className="bg-primary text-primary-foreground text-[10px] font-extrabold px-1.5 py-0.5 rounded-full leading-none">
-                    {totalItems}
-                  </span>
+                <div className="flex gap-3">
+                  {hasPayment && (
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-14 text-base rounded-xl border-2 font-semibold gap-2"
+                      onClick={handleAddToCart}
+                      disabled={product.units === 0}
+                      data-testid="btn-add-to-cart"
+                    >
+                      <ShoppingBag className={`h-5 w-5 ${addedToCart ? "fill-primary" : ""}`} />
+                      {addedToCart ? "Added!" : "Add to Cart"}
+                    </Button>
+                  )}
+                  <Button
+                    className={`${hasPayment ? "flex-1" : "w-full"} h-14 text-base rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent gap-2 font-semibold`}
+                    onClick={handleOrder}
+                    data-testid="btn-order-whatsapp"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    {hasPayment ? "WhatsApp" : "Order on WhatsApp"}
+                  </Button>
                 </div>
-                <ArrowLeft className="h-3.5 w-3.5 text-primary rotate-180 shrink-0" />
-              </Link>
+
+                {hasPayment && storeSlug && totalItems > 0 && (
+                  <Link
+                    href={cartPath}
+                    className="flex items-center justify-between gap-3 bg-primary/10 hover:bg-primary/15 border border-primary/30 rounded-2xl px-4 py-2.5 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShoppingCart className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-sm font-semibold text-primary">View Cart</span>
+                      <span className="bg-primary text-primary-foreground text-[10px] font-extrabold px-1.5 py-0.5 rounded-full leading-none">
+                        {totalItems}
+                      </span>
+                    </div>
+                    <ArrowLeft className="h-3.5 w-3.5 text-primary rotate-180 shrink-0" />
+                  </Link>
+                )}
+              </>
             )}
           </div>
         </div>

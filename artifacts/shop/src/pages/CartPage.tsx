@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCart } from "@/contexts/CartContext";
+import type { CartItem } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, verifyAdvizePayment } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
@@ -23,14 +24,17 @@ interface BuyerInfo {
   pincode: string;
 }
 
-function itemPrice(item: { product: { price: number; salePrice?: number }; quantity: number }) {
+function itemPrice(item: CartItem) {
+  if (item.mixData) return item.mixData.selectedTier.price * item.quantity;
   const p = item.product;
   const unit = (p.salePrice != null && p.salePrice > 0 && p.salePrice < p.price)
     ? p.salePrice : p.price;
   return unit * item.quantity;
 }
 
-function unitPrice(p: { price: number; salePrice?: number }) {
+function unitPrice(item: CartItem) {
+  if (item.mixData) return item.mixData.selectedTier.price;
+  const p = item.product;
   return (p.salePrice != null && p.salePrice > 0 && p.salePrice < p.price)
     ? p.salePrice : p.price;
 }
@@ -81,9 +85,13 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   /* ── WhatsApp order (no payment) ── */
   const handleWhatsAppOrder = (extraInfo?: string) => {
     if (!store?.whatsapp) return;
-    const lines = items.map(item =>
-      `• ${item.product.name} × ${item.quantity} — ₹${itemPrice(item).toLocaleString("en-IN")}`
-    );
+    const lines = items.map(item => {
+      if (item.mixData) {
+        const comp = item.mixData.composition.map(c => `${c.option} \u00d7${c.qty}`).join(", ");
+        return `\u2022 ${item.product.name} \u00d7${item.quantity} pack${item.quantity !== 1 ? "s" : ""} (Pack of ${item.mixData.selectedTier.quantity}) \u2014 \u20b9${itemPrice(item).toLocaleString("en-IN")}\n  Mix: ${comp}`;
+      }
+      return `\u2022 ${item.product.name} \u00d7 ${item.quantity} \u2014 \u20b9${itemPrice(item).toLocaleString("en-IN")}`;
+    });
     const info = extraInfo ?? "";
     const deliveryLine = deliveryCharge > 0
       ? `\n🚚 Delivery: ₹${deliveryCharge.toLocaleString("en-IN")}`
@@ -119,7 +127,8 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           productId: i.product.id,
           name: i.product.name,
           quantity: i.quantity,
-          price: unitPrice(i.product),
+          price: unitPrice(i),
+          ...(i.mixData ? { mixData: i.mixData } : {}),
         })),
         buyer,
         slug,
@@ -162,7 +171,8 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 productId: i.product.id,
                 name: i.product.name,
                 quantity: i.quantity,
-                price: unitPrice(i.product),
+                price: unitPrice(i),
+                ...(i.mixData ? { mixData: i.mixData } : {}),
               })),
               buyer,
             });
@@ -241,7 +251,8 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                   productId: i.product.id,
                   name: i.product.name,
                   quantity: i.quantity,
-                  price: unitPrice(i.product),
+                  price: unitPrice(i),
+                  ...(i.mixData ? { mixData: i.mixData } : {}),
                 })),
                 buyer,
               }).catch(() => {}); // fire-and-forget — don't block success screen
@@ -479,17 +490,29 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
         {/* Cart items */}
         <div className="space-y-3 mb-4">
           {items.map(item => {
-            const unit = unitPrice(item.product);
+            const unit = unitPrice(item);
+            const isMix = !!item.mixData;
             return (
-              <div key={item.product.id} className="bg-card border rounded-2xl p-3 flex gap-3 items-center shadow-sm">
+              <div key={item.product.id} className="bg-card border rounded-2xl p-3 flex gap-3 shadow-sm">
                 <img
                   src={item.product.imageUrl}
                   alt={item.product.name}
-                  className="w-16 h-16 rounded-xl object-cover shrink-0 bg-muted"
+                  className="w-16 h-16 rounded-xl object-cover shrink-0 bg-muted self-start"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">{item.product.name}</p>
-                  <p className="text-sm font-extrabold text-primary mt-0.5">₹{unit.toLocaleString("en-IN")}</p>
+                  {isMix ? (
+                    <>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Pack of {item.mixData!.selectedTier.quantity} &bull; &#8377;{unit.toLocaleString("en-IN")}/pack
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                        {item.mixData!.composition.map(c => `${c.option} \u00d7${c.qty}`).join(", ")}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm font-extrabold text-primary mt-0.5">&#8377;{unit.toLocaleString("en-IN")}</p>
+                  )}
                   <div className="flex items-center gap-2 mt-2">
                     <button
                       className="w-7 h-7 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors"
@@ -504,13 +527,13 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                     >
                       <Plus className="h-3 w-3" />
                     </button>
-                    <span className="ml-auto text-xs font-semibold text-muted-foreground">
-                      ₹{itemPrice(item).toLocaleString("en-IN")}
+                    <span className="ml-auto text-xs font-semibold text-muted-foreground shrink-0">
+                      &#8377;{itemPrice(item).toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
                 <button
-                  className="w-8 h-8 rounded-full hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 flex items-center justify-center transition-colors shrink-0 text-muted-foreground"
+                  className="w-8 h-8 rounded-full hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 flex items-center justify-center transition-colors shrink-0 text-muted-foreground self-start"
                   onClick={() => removeItem(item.product.id)}
                 >
                   <Trash2 className="h-4 w-4" />
