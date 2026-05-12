@@ -7,6 +7,10 @@ import { cacheDeleteByPrefix } from "../lib/cache.js";
 
 const router = Router();
 
+// ── Global kill-switch ────────────────────────────────────────────────────────
+// Set to true to re-enable Advize payments across all stores.
+const ADVIZE_PAYMENTS_ENABLED = false;
+
 function getPlatformInstance(): Razorpay | null {
   const key_id = process.env.RAZORPAY_KEY_ID;
   const key_secret = process.env.RAZORPAY_KEY_SECRET;
@@ -15,6 +19,9 @@ function getPlatformInstance(): Razorpay | null {
 }
 
 router.post("/advize-pay/create-order", async (req, res) => {
+  if (!ADVIZE_PAYMENTS_ENABLED) {
+    return res.status(503).json({ error: "Advize Payment is temporarily unavailable" });
+  }
   try {
     const { store_id, amount_paise, items, buyer, slug } = req.body as {
       store_id: string;

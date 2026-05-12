@@ -1159,8 +1159,8 @@ export function ProductDetailPage() {
         setStoreId(payload.store.id ?? "");
         setStoreHasPayment(!!(
           payload.store.razorpay_account_id ||
-          payload.store.razorpay_key_id ||
-          payload.store.advize_payment_enabled
+          payload.store.razorpay_key_id
+          // advize_payment_enabled excluded — Advize payments temporarily disabled
         ));
         setRelatedProducts(payload.relatedProducts);
       }

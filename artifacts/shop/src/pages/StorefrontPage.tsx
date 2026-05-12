@@ -495,7 +495,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
             </div>
 
             {/* Right: my orders + cart icons (only shown when payment is set up) */}
-            {(store.razorpay_account_id || store.razorpay_key_id || store.advize_payment_enabled) ? (
+            {(store.razorpay_account_id || store.razorpay_key_id /* store.advize_payment_enabled excluded — temporarily disabled */) ? (
               <div className="ml-auto flex items-center gap-1">
                 <Link
                   href={onSubdomain ? "/orders" : `/store/${slug}/orders`}
