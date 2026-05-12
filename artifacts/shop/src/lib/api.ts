@@ -221,6 +221,12 @@ export const getProductDetail = (id: string) =>
     relatedProducts: r.relatedProducts.map(toProduct),
   }));
 
+/** Deferred related-products loader — called after main content renders. */
+export const getRelatedProducts = (id: string) =>
+  request<{ relatedProducts: ApiProduct[] }>(`/product-related/${id}`)
+    .then(r => r.relatedProducts.map(toProduct))
+    .catch(() => [] as Product[]);
+
 export const createProduct = (body: {
   store_id: string;
   name: string;

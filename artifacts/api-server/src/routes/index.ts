@@ -13,6 +13,7 @@ import payoutsRouter from "./payouts";
 import sitemapRouter from "./sitemap";
 import storefrontRouter from "./storefront";
 import productDetailRouter from "./product-detail";
+import productRelatedRouter from "./product-related";
 import instagramRouter from "./instagram";
 
 const router: IRouter = Router();
@@ -23,6 +24,7 @@ router.use(authRouter);
 // is matched before /stores/:slug
 router.use(storefrontRouter);
 router.use(productDetailRouter);
+router.use(productRelatedRouter);
 router.use(storesRouter);
 router.use(productsRouter);
 router.use(reviewsRouter);

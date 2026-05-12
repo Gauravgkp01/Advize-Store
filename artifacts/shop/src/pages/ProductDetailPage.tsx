@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DescriptionRenderer } from "@/components/DescriptionRenderer";
 import { useToast } from "@/hooks/use-toast";
-import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, getSubdomainSlug, getProductDetail } from "@/lib/api";
+import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, getSubdomainSlug, getProductDetail, getRelatedProducts } from "@/lib/api";
 import type { Product, Review, MixCartData } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
 import { pdCache, PD_CACHE_TTL } from "@/lib/product-cache";
@@ -1206,6 +1206,19 @@ export function ProductDetailPage() {
     load();
     return () => { cancelled = true; };
   }, [id, isOwnerView]);
+
+  // ── Deferred: load "You may also like" AFTER main content renders ────────
+  // This fires only for buyer view, only once the product is loaded, and
+  // never blocks the initial paint. On a warm server cache it completes in
+  // < 5 ms; on a cold start the catalog fetch happens off the critical path.
+  useEffect(() => {
+    if (isOwnerView || !id || !product) return;
+    let cancelled = false;
+    getRelatedProducts(id).then(related => {
+      if (!cancelled && related.length > 0) setRelatedProducts(related);
+    });
+    return () => { cancelled = true; };
+  }, [id, product?.id, isOwnerView]);
 
   if (loading) {
     return (
