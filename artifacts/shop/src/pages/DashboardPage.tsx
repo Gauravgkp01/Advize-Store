@@ -1473,6 +1473,12 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
                             Once KYC is approved, Razorpay automatically settles payments to your bank account every business day (T+2 settlement cycle).
                           </p>
                         </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-base leading-none mt-0.5">💸</span>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed">
+                            <span className="font-semibold text-foreground">Transaction fee:</span> Razorpay charges <strong>2% per transaction</strong> (+ GST). This is deducted automatically before the amount is settled to your bank — you receive the rest.
+                          </p>
+                        </div>
                       </div>
                     </div>
 
