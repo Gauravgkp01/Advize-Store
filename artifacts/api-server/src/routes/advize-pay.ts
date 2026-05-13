@@ -9,7 +9,7 @@ const router = Router();
 
 // ── Global kill-switch ────────────────────────────────────────────────────────
 // Set to true to re-enable Advize payments across all stores.
-const ADVIZE_PAYMENTS_ENABLED = false;
+const ADVIZE_PAYMENTS_ENABLED = true;
 
 function getPlatformInstance(): Razorpay | null {
   const key_id = process.env.RAZORPAY_KEY_ID;

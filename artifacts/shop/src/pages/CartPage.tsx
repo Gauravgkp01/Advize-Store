@@ -77,7 +77,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
 
 
   const hasRazorpay = !!(store?.razorpay_account_id || store?.razorpay_key_id);
-  const hasAdvize   = false; // Advize payments temporarily disabled
+  const hasAdvize   = !!(store?.advize_payment_enabled);
   const hasPayment  = hasAdvize || hasRazorpay;
   const deliveryCharge = store?.delivery_charge ?? 0;
   const grandTotal = totalPrice + deliveryCharge;
