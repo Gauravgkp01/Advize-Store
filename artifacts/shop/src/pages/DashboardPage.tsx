@@ -1377,65 +1377,102 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
                     </div>
 
                     {/* Step guide */}
-                    <div className="space-y-2">
+                    <div className="space-y-3">
 
-                      {/* Don't have an account? */}
+                      {/* No account yet banner */}
                       <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5 flex items-start gap-2">
                         <span className="text-base leading-none mt-0.5">💡</span>
                         <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
-                          Don't have a Razorpay account yet?{" "}
-                          <a href="https://dashboard.razorpay.com/signup" target="_blank" rel="noopener noreferrer"
-                            className="font-bold underline underline-offset-2">
-                            Sign up free at razorpay.com
-                          </a>
-                          {" "}— it takes about 5 minutes. You'll need your PAN and bank account details for KYC.
+                          No Razorpay account yet?{" "}
+                          <a href="https://dashboard.razorpay.com/signup" target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-2">
+                            Create a free account at razorpay.com
+                          </a>{" "}
+                          — registration takes about 5 minutes.
                         </p>
                       </div>
 
-                      {/* Steps */}
-                      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3 space-y-3">
-                        <p className="text-xs font-bold text-blue-700 dark:text-blue-300">How to get your API keys from Razorpay:</p>
+                      {/* Step-by-step */}
+                      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-3.5 space-y-4">
+                        <p className="text-xs font-bold text-blue-800 dark:text-blue-200 tracking-wide uppercase">How to connect Razorpay — step by step</p>
 
-                        <div className="flex gap-2.5 items-start">
-                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">1</span>
-                          <p className="text-[11px] text-blue-700 dark:text-blue-400 leading-relaxed">
-                            Log in to your Razorpay account and go to{" "}
-                            <a href="https://dashboard.razorpay.com/app/keys" target="_blank" rel="noopener noreferrer"
-                              className="font-bold underline underline-offset-2">
-                              Settings → API Keys
-                            </a>
-                          </p>
-                        </div>
-
-                        <div className="flex gap-2.5 items-start">
-                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">2</span>
-                          <div className="text-[11px] text-blue-700 dark:text-blue-400 leading-relaxed space-y-1">
-                            <p>Click <strong>Generate Test Key</strong> if you want to test payments first (no real money), or <strong>Generate Live Key</strong> when you're ready to accept real payments from customers.</p>
-                            <p className="text-[10px] opacity-75">Test keys start with <span className="font-mono font-bold">rzp_test_</span> and live keys start with <span className="font-mono font-bold">rzp_live_</span></p>
+                        {/* Step 1 */}
+                        <div className="flex gap-3 items-start">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">1</span>
+                          <div className="text-[11px] text-blue-800 dark:text-blue-300 leading-relaxed space-y-0.5">
+                            <p className="font-semibold">Sign up or log in to Razorpay</p>
+                            <p>Go to{" "}
+                              <a href="https://dashboard.razorpay.com/signup" target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-2">razorpay.com/signup</a>
+                              {" "}and create your merchant account. Use your business email and verify it.
+                            </p>
                           </div>
                         </div>
 
-                        <div className="flex gap-2.5 items-start">
-                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">3</span>
-                          <p className="text-[11px] text-blue-700 dark:text-blue-400 leading-relaxed">
-                            A popup will show your <strong>Key ID</strong> and <strong>Key Secret</strong>. Copy both and paste them into the fields below. <strong>Save the secret now</strong> — Razorpay only shows it once.
-                          </p>
+                        {/* Step 2 */}
+                        <div className="flex gap-3 items-start">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">2</span>
+                          <div className="text-[11px] text-blue-800 dark:text-blue-300 leading-relaxed space-y-0.5">
+                            <p className="font-semibold">Open Settings → API Keys</p>
+                            <p>Once logged in, click{" "}
+                              <a href="https://dashboard.razorpay.com/app/keys" target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-2">
+                                Settings → API Keys
+                              </a>
+                              {" "}in the left sidebar of your Razorpay dashboard.
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="flex gap-2.5 items-start">
-                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">4</span>
-                          <p className="text-[11px] text-blue-700 dark:text-blue-400 leading-relaxed">
-                            Paste both keys below and click <strong>Activate Razorpay</strong>. Your customers will immediately be able to pay with UPI, cards, and wallets — money goes directly to your Razorpay account.
-                          </p>
+                        {/* Step 3 */}
+                        <div className="flex gap-3 items-start">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">3</span>
+                          <div className="text-[11px] text-blue-800 dark:text-blue-300 leading-relaxed space-y-1">
+                            <p className="font-semibold">Generate your API keys</p>
+                            <p>Click <strong>"Generate Test Key"</strong> to try payments with dummy money first, or <strong>"Generate Live Key"</strong> to start collecting real payments.</p>
+                            <div className="flex gap-3 mt-1">
+                              <span className="bg-blue-100 dark:bg-blue-900/50 rounded-lg px-2 py-1 text-[10px]">
+                                Test: <span className="font-mono font-bold">rzp_test_...</span>
+                              </span>
+                              <span className="bg-green-100 dark:bg-green-900/50 rounded-lg px-2 py-1 text-[10px] text-green-800 dark:text-green-300">
+                                Live: <span className="font-mono font-bold">rzp_live_...</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Step 4 */}
+                        <div className="flex gap-3 items-start">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">4</span>
+                          <div className="text-[11px] text-blue-800 dark:text-blue-300 leading-relaxed space-y-0.5">
+                            <p className="font-semibold">Copy both keys from the popup</p>
+                            <p>Razorpay shows a popup with your <strong>Key ID</strong> and <strong>Key Secret</strong>. Copy them both immediately.</p>
+                            <p className="text-[10px] font-semibold text-red-600 dark:text-red-400 mt-1">⚠ The Key Secret is shown only once. If you close the popup without saving it, you will need to generate new keys.</p>
+                          </div>
+                        </div>
+
+                        {/* Step 5 */}
+                        <div className="flex gap-3 items-start">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mt-0.5">5</span>
+                          <div className="text-[11px] text-blue-800 dark:text-blue-300 leading-relaxed space-y-0.5">
+                            <p className="font-semibold">Paste below and activate</p>
+                            <p>Enter your Key ID and Key Secret in the fields below, then click <strong>Activate Razorpay</strong>. Customers can immediately pay via UPI, debit/credit cards, netbanking, and wallets — money goes directly to your Razorpay account.</p>
+                          </div>
                         </div>
                       </div>
 
-                      {/* KYC reminder for live */}
-                      <div className="bg-muted/60 rounded-xl px-3 py-2.5 flex items-start gap-2">
-                        <span className="text-base leading-none mt-0.5">🏦</span>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          To receive payouts to your bank, complete KYC on Razorpay (takes 1–2 business days). Until then, payments are held in your Razorpay balance.
-                        </p>
+                      {/* KYC + payout reminder */}
+                      <div className="bg-muted/50 border rounded-xl px-3 py-3 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-base leading-none mt-0.5">🏦</span>
+                          <div className="text-[11px] text-muted-foreground leading-relaxed">
+                            <p className="font-semibold text-foreground">Complete KYC to receive payouts</p>
+                            <p>Go to <strong>Razorpay Dashboard → Account &amp; Settings → Business Info</strong> and submit your PAN, GST (if applicable), and bank account details. KYC approval takes 1–2 business days. Until then, payments are collected but held in your Razorpay balance.</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-base leading-none mt-0.5">✅</span>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed">
+                            Once KYC is approved, Razorpay automatically settles payments to your bank account every business day (T+2 settlement cycle).
+                          </p>
+                        </div>
                       </div>
                     </div>
 
