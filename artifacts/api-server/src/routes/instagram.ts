@@ -105,7 +105,7 @@ router.get("/instagram/connect", (req, res) => {
   const params = new URLSearchParams({
     client_id:     META_APP_ID,
     redirect_uri:  CALLBACK_URL,
-    scope:         "instagram_manage_messages,instagram_basic",
+    scope:         "instagram_business_basic,instagram_business_manage_messages",
     response_type: "code",
     state:         storeId,
   });
