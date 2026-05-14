@@ -396,6 +396,20 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
                 <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full opacity-5 bg-white" />
                 <div className="absolute top-1/2 right-6 -translate-y-1/2 w-20 h-20 rounded-full opacity-5 bg-white" />
 
+                {/* Sticker decorations */}
+                <div className="absolute inset-0 pointer-events-none select-none overflow-hidden" style={{ zIndex: 5 }}>
+                  <span className="absolute top-2 right-3 text-3xl" style={{ transform: "rotate(14deg)", opacity: canRedeem ? 0.95 : 0.55 }}>🎁</span>
+                  <span className="absolute bottom-2 right-2 text-2xl" style={{ transform: "rotate(-10deg)", opacity: canRedeem ? 0.9 : 0.45 }}>🎉</span>
+                  <span className="absolute top-1/2 right-0 -translate-y-1/2 text-xl" style={{ transform: "translateY(-50%) rotate(8deg)", opacity: canRedeem ? 0.85 : 0.35 }}>✨</span>
+                  {canRedeem && (
+                    <>
+                      <span className="absolute top-1 left-1/2 text-2xl" style={{ transform: "translateX(-50%) rotate(-8deg)", opacity: 0.9 }}>🎊</span>
+                      <span className="absolute bottom-1 left-3 text-2xl" style={{ transform: "rotate(12deg)", opacity: 0.85 }}>🎈</span>
+                      <span className="absolute top-8 left-2 text-lg" style={{ transform: "rotate(-15deg)", opacity: 0.75 }}>⭐</span>
+                    </>
+                  )}
+                </div>
+
                 <div className="relative z-10 p-5 space-y-4">
                   {/* Header: logo + store name */}
                   <div className="flex items-center justify-between">
