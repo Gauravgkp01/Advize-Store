@@ -7,11 +7,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
-import { getStore, getLoyaltyCard, redeemLoyalty } from "@/lib/api";
+import { getStore, getLoyaltyCard, redeemLoyalty, getSubdomainSlug } from "@/lib/api";
 import type { Store as StoreType, LoyaltyCard } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const PHONE_KEY = "advize_customer_phone";
+
+// Stable — never changes within a page load
+const SUBDOMAIN_SLUG = getSubdomainSlug();
 
 /* ── Detect which store the visitor is browsing ────────────────────────── */
 function useVisitorStore() {
@@ -19,31 +22,33 @@ function useVisitorStore() {
   const { storeId: cartStoreId, storeSlug: cartSlug } = useCart();
   const [fetchedStore, setFetchedStore] = useState<StoreType | null>(null);
 
+  // Slug from URL path (/store/:slug/*) — works on main domain
   const urlSlug = useMemo(() => {
     const m = location.match(/^\/store\/([^/]+)/);
     return m?.[1] ?? null;
   }, [location]);
 
-  const isVisitorPage = !!urlSlug || !!cartStoreId;
+  // Effective slug: URL path wins, then subdomain, then nothing
+  const effectiveSlug = urlSlug ?? SUBDOMAIN_SLUG;
 
-  // Fetch the store whenever the URL slug changes and we don't already have it
+  const isVisitorPage = !!effectiveSlug || !!cartStoreId;
+
+  // Fetch store when we have a slug but don't already have its data
   useEffect(() => {
-    if (!urlSlug) return;
-    // Fast path: cart already knows this store
-    if (urlSlug === cartSlug && cartStoreId) return;
-    // Already fetched for this slug
-    if (fetchedStore?.slug === urlSlug) return;
-    getStore(urlSlug).then(setFetchedStore).catch(() => {});
-  }, [urlSlug, cartSlug, cartStoreId]);
+    if (!effectiveSlug) return;
+    if (effectiveSlug === cartSlug && cartStoreId) return; // cart already has it
+    if (fetchedStore?.slug === effectiveSlug) return;      // already fetched
+    getStore(effectiveSlug).then(setFetchedStore).catch(() => {});
+  }, [effectiveSlug, cartSlug, cartStoreId]);
 
-  // Resolve storeId: prefer cart (already loaded), fall back to fetched
-  const storeId: string | null = urlSlug
-    ? (urlSlug === cartSlug && cartStoreId
+  // Resolve storeId: cart fast-path → fetched → null
+  const storeId: string | null = effectiveSlug
+    ? (effectiveSlug === cartSlug && cartStoreId
         ? cartStoreId
-        : fetchedStore?.slug === urlSlug ? fetchedStore.id : null)
+        : fetchedStore?.slug === effectiveSlug ? fetchedStore.id : null)
     : cartStoreId;
 
-  // Resolve the store object for branding
+  // Resolve store branding — try fetched first, fall back to nothing
   const store: StoreType | null = fetchedStore ?? null;
 
   return { storeId, store, isVisitorPage };
@@ -61,10 +66,9 @@ export function MyOffersSheet() {
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
   const [redeeming, setRedeeming] = useState(false);
 
-  // Track whether we've auto-searched for the current open+storeId combination
   const autoSearchedRef = useRef(false);
 
-  // Auto-search when sheet opens (or when storeId resolves after opening)
+  // Auto-search when sheet opens, or when storeId resolves after opening
   useEffect(() => {
     if (!open) { autoSearchedRef.current = false; return; }
     if (!storeId) return;
@@ -119,21 +123,22 @@ export function MyOffersSheet() {
   const stampsRequired = loyaltyCard?.stamps_required ?? 10;
   const stampsEarned   = loyaltyCard?.stamps ?? 0;
   const canRedeem      = stampsEarned >= stampsRequired;
-  const progress       = Math.min(stampsEarned / stampsRequired, 1);
+  // When reward is ready, show ALL slots as filled gold stars
+  const progress       = canRedeem ? 1 : Math.min(stampsEarned / stampsRequired, 1);
   const storeName      = store?.name ?? "Your Store";
   const logoUrl        = store?.logo_url ?? "";
 
   return (
     <>
-      {/* Floating trigger pill */}
+      {/* Floating trigger pill — pulses when reward is ready */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 left-4 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-2xl font-semibold text-sm text-amber-900 select-none active:scale-95 transition-transform"
+        className={`fixed bottom-5 left-4 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-2xl font-semibold text-sm text-amber-900 select-none active:scale-95 transition-transform ${canRedeem && loyaltyCard ? "animate-bounce" : ""}`}
         style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}
         aria-label="My Offers"
       >
         <Gift className="w-4 h-4 shrink-0" />
-        My Offers
+        {canRedeem && loyaltyCard ? "Claim Reward! 🎉" : "My Offers"}
       </button>
 
       {/* Bottom sheet */}
@@ -201,6 +206,21 @@ export function MyOffersSheet() {
             {/* The Card */}
             {!loading && loyaltyCard?.enabled && (
               <div className="space-y-3">
+
+                {/* ── Reward unlocked banner ───────────────────────────── */}
+                {canRedeem && (
+                  <div className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                    style={{ background: "linear-gradient(135deg,#fef3c7,#fde68a)" }}>
+                    <span className="text-2xl">🎉</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-amber-900 font-bold text-sm leading-tight">Your reward is ready!</p>
+                      <p className="text-amber-800 text-xs mt-0.5 truncate">Tap below to claim: <strong>{loyaltyCard.reward}</strong></p>
+                    </div>
+                    <span className="text-2xl">🎁</span>
+                  </div>
+                )}
+
+                {/* ── The physical card ───────────────────────────────── */}
                 <div
                   className="relative overflow-hidden rounded-2xl shadow-xl"
                   style={{
@@ -233,11 +253,8 @@ export function MyOffersSheet() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {logoUrl ? (
-                          <img
-                            src={logoUrl}
-                            alt={storeName}
-                            className="w-11 h-11 rounded-full object-cover border-2 border-white/20 shadow-lg"
-                          />
+                          <img src={logoUrl} alt={storeName}
+                            className="w-11 h-11 rounded-full object-cover border-2 border-white/20 shadow-lg" />
                         ) : (
                           <div className="w-11 h-11 rounded-full bg-white/15 border-2 border-white/20 flex items-center justify-center shadow-lg">
                             <Store className="w-5 h-5 text-white/80" />
@@ -245,26 +262,30 @@ export function MyOffersSheet() {
                         )}
                         <div>
                           <p className="text-white font-bold text-base leading-tight tracking-wide">{storeName}</p>
-                          <p className="text-white/60 text-[10px] uppercase tracking-widest font-medium mt-0.5">Loyalty Card</p>
+                          <p className="text-white/60 text-[10px] uppercase tracking-widest font-medium mt-0.5">
+                            {canRedeem ? "🎉 Reward Unlocked!" : "Loyalty Card"}
+                          </p>
                         </div>
                       </div>
                       {canRedeem && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-900 px-2 py-1 rounded-full shadow">
-                          Reward Ready!
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-900 px-2 py-1 rounded-full shadow animate-pulse">
+                          Claim Now!
                         </span>
                       )}
                     </div>
 
-                    {/* Stamp grid */}
+                    {/* Stamp grid — all slots gold when canRedeem */}
                     <div className="flex flex-wrap gap-2">
                       {Array.from({ length: stampsRequired }).map((_, i) => {
-                        const filled = i < stampsEarned;
+                        const filled = canRedeem || i < stampsEarned;
                         return (
                           <div
                             key={i}
                             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
                               filled
-                                ? "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+                                ? canRedeem
+                                  ? "bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.7)]"
+                                  : "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
                                 : "bg-white/8 border border-white/20"
                             }`}
                           >
@@ -278,7 +299,7 @@ export function MyOffersSheet() {
                       })}
                     </div>
 
-                    {/* Progress bar */}
+                    {/* Progress bar — full when canRedeem */}
                     <div className="space-y-1.5">
                       <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                         <div
@@ -309,17 +330,17 @@ export function MyOffersSheet() {
                   </div>
                 </div>
 
-                {/* Redeem button */}
+                {/* Claim button — prominent when reward ready */}
                 {canRedeem && (
                   <Button
-                    className="w-full h-11 rounded-xl font-bold text-sm shadow-lg"
+                    className="w-full h-12 rounded-xl font-bold text-base shadow-xl"
                     style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)", color: "#1c1917", border: "none" }}
                     onClick={handleRedeem}
                     disabled={redeeming}
                   >
                     {redeeming
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <><Gift className="w-4 h-4 mr-2" />Claim Your Reward</>
+                      ? <Loader2 className="h-5 w-5 animate-spin" />
+                      : <><Gift className="w-5 h-5 mr-2" />Claim Your Reward</>
                     }
                   </Button>
                 )}

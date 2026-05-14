@@ -376,7 +376,8 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
           const stampsRequired = loyaltyCard.stamps_required ?? 10;
           const stampsEarned   = loyaltyCard.stamps ?? 0;
           const canRedeem      = stampsEarned >= stampsRequired;
-          const progress       = Math.min(stampsEarned / stampsRequired, 1);
+          // Full bar + all slots gold when reward is ready to claim
+          const progress       = canRedeem ? 1 : Math.min(stampsEarned / stampsRequired, 1);
           const storeName      = store?.name ?? "Your Store";
           const logoUrl        = store?.logo_url ?? "";
 
@@ -437,16 +438,18 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
                     )}
                   </div>
 
-                  {/* Stamp grid */}
+                  {/* Stamp grid — all slots gold when canRedeem */}
                   <div className="flex flex-wrap gap-2">
                     {Array.from({ length: stampsRequired }).map((_, i) => {
-                      const filled = i < stampsEarned;
+                      const filled = canRedeem || i < stampsEarned;
                       return (
                         <div
                           key={i}
                           className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
                             filled
-                              ? "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+                              ? canRedeem
+                                ? "bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.7)]"
+                                : "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
                               : "bg-white/8 border border-white/20"
                           }`}
                         >
