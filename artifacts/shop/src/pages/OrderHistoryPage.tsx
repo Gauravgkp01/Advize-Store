@@ -371,25 +371,6 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
           </div>
         )}
 
-        {/* Active orders */}
-        {!loading && activeOrders.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <p className="text-sm font-bold">Active Orders ({activeOrders.length})</p>
-            </div>
-            {activeOrders.map(o => <OrderCard key={o.id} order={o} />)}
-          </div>
-        )}
-
-        {/* Past orders */}
-        {!loading && pastOrders.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-sm font-bold text-muted-foreground">Past Orders ({pastOrders.length})</p>
-            {pastOrders.map(o => <OrderCard key={o.id} order={o} />)}
-          </div>
-        )}
-
         {/* Loyalty card */}
         {!loading && searched && loyaltyCard?.enabled && (() => {
           const stampsRequired = loyaltyCard.stamps_required ?? 10;
@@ -515,6 +496,25 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
             </div>
           );
         })()}
+
+        {/* Active orders */}
+        {!loading && activeOrders.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <p className="text-sm font-bold">Active Orders ({activeOrders.length})</p>
+            </div>
+            {activeOrders.map(o => <OrderCard key={o.id} order={o} />)}
+          </div>
+        )}
+
+        {/* Past orders */}
+        {!loading && pastOrders.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-sm font-bold text-muted-foreground">Past Orders ({pastOrders.length})</p>
+            {pastOrders.map(o => <OrderCard key={o.id} order={o} />)}
+          </div>
+        )}
       </div>
     </div>
   );
