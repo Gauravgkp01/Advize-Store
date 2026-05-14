@@ -243,9 +243,6 @@ function HomePanel({ products, analytics, store, orderStats, loading = false, on
           >
             <Gift className="h-3.5 w-3.5 mr-1" />Loyalty
           </Button>
-          <Button asChild size="sm" className="rounded-full shadow-sm text-xs" data-testid="btn-add-product">
-            <Link href="/add-product"><Plus className="h-3.5 w-3.5 mr-1" />Add Product</Link>
-          </Button>
         </div>
       </div>
 
@@ -743,9 +740,6 @@ function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct,
                 : `${filtered.length} of ${products.length} products`}
             </p>
           </div>
-          <Button asChild size="sm" className="rounded-full shadow-sm text-xs" data-testid="btn-add-product-listings">
-            <Link href="/add-product"><Plus className="h-3.5 w-3.5 mr-1" />Add New</Link>
-          </Button>
         </div>
 
         {/* Category filter pills */}
@@ -787,9 +781,6 @@ function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct,
             <Package className="h-12 w-12 mx-auto mb-3 opacity-20" />
             <p className="font-medium">No products yet</p>
             <p className="text-sm mt-1">Add your first product to get started!</p>
-            <Button asChild className="mt-4 rounded-full" size="sm">
-              <Link href="/add-product"><Plus className="h-3.5 w-3.5 mr-1" />Add Product</Link>
-            </Button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
