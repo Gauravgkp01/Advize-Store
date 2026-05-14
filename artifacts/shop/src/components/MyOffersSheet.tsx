@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { Gift, Star, Loader2, Phone, Store, Search } from "lucide-react";
 import {
@@ -17,7 +17,7 @@ const PHONE_KEY = "advize_customer_phone";
 function useVisitorStore() {
   const [location] = useLocation();
   const { storeId: cartStoreId, storeSlug: cartSlug } = useCart();
-  const [fetched, setFetched] = useState<StoreType | null>(null);
+  const [fetchedStore, setFetchedStore] = useState<StoreType | null>(null);
 
   const urlSlug = useMemo(() => {
     const m = location.match(/^\/store\/([^/]+)/);
@@ -26,23 +26,32 @@ function useVisitorStore() {
 
   const isVisitorPage = !!urlSlug || !!cartStoreId;
 
+  // Fetch the store whenever the URL slug changes and we don't already have it
   useEffect(() => {
     if (!urlSlug) return;
-    if (urlSlug === cartSlug) return;
-    if (fetched?.id && urlSlug === fetched?.whatsapp) return;
-    getStore(urlSlug).then(setFetched).catch(() => {});
-  }, [urlSlug]);
+    // Fast path: cart already knows this store
+    if (urlSlug === cartSlug && cartStoreId) return;
+    // Already fetched for this slug
+    if (fetchedStore?.slug === urlSlug) return;
+    getStore(urlSlug).then(setFetchedStore).catch(() => {});
+  }, [urlSlug, cartSlug, cartStoreId]);
 
-  const storeId = urlSlug
-    ? (urlSlug === cartSlug ? cartStoreId : fetched?.id ?? null)
+  // Resolve storeId: prefer cart (already loaded), fall back to fetched
+  const storeId: string | null = urlSlug
+    ? (urlSlug === cartSlug && cartStoreId
+        ? cartStoreId
+        : fetchedStore?.slug === urlSlug ? fetchedStore.id : null)
     : cartStoreId;
 
-  return { storeId, isVisitorPage, urlSlug };
+  // Resolve the store object for branding
+  const store: StoreType | null = fetchedStore ?? null;
+
+  return { storeId, store, isVisitorPage };
 }
 
 /* ── Main component ─────────────────────────────────────────────────────── */
 export function MyOffersSheet() {
-  const { storeId, isVisitorPage } = useVisitorStore();
+  const { storeId, store, isVisitorPage } = useVisitorStore();
   const { toast } = useToast();
 
   const [open, setOpen] = useState(false);
@@ -50,45 +59,43 @@ export function MyOffersSheet() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
-  const [store, setStore] = useState<StoreType | null>(null);
   const [redeeming, setRedeeming] = useState(false);
 
-  const { storeSlug: cartSlug } = useCart();
-  const [location] = useLocation();
-  const urlSlug = useMemo(() => {
-    const m = location.match(/^\/store\/([^/]+)/);
-    return m?.[1] ?? null;
-  }, [location]);
-  const slug = urlSlug ?? cartSlug ?? "";
+  // Track whether we've auto-searched for the current open+storeId combination
+  const autoSearchedRef = useRef(false);
 
+  // Auto-search when sheet opens (or when storeId resolves after opening)
   useEffect(() => {
-    if (!slug) return;
-    getStore(slug).then(setStore).catch(() => {});
-  }, [slug]);
-
-  // When sheet opens, auto-search if phone already saved
-  useEffect(() => {
-    if (!open) return;
+    if (!open) { autoSearchedRef.current = false; return; }
+    if (!storeId) return;
+    if (autoSearchedRef.current) return;
     const saved = localStorage.getItem(PHONE_KEY) ?? "";
-    if (saved.trim().replace(/\D/g, "").length >= 10 && storeId) {
-      doSearch(saved);
+    if (saved.trim().replace(/\D/g, "").length >= 10) {
+      autoSearchedRef.current = true;
+      doSearch(storeId, saved);
     }
   }, [open, storeId]);
 
-  const doSearch = async (phoneOverride?: string) => {
+  const doSearch = async (resolvedStoreId: string, phoneOverride?: string) => {
     const raw = (phoneOverride ?? phone).trim().replace(/\D/g, "").slice(-10);
-    if (raw.length < 10 || !storeId) return;
+    if (raw.length < 10) return;
     localStorage.setItem(PHONE_KEY, (phoneOverride ?? phone).trim());
     setLoading(true);
     setSearched(true);
     try {
-      const card = await getLoyaltyCard(storeId, raw);
+      const card = await getLoyaltyCard(resolvedStoreId, raw);
       setLoyaltyCard(card);
     } catch {
       setLoyaltyCard(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearchClick = () => {
+    if (!storeId) return;
+    autoSearchedRef.current = true;
+    doSearch(storeId);
   };
 
   const handleRedeem = async () => {
@@ -151,15 +158,20 @@ export function MyOffersSheet() {
                   type="tel"
                   placeholder="Enter your mobile number"
                   value={phone}
-                  onChange={e => { setPhone(e.target.value); setSearched(false); setLoyaltyCard(null); }}
-                  onKeyDown={e => e.key === "Enter" && doSearch()}
+                  onChange={e => {
+                    setPhone(e.target.value);
+                    setSearched(false);
+                    setLoyaltyCard(null);
+                    autoSearchedRef.current = false;
+                  }}
+                  onKeyDown={e => e.key === "Enter" && handleSearchClick()}
                   className="pl-9 h-11 rounded-xl text-base"
                   maxLength={15}
                 />
               </div>
               <Button
-                onClick={() => doSearch()}
-                disabled={loading || phone.trim().replace(/\D/g, "").length < 10}
+                onClick={handleSearchClick}
+                disabled={loading || !storeId || phone.trim().replace(/\D/g, "").length < 10}
                 className="h-11 px-4 rounded-xl gap-1.5"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
@@ -179,7 +191,7 @@ export function MyOffersSheet() {
                 <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
                   <Gift className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <p className="font-semibold text-sm">No loyalty program found</p>
+                <p className="font-semibold text-sm">No loyalty card found</p>
                 <p className="text-xs text-muted-foreground max-w-xs">
                   This store hasn't set up a loyalty program yet, or no stamps have been collected for this number.
                 </p>

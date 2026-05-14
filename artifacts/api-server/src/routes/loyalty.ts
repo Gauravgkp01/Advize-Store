@@ -30,6 +30,7 @@ router.get("/loyalty/card", async (req, res) => {
     const cardId = `${store_id}_${normalizePhone(phone)}`;
     const cardSnap = await db.collection("loyalty_cards").doc(cardId).get();
 
+    res.setHeader("Cache-Control", "no-store");
     return res.json({
       enabled: true,
       stamps_required: storeData.loyalty_stamps_required ?? 10,
