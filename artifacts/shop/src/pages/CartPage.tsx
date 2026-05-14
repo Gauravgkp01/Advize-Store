@@ -3,7 +3,7 @@ import { useParams, useSearch, Link } from "wouter";
 import {
   ArrowLeft, ShoppingCart, Trash2, Plus, Minus,
   MessageCircle, Store, CreditCard, MapPin,
-  User, Phone, CheckCircle2, Loader2, Truck, Gift,
+  User, Phone, CheckCircle2, Loader2, Truck, Gift, Tag, X as XIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { useCart } from "@/contexts/CartContext";
 import type { CartItem } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, verifyAdvizePayment, getLoyaltyCard, redeemLoyalty } from "@/lib/api";
-import type { Store as StoreType, LoyaltyCard } from "@/lib/api";
+import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, verifyAdvizePayment, getLoyaltyCard, redeemLoyalty, validateCoupon } from "@/lib/api";
+import type { Store as StoreType, LoyaltyCard, CouponValidation } from "@/lib/api";
 
 type Screen = "cart" | "checkout" | "success";
 
@@ -53,6 +53,9 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   });
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
   const [loyaltyRedeeming, setLoyaltyRedeeming] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponData, setCouponData] = useState<CouponValidation | null>(null);
+  const [couponApplying, setCouponApplying] = useState(false);
 
   /* Always dark on storefront pages */
   useEffect(() => {
@@ -101,7 +104,8 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const hasAdvize   = !!(store?.advize_payment_enabled);
   const hasPayment  = hasAdvize || hasRazorpay;
   const deliveryCharge = store?.delivery_charge ?? 0;
-  const grandTotal = totalPrice + deliveryCharge;
+  const couponDiscount = couponData?.valid ? (couponData.discount_rupees ?? 0) : 0;
+  const grandTotal = Math.max(0, totalPrice + deliveryCharge - couponDiscount);
 
   /* ── WhatsApp order (no payment) ── */
   const handleWhatsAppOrder = (extraInfo?: string) => {
@@ -135,6 +139,25 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     }
     return true;
   };
+
+  const handleApplyCoupon = async () => {
+    const code = couponCode.trim();
+    if (!code || !store?.id) return;
+    setCouponApplying(true);
+    try {
+      const result = await validateCoupon(store.id, code, Math.round(totalPrice * 100));
+      setCouponData(result);
+      if (result.valid) {
+        toast({ title: `Coupon applied!`, description: result.description || `${result.type === "percent" ? result.value + "%" : "₹" + result.value} off your order.` });
+      } else {
+        toast({ variant: "destructive", title: "Invalid coupon", description: result.error });
+      }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Could not apply coupon", description: err.message });
+    } finally { setCouponApplying(false); }
+  };
+
+  const handleRemoveCoupon = () => { setCouponCode(""); setCouponData(null); };
 
   /* ── Advize checkout (platform Razorpay) ── */
   const handleAdvizeCheckout = async () => {
@@ -457,10 +480,56 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 : <span className="font-semibold text-green-600 dark:text-green-400">Free</span>
               }
             </div>
+            {couponDiscount > 0 && (
+              <div className="flex items-center justify-between text-sm text-green-600 dark:text-green-400">
+                <span className="flex items-center gap-1.5"><Tag className="h-3.5 w-3.5" /> {couponData?.code}</span>
+                <span className="font-semibold">-₹{couponDiscount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between border-t pt-2 mt-1">
               <span className="font-bold">Total</span>
               <span className="font-extrabold text-primary text-lg">₹{grandTotal.toLocaleString("en-IN")}</span>
             </div>
+          </div>
+
+          {/* Promo Code */}
+          <div className="bg-card border rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">Promo Code</p>
+            </div>
+            {couponData?.valid ? (
+              <div className="flex items-center justify-between bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl px-3 py-2.5">
+                <div>
+                  <p className="text-sm font-bold text-green-700 dark:text-green-400 font-mono">{couponData.code}</p>
+                  <p className="text-xs text-green-600 dark:text-green-500">
+                    {couponData.type === "percent" ? `${couponData.value}% off` : `₹${couponData.value} off`}
+                    {couponData.description ? ` — ${couponData.description}` : ""}
+                  </p>
+                </div>
+                <button onClick={handleRemoveCoupon} className="text-muted-foreground hover:text-destructive ml-2 p-1">
+                  <XIcon className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter code (e.g. SAVE10)"
+                  value={couponCode}
+                  onChange={e => setCouponCode(e.target.value.toUpperCase().replace(/\s/g, ""))}
+                  className="h-10 rounded-xl flex-1 font-mono"
+                  onKeyDown={e => e.key === "Enter" && handleApplyCoupon()}
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleApplyCoupon}
+                  disabled={couponApplying || !couponCode.trim()}
+                  className="h-10 rounded-xl px-4 shrink-0"
+                >
+                  {couponApplying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Contact info */}

@@ -557,6 +557,45 @@ export const disconnectInstagram = (storeId: string) =>
     body: JSON.stringify({ store_id: storeId }),
   });
 
+// ── Coupon Codes ─────────────────────────────────────────────────────────────
+
+export type Coupon = {
+  code: string;
+  type: "percent" | "fixed";
+  value: number;
+  description: string;
+  max_uses: number | null;
+  uses: number;
+  active: boolean;
+};
+
+export type CouponValidation = {
+  valid: boolean;
+  code?: string;
+  type?: "percent" | "fixed";
+  value?: number;
+  description?: string;
+  discount_rupees?: number;
+  error?: string;
+};
+
+export const getCoupons = (storeId: string) =>
+  request<Coupon[]>(`/coupons/${storeId}`);
+
+export const createCoupon = (data: {
+  store_id: string; code: string; type: "percent" | "fixed";
+  value: number; description?: string; max_uses?: number | null;
+}) => request<{ code: string }>("/coupons", { method: "POST", body: JSON.stringify(data) });
+
+export const deleteCoupon = (storeId: string, code: string) =>
+  request<{ ok: boolean }>(`/coupons/${storeId}/${encodeURIComponent(code)}`, { method: "DELETE" });
+
+export const validateCoupon = (storeId: string, code: string, subtotalPaise: number) =>
+  request<CouponValidation>("/coupons/validate", {
+    method: "POST",
+    body: JSON.stringify({ store_id: storeId, code, subtotal_paise: subtotalPaise }),
+  });
+
 // ── Loyalty Program ───────────────────────────────────────────────────────────
 
 export type LoyaltyCard = {

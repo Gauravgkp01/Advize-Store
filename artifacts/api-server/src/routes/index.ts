@@ -17,6 +17,7 @@ import productRelatedRouter from "./product-related";
 import instagramRouter from "./instagram";
 import ogRouter from "./og";
 import loyaltyRouter from "./loyalty";
+import couponsRouter from "./coupons";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(sitemapRouter);
 router.use(instagramRouter);
 router.use(ogRouter);
 router.use(loyaltyRouter);
+router.use(couponsRouter);
 
 export default router;
