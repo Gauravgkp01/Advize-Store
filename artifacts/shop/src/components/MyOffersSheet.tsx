@@ -7,14 +7,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
-import { getStore, getLoyaltyCard, redeemLoyalty, getSubdomainSlug } from "@/lib/api";
+import { getStore, getLoyaltyCard, redeemLoyalty } from "@/lib/api";
 import type { Store as StoreType, LoyaltyCard } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const PHONE_KEY = "advize_customer_phone";
-
-// Stable — never changes within a page load
-const SUBDOMAIN_SLUG = getSubdomainSlug();
 
 /* ── Detect which store the visitor is browsing ────────────────────────── */
 function useVisitorStore() {
@@ -22,33 +19,30 @@ function useVisitorStore() {
   const { storeId: cartStoreId, storeSlug: cartSlug } = useCart();
   const [fetchedStore, setFetchedStore] = useState<StoreType | null>(null);
 
-  // Slug from URL path (/store/:slug/*) — works on main domain
+  // Slug from URL path: /store/:slug or /store/:slug/cart or /store/:slug/orders
   const urlSlug = useMemo(() => {
     const m = location.match(/^\/store\/([^/]+)/);
     return m?.[1] ?? null;
   }, [location]);
 
-  // Effective slug: URL path wins, then subdomain, then nothing
-  const effectiveSlug = urlSlug ?? SUBDOMAIN_SLUG;
+  // Show button on store pages or on product pages when cart has a store
+  const isVisitorPage = !!urlSlug || !!cartStoreId;
 
-  const isVisitorPage = !!effectiveSlug || !!cartStoreId;
-
-  // Fetch store when we have a slug but don't already have its data
+  // Fetch store when URL has a slug we don't already have
   useEffect(() => {
-    if (!effectiveSlug) return;
-    if (effectiveSlug === cartSlug && cartStoreId) return; // cart already has it
-    if (fetchedStore?.slug === effectiveSlug) return;      // already fetched
-    getStore(effectiveSlug).then(setFetchedStore).catch(() => {});
-  }, [effectiveSlug, cartSlug, cartStoreId]);
+    if (!urlSlug) return;
+    if (urlSlug === cartSlug && cartStoreId) return; // cart already has it
+    if (fetchedStore?.slug === urlSlug) return;      // already fetched
+    getStore(urlSlug).then(setFetchedStore).catch(() => {});
+  }, [urlSlug, cartSlug, cartStoreId]);
 
-  // Resolve storeId: cart fast-path → fetched → null
-  const storeId: string | null = effectiveSlug
-    ? (effectiveSlug === cartSlug && cartStoreId
+  // Resolve storeId: cart fast-path → fetched store → null
+  const storeId: string | null = urlSlug
+    ? (urlSlug === cartSlug && cartStoreId
         ? cartStoreId
-        : fetchedStore?.slug === effectiveSlug ? fetchedStore.id : null)
+        : fetchedStore?.slug === urlSlug ? fetchedStore.id : null)
     : cartStoreId;
 
-  // Resolve store branding — try fetched first, fall back to nothing
   const store: StoreType | null = fetchedStore ?? null;
 
   return { storeId, store, isVisitorPage };
