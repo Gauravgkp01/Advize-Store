@@ -226,6 +226,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               buyer,
             });
             if (result.verified) {
+              localStorage.setItem("advize_customer_phone", buyer.phone.trim());
               clearCart();
               setScreen("success");
             } else {
@@ -305,6 +306,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 })),
                 buyer,
               }).catch(() => {}); // fire-and-forget — don't block success screen
+              localStorage.setItem("advize_customer_phone", buyer.phone.trim());
               setScreen("success");
               clearCart();
             } else {
