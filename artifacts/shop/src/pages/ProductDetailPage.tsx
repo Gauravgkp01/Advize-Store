@@ -809,13 +809,13 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
     try { localStorage.setItem(`liked_${product.id}`, next ? "1" : "0"); } catch {}
     if (next) toast({ title: "Saved!", description: "Added to your favourites." });
   };
+  const ogUrl = `https://store.advize.in/api/og/product/${product.id}`;
   const handleShare = async () => {
-    const url = window.location.href;
     try {
       if (navigator.share) {
-        await navigator.share({ title: product.name, text: `Check out ${product.name}`, url });
+        await navigator.share({ title: product.name, text: `Check out ${product.name}`, url: ogUrl });
       } else {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(ogUrl);
         toast({ title: "Link copied!", description: "Product link copied to clipboard." });
       }
     } catch {}
@@ -863,7 +863,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
     const variantSummary = product.variants?.filter(v => selectedVariants[v.label])
       .map(v => `${v.label}: ${selectedVariants[v.label]}`).join(", ");
     const variantText = variantSummary ? `\n🎨 Variant: ${variantSummary}` : "";
-    const message = `Hello 👋,\n\nI want to order this product:\n\n🛍 Product: ${product.name}${variantText}\n💰 Price: ₹${effectivePrice.toLocaleString("en-IN")}\n\n🔗 Product Link: ${window.location.href}\n\nPlease confirm availability.`;
+    const message = `Hello 👋,\n\nI want to order this product:\n\n🛍 Product: ${product.name}${variantText}\n💰 Price: ₹${effectivePrice.toLocaleString("en-IN")}\n\n🔗 Product Link: ${ogUrl}\n\nPlease confirm availability.`;
     const number = storeWhatsapp.replace(/[^0-9]/g, "");
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank");
   };
