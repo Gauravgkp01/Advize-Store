@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import {
   ArrowLeft, Package, Phone, Search, Loader2, Store,
   CheckCircle2, Clock, Truck, PackageCheck, XCircle, ShoppingBag,
-  CreditCard, Receipt, ChevronDown, ChevronUp, Gift,
+  CreditCard, Receipt, ChevronDown, ChevronUp, Gift, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -395,57 +395,120 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
           const stampsRequired = loyaltyCard.stamps_required ?? 10;
           const stampsEarned   = loyaltyCard.stamps ?? 0;
           const canRedeem      = stampsEarned >= stampsRequired;
+          const progress       = Math.min(stampsEarned / stampsRequired, 1);
+          const storeName      = store?.name ?? "Your Store";
+          const logoUrl        = store?.logo_url ?? "";
+
           return (
-            <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4">
-              <div className="flex items-center gap-2">
-                <Gift className="h-5 w-5 text-amber-500 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-foreground">
-                    {canRedeem ? "🎉 Reward Unlocked!" : "Your Loyalty Card"}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
-                    {canRedeem
-                      ? <>You've earned your reward: <strong className="text-foreground">{loyaltyCard.reward}</strong></>
-                      : <>Collect <strong className="text-foreground">{stampsRequired}</strong> stamps to unlock: <strong className="text-foreground">{loyaltyCard.reward}</strong></>
-                    }
-                  </p>
+            <div className="space-y-3">
+              {/* ── The Card ──────────────────────────────────────────── */}
+              <div
+                className="relative overflow-hidden rounded-2xl shadow-xl"
+                style={{
+                  background: canRedeem
+                    ? "linear-gradient(135deg, #92400e 0%, #b45309 40%, #d97706 70%, #fbbf24 100%)"
+                    : "linear-gradient(135deg, #1c1917 0%, #292524 40%, #3d3430 70%, #1c1917 100%)",
+                }}
+              >
+                {/* Decorative circles */}
+                <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full opacity-10 bg-white" />
+                <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full opacity-5 bg-white" />
+                <div className="absolute top-1/2 right-6 -translate-y-1/2 w-20 h-20 rounded-full opacity-5 bg-white" />
+
+                <div className="relative z-10 p-5 space-y-4">
+                  {/* Header: logo + store name */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt={storeName}
+                          className="w-11 h-11 rounded-full object-cover border-2 border-white/20 shadow-lg"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-full bg-white/15 border-2 border-white/20 flex items-center justify-center shadow-lg">
+                          <Store className="w-5 h-5 text-white/80" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-white font-bold text-base leading-tight tracking-wide">{storeName}</p>
+                        <p className="text-white/60 text-[10px] uppercase tracking-widest font-medium mt-0.5">Loyalty Card</p>
+                      </div>
+                    </div>
+                    {canRedeem && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-900 px-2 py-1 rounded-full shadow">
+                        Reward Ready!
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Stamp grid */}
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from({ length: stampsRequired }).map((_, i) => {
+                      const filled = i < stampsEarned;
+                      return (
+                        <div
+                          key={i}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
+                            filled
+                              ? "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+                              : "bg-white/8 border border-white/20"
+                          }`}
+                        >
+                          <Star
+                            className={`w-4 h-4 transition-all ${
+                              filled ? "text-amber-900 fill-amber-900" : "text-white/25"
+                            }`}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="space-y-1.5">
+                    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 transition-all duration-700"
+                        style={{ width: `${progress * 100}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-white/60 text-[11px]">
+                        <span className="text-white font-semibold">{stampsEarned}</span> / {stampsRequired} stamps
+                        {(loyaltyCard.redeemed_count ?? 0) > 0 && (
+                          <span className="text-amber-400 ml-2">· {loyaltyCard.redeemed_count} redeemed</span>
+                        )}
+                      </p>
+                      {!canRedeem && (
+                        <p className="text-white/50 text-[11px]">
+                          {stampsRequired - stampsEarned} more to go
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Reward label */}
+                  <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2 border border-white/10">
+                    <Gift className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <p className="text-white/80 text-xs">
+                      Reward: <span className="text-amber-300 font-semibold">{loyaltyCard.reward}</span>
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Stamp grid */}
-              <div className="flex flex-wrap gap-2">
-                {Array.from({ length: stampsRequired }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-base border-2 transition-colors ${
-                      i < stampsEarned
-                        ? "bg-amber-500 border-amber-500 text-white"
-                        : "border-border bg-muted/30 text-muted-foreground"
-                    }`}
-                  >
-                    {i < stampsEarned ? "★" : ""}
-                  </div>
-                ))}
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                {stampsEarned} / {stampsRequired} stamps collected
-                {(loyaltyCard.redeemed_count ?? 0) > 0 && (
-                  <span className="ml-2 text-amber-600 dark:text-amber-400">
-                    · {loyaltyCard.redeemed_count} reward{loyaltyCard.redeemed_count !== 1 ? "s" : ""} redeemed
-                  </span>
-                )}
-              </p>
-
+              {/* Redeem button — outside card so it breathes */}
               {canRedeem && (
                 <Button
-                  className="w-full h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white border-transparent"
+                  className="w-full h-11 rounded-xl font-bold text-sm shadow-lg"
+                  style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)", color: "#1c1917", border: "none" }}
                   onClick={handleRedeemLoyalty}
                   disabled={loyaltyRedeeming}
                 >
                   {loyaltyRedeeming
                     ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : "🎁 Claim Your Reward"
+                    : <><Gift className="w-4 h-4 mr-2" />Claim Your Reward</>
                   }
                 </Button>
               )}
