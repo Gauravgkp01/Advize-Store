@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { db } from "../lib/firebase.js";
 import { FieldValue } from "firebase-admin/firestore";
 import { cacheDeleteByPrefix } from "../lib/cache.js";
+import { awardLoyaltyStamp } from "../lib/loyalty.js";
 
 const router = Router();
 
@@ -110,6 +111,11 @@ router.post("/advize-pay/verify", async (req, res) => {
     });
 
     cacheDeleteByPrefix(`orders:store:${store_id}`);
+
+    // Award loyalty stamp (best-effort, non-blocking)
+    (async () => {
+      try { await awardLoyaltyStamp(store_id, buyer?.phone); } catch { /* best-effort */ }
+    })();
 
     return res.json({ verified: true, order_id: orderRef.id });
   } catch (err: any) {

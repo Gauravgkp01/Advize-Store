@@ -5,7 +5,7 @@ import {
   Store, LayoutDashboard, ListOrdered, Star, Loader2,
   QrCode, Moon, Sun, Share2, Copy, Check, LogOut, Flame, Camera,
   Pencil, Phone, MapPin, Tag, Mail, FileText, Download,
-  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer, Zap, ChevronDown, MessageCircle,
+  Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer, Zap, ChevronDown, MessageCircle, Gift,
   ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
   Settings, Bell, Shield, User, ChevronRight, HelpCircle, Trash2,
   Search, X, SlidersHorizontal,
@@ -1200,6 +1200,49 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
   const [showRzpSecret, setShowRzpSecret] = useState(false);
   const [savingRzp, setSavingRzp]         = useState(false);
 
+  // Loyalty Program
+  const loyaltyEnabled = !!(store?.loyalty_enabled);
+  const [showLoyaltyForm, setShowLoyaltyForm] = useState(false);
+  const [loyaltyStamps, setLoyaltyStamps] = useState(store?.loyalty_stamps_required?.toString() ?? "10");
+  const [loyaltyReward, setLoyaltyReward] = useState(store?.loyalty_reward ?? "");
+  const [savingLoyalty, setSavingLoyalty] = useState(false);
+
+  const handleToggleLoyalty = async () => {
+    if (!store?.id) return;
+    setSavingLoyalty(true);
+    try {
+      const updated = await updateStore(store.id, { loyalty_enabled: !loyaltyEnabled });
+      onStoreChange(updated);
+      if (!loyaltyEnabled) setShowLoyaltyForm(true);
+      toast({ title: loyaltyEnabled ? "Loyalty program disabled" : "Loyalty program enabled!" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Failed", description: err.message });
+    } finally { setSavingLoyalty(false); }
+  };
+
+  const handleSaveLoyalty = async () => {
+    if (!store?.id) return;
+    const stamps = parseInt(loyaltyStamps, 10);
+    if (!stamps || stamps < 1 || stamps > 100) {
+      toast({ variant: "destructive", title: "Enter a stamp count between 1 and 100" }); return;
+    }
+    if (!loyaltyReward.trim()) {
+      toast({ variant: "destructive", title: "Enter a reward description" }); return;
+    }
+    setSavingLoyalty(true);
+    try {
+      const updated = await updateStore(store.id, {
+        loyalty_stamps_required: stamps,
+        loyalty_reward: loyaltyReward.trim(),
+      });
+      onStoreChange(updated);
+      toast({ title: "Loyalty program saved!" });
+      setShowLoyaltyForm(false);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Failed", description: err.message });
+    } finally { setSavingLoyalty(false); }
+  };
+
   const handleToggleAdvize = async () => {
     if (!store?.id) return;
     setSavingAdvize(true);
@@ -1575,6 +1618,113 @@ function PluginsPanel({ store, onStoreChange }: { store: StoreType | null; onSto
 
         {/* ── Instagram DM Automation ── */}
         <InstagramPlugin store={store} onStoreChange={onStoreChange} />
+
+        {/* ── Loyalty Program ── */}
+        <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-5">
+            <div className="flex gap-4 items-start">
+              <div className={`p-3 rounded-xl flex-shrink-0 ${loyaltyEnabled ? "bg-amber-50 dark:bg-amber-950/40" : "bg-amber-50/50 dark:bg-amber-950/20"}`}>
+                <Gift className={`h-6 w-6 ${loyaltyEnabled ? "text-amber-600 dark:text-amber-400" : "text-amber-500"}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h3 className="text-sm font-semibold text-foreground leading-tight">Loyalty Program</h3>
+                  {loyaltyEnabled ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">Active</span>
+                  ) : (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Off</span>
+                  )}
+                </div>
+                {loyaltyEnabled ? (
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                    {store?.loyalty_stamps_required ?? 10} stamps → <strong className="text-foreground">{store?.loyalty_reward || "reward not set"}</strong>
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                    Reward repeat customers with a digital stamp card. After a set number of orders, they unlock an exclusive offer.
+                  </p>
+                )}
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={handleToggleLoyalty}
+                    disabled={savingLoyalty}
+                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 ${
+                      loyaltyEnabled
+                        ? "bg-muted text-muted-foreground hover:bg-muted/80"
+                        : "bg-amber-500 hover:bg-amber-600 text-white"
+                    }`}
+                  >
+                    {savingLoyalty
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : loyaltyEnabled
+                        ? "Disable"
+                        : <><Gift className="h-3.5 w-3.5" /> Enable</>
+                    }
+                  </button>
+                  {loyaltyEnabled && (
+                    <button
+                      onClick={() => setShowLoyaltyForm(f => !f)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                    >
+                      Configure
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Config form */}
+          {loyaltyEnabled && showLoyaltyForm && (
+            <div className="border-t bg-muted/30 px-5 py-5 space-y-4">
+              <p className="text-sm font-semibold">Configure Loyalty Program</p>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">Stamps required to earn reward</label>
+                <Input
+                  type="number"
+                  min={1} max={100}
+                  value={loyaltyStamps}
+                  onChange={e => setLoyaltyStamps(e.target.value)}
+                  placeholder="e.g. 5, 10"
+                  className="h-10 rounded-xl bg-background w-32"
+                />
+                <p className="text-[11px] text-muted-foreground">Each completed order = 1 stamp.</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">Reward description</label>
+                <Input
+                  value={loyaltyReward}
+                  onChange={e => setLoyaltyReward(e.target.value)}
+                  placeholder="e.g. Get 10% off your next order"
+                  className="h-10 rounded-xl bg-background"
+                />
+                <p className="text-[11px] text-muted-foreground">Customers will see this when their card is complete.</p>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5">
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                  💡 Example: Set stamps to <strong>10</strong> and reward to <strong>"Free delivery on your next order"</strong>. After 10 paid orders the customer sees a Claim button.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSaveLoyalty}
+                  disabled={savingLoyalty}
+                  className="h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white border-transparent px-5"
+                >
+                  {savingLoyalty && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save
+                </Button>
+                <Button variant="outline" onClick={() => setShowLoyaltyForm(false)} className="h-10 rounded-xl px-5">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* ── Custom Domain ── */}
         <div className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm opacity-75">

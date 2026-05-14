@@ -108,6 +108,9 @@ export interface Store {
   ig_user_id?: string;
   ig_username?: string;
   description?: string;
+  loyalty_enabled?: boolean;
+  loyalty_stamps_required?: number;
+  loyalty_reward?: string;
 }
 
 export const getStore = (slug: string) =>
@@ -552,4 +555,25 @@ export const disconnectInstagram = (storeId: string) =>
   request<{ ok: boolean }>("/instagram/disconnect", {
     method: "POST",
     body: JSON.stringify({ store_id: storeId }),
+  });
+
+// ── Loyalty Program ───────────────────────────────────────────────────────────
+
+export type LoyaltyCard = {
+  enabled: boolean;
+  stamps?: number;
+  stamps_required?: number;
+  reward?: string;
+  redeemed_count?: number;
+};
+
+export const getLoyaltyCard = (storeId: string, phone: string) =>
+  request<LoyaltyCard>(
+    `/loyalty/card?store_id=${encodeURIComponent(storeId)}&phone=${encodeURIComponent(phone)}`
+  );
+
+export const redeemLoyalty = (storeId: string, phone: string) =>
+  request<{ success: boolean }>("/loyalty/redeem", {
+    method: "POST",
+    body: JSON.stringify({ store_id: storeId, phone }),
   });

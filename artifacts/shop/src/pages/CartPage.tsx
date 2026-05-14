@@ -3,7 +3,7 @@ import { useParams, useSearch, Link } from "wouter";
 import {
   ArrowLeft, ShoppingCart, Trash2, Plus, Minus,
   MessageCircle, Store, CreditCard, MapPin,
-  User, Phone, CheckCircle2, Loader2, Truck,
+  User, Phone, CheckCircle2, Loader2, Truck, Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { useCart } from "@/contexts/CartContext";
 import type { CartItem } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, verifyAdvizePayment } from "@/lib/api";
-import type { Store as StoreType } from "@/lib/api";
+import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, verifyAdvizePayment, getLoyaltyCard, redeemLoyalty } from "@/lib/api";
+import type { Store as StoreType, LoyaltyCard } from "@/lib/api";
 
 type Screen = "cart" | "checkout" | "success";
 
@@ -51,6 +51,8 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [buyer, setBuyer] = useState<BuyerInfo>({
     name: "", phone: "", addressLine: "", city: "", pincode: "",
   });
+  const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
+  const [loyaltyRedeeming, setLoyaltyRedeeming] = useState(false);
 
   /* Always dark on storefront pages */
   useEffect(() => {
@@ -64,6 +66,25 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     if (!slug) return;
     getStore(slug).then(setStore).catch(() => {});
   }, [slug]);
+
+  /* Fetch loyalty card after successful payment */
+  useEffect(() => {
+    if (screen !== "success" || !store?.id || !buyer?.phone) return;
+    getLoyaltyCard(store.id, buyer.phone).then(setLoyaltyCard).catch(() => {});
+  }, [screen, store?.id, buyer.phone]);
+
+  const handleRedeemLoyalty = async () => {
+    if (!store?.id || !buyer?.phone) return;
+    setLoyaltyRedeeming(true);
+    try {
+      await redeemLoyalty(store.id, buyer.phone);
+      const updated = await getLoyaltyCard(store.id, buyer.phone);
+      setLoyaltyCard(updated);
+      toast({ title: "Reward claimed! 🎉", description: "Show this screen to the seller to claim your reward." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Could not redeem", description: err.message });
+    } finally { setLoyaltyRedeeming(false); }
+  };
 
   /* Inject Razorpay script once */
   useEffect(() => {
@@ -327,10 +348,14 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
 
   /* ── Success screen ── */
   if (screen === "success") {
+    const stampsRequired = loyaltyCard?.stamps_required ?? 10;
+    const stampsEarned   = loyaltyCard?.stamps ?? 0;
+    const canRedeem      = loyaltyCard?.enabled && stampsEarned >= stampsRequired;
+
     return (
       <div className="min-h-[100dvh] flex flex-col bg-background">
         <Header title="Order Placed" />
-        <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6 text-center">
+        <div className="flex-1 flex flex-col items-center gap-5 px-6 pt-10 pb-10 text-center">
           <div className="w-24 h-24 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
             <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400" />
           </div>
@@ -340,7 +365,64 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               Your order has been placed. The seller will contact you on <span className="font-semibold">{buyer.phone}</span> to confirm delivery.
             </p>
           </div>
-          <Button asChild className="rounded-full px-6 mt-1">
+
+          {/* ── Loyalty stamp card ── */}
+          {loyaltyCard?.enabled && (
+            <div className="w-full max-w-sm bg-card border rounded-2xl p-5 shadow-sm text-left">
+              <div className="flex items-center gap-2 mb-1">
+                <Gift className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                <p className="text-sm font-bold text-foreground">
+                  {canRedeem ? "🎉 Reward Unlocked!" : "Loyalty Stamp Earned!"}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                {canRedeem
+                  ? <>You've earned your reward: <strong className="text-foreground">{loyaltyCard.reward}</strong></>
+                  : <>Collect <strong className="text-foreground">{stampsRequired}</strong> stamps to unlock: <strong className="text-foreground">{loyaltyCard.reward}</strong></>
+                }
+              </p>
+
+              {/* Stamp grid */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {Array.from({ length: stampsRequired }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-base border-2 transition-colors ${
+                      i < stampsEarned
+                        ? "bg-amber-500 border-amber-500 text-white"
+                        : "border-border bg-muted/30 text-muted-foreground"
+                    }`}
+                  >
+                    {i < stampsEarned ? "★" : ""}
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-muted-foreground mb-3">
+                {stampsEarned} / {stampsRequired} stamps collected
+                {(loyaltyCard.redeemed_count ?? 0) > 0 && (
+                  <span className="ml-2 text-amber-600 dark:text-amber-400">
+                    · {loyaltyCard.redeemed_count} reward{loyaltyCard.redeemed_count !== 1 ? "s" : ""} redeemed
+                  </span>
+                )}
+              </p>
+
+              {canRedeem && (
+                <Button
+                  className="w-full h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white border-transparent"
+                  onClick={handleRedeemLoyalty}
+                  disabled={loyaltyRedeeming}
+                >
+                  {loyaltyRedeeming
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : "🎁 Claim Your Reward"
+                  }
+                </Button>
+              )}
+            </div>
+          )}
+
+          <Button asChild className="rounded-full px-6">
             <Link href={onSubdomain ? "/" : `/store/${slug}`}>Continue Shopping</Link>
           </Button>
         </div>

@@ -16,6 +16,7 @@ import productDetailRouter from "./product-detail";
 import productRelatedRouter from "./product-related";
 import instagramRouter from "./instagram";
 import ogRouter from "./og";
+import loyaltyRouter from "./loyalty";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(payoutsRouter);
 router.use(sitemapRouter);
 router.use(instagramRouter);
 router.use(ogRouter);
+router.use(loyaltyRouter);
 
 export default router;
