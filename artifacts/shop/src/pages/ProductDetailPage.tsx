@@ -4,7 +4,7 @@ import {
   ArrowLeft, MessageCircle,
   AlertCircle, Star, Loader2, MousePointerClick,
   Package, BarChart2, TrendingUp, ZoomIn, ZoomOut, X, RotateCcw,
-  ShoppingCart, ShoppingBag, ChevronDown,
+  ShoppingCart, ShoppingBag, ChevronDown, Heart, Share2,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -454,7 +454,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
         <img
           src={src}
           alt={alt}
-          className="w-full object-contain object-top max-h-[70vw] sm:max-h-[460px]"
+          className="w-full object-contain object-top max-h-[88vw] sm:max-h-[520px]"
           draggable={false}
         />
         <div className="absolute bottom-2 right-2 bg-black/40 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm flex items-center gap-1 pointer-events-none">
@@ -800,6 +800,27 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
   const [reviewsFetched, setReviewsFetched] = useState(reviews.length > 0);
   const [reviewsFetching, setReviewsFetching] = useState(false);
 
+  const [liked, setLiked] = useState(() => {
+    try { return localStorage.getItem(`liked_${product.id}`) === "1"; } catch { return false; }
+  });
+  const handleLike = () => {
+    const next = !liked;
+    setLiked(next);
+    try { localStorage.setItem(`liked_${product.id}`, next ? "1" : "0"); } catch {}
+    if (next) toast({ title: "Saved!", description: "Added to your favourites." });
+  };
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: product.name, text: `Check out ${product.name}`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Link copied!", description: "Product link copied to clipboard." });
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     setLocalReviews(reviews);
     if (reviews.length > 0) setReviewsFetched(true);
@@ -878,6 +899,14 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="font-semibold text-base">Product Details</span>
           </div>
+          {/* Share button — always visible */}
+          <button
+            onClick={handleShare}
+            className={`${storeSlug && hasPayment ? "" : "ml-auto"} flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors`}
+            aria-label="Share product"
+          >
+            <Share2 className="h-5 w-5" />
+          </button>
           {/* Cart icon — only when store has payment gateway */}
           {storeSlug && hasPayment && (
             <Link
@@ -898,7 +927,18 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
       <main className="flex-1 container max-w-4xl mx-auto px-0 sm:px-6 py-0 sm:py-8 space-y-6">
         <div className="bg-card sm:border sm:rounded-3xl overflow-hidden shadow-sm flex flex-col md:flex-row">
           <div className="w-full md:w-1/2 md:min-h-[500px] bg-muted/10 flex flex-col">
-            <ZoomableImage src={images[activeImageIdx] ?? product.imageUrl} alt={product.name} />
+            {/* Image with floating like button */}
+            <div className="relative">
+              <ZoomableImage src={images[activeImageIdx] ?? product.imageUrl} alt={product.name} />
+              {/* Floating Like button — top-right of image */}
+              <button
+                onClick={handleLike}
+                className="absolute top-3 left-3 z-20 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center transition-all active:scale-90"
+                aria-label={liked ? "Unlike" : "Like"}
+              >
+                <Heart className={`h-5 w-5 transition-colors ${liked ? "fill-red-500 text-red-500" : "text-white"}`} />
+              </button>
+            </div>
             {/* Thumbnail strip — only when multiple images */}
             {images.length > 1 && (
               <div className="flex gap-2 px-3 py-2 overflow-x-auto scrollbar-hide">
@@ -915,6 +955,23 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
                 ))}
               </div>
             )}
+            {/* Share + Like action strip — visible on mobile below image */}
+            <div className="flex items-center gap-3 px-4 py-3 border-t border-border/50 md:hidden">
+              <button
+                onClick={handleLike}
+                className="flex items-center gap-2 flex-1 justify-center py-2 rounded-xl bg-muted/60 hover:bg-muted transition-colors text-sm font-medium"
+              >
+                <Heart className={`h-4 w-4 ${liked ? "fill-red-500 text-red-500" : ""}`} />
+                {liked ? "Saved" : "Save"}
+              </button>
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-2 flex-1 justify-center py-2 rounded-xl bg-muted/60 hover:bg-muted transition-colors text-sm font-medium"
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+            </div>
           </div>
           <div className="w-full md:w-1/2 p-6 sm:p-10 flex flex-col gap-5">
             <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium bg-muted/50 text-muted-foreground w-fit">
