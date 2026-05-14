@@ -23,6 +23,7 @@ import { CartPage } from "@/pages/CartPage";
 import { OrderHistoryPage } from "@/pages/OrderHistoryPage";
 import { CartProvider } from "@/contexts/CartContext";
 import LoyaltyPage from "@/pages/LoyaltyPage";
+import { MyOffersSheet } from "@/components/MyOffersSheet";
 
 const queryClient = new QueryClient();
 
@@ -106,6 +107,7 @@ function App() {
           <WouterRouter base="">
             <CartProvider>
               <SubdomainRouter slug={SUBDOMAIN_SLUG} />
+              <MyOffersSheet />
             </CartProvider>
           </WouterRouter>
           <Toaster />
@@ -121,6 +123,7 @@ function App() {
           <AuthProvider>
             <CartProvider>
               <Router />
+              <MyOffersSheet />
             </CartProvider>
           </AuthProvider>
         </WouterRouter>
