@@ -3,12 +3,13 @@ import { useParams, useLocation } from "wouter";
 import {
   ArrowLeft, Package, Phone, Search, Loader2, Store,
   CheckCircle2, Clock, Truck, PackageCheck, XCircle, ShoppingBag,
-  CreditCard, Receipt, ChevronDown, ChevronUp,
+  CreditCard, Receipt, ChevronDown, ChevronUp, Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getStore, getOrdersByPhone } from "@/lib/api";
-import type { Store as StoreType, Order, OrderStatus } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { getStore, getOrdersByPhone, getLoyaltyCard, redeemLoyalty } from "@/lib/api";
+import type { Store as StoreType, Order, OrderStatus, LoyaltyCard } from "@/lib/api";
 
 /* ── Status config ──────────────────────────────────────────── */
 const STATUS_STEPS: OrderStatus[] = ["pending", "confirmed", "packed", "out_for_delivery", "delivered"];
@@ -229,6 +230,9 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
+  const [loyaltyRedeeming, setLoyaltyRedeeming] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!slug) return;
@@ -246,13 +250,33 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
     localStorage.setItem(PHONE_KEY, phone.trim());
     setLoading(true);
     setSearched(true);
+    setLoyaltyCard(null);
     try {
-      const data = await getOrdersByPhone(store.id, trimmed);
+      const [data] = await Promise.all([
+        getOrdersByPhone(store.id, trimmed),
+        getLoyaltyCard(store.id, trimmed).then(setLoyaltyCard).catch(() => {}),
+      ]);
       setOrders(data.orders);
     } catch {
       setOrders([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRedeemLoyalty = async () => {
+    if (!store?.id || !phone) return;
+    const trimmed = phone.trim().replace(/\D/g, "").slice(-10);
+    setLoyaltyRedeeming(true);
+    try {
+      await redeemLoyalty(store.id, trimmed);
+      const updated = await getLoyaltyCard(store.id, trimmed);
+      setLoyaltyCard(updated);
+      toast({ title: "Reward claimed! 🎉", description: "Show this screen to the seller to claim your reward." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Could not redeem", description: err.message });
+    } finally {
+      setLoyaltyRedeeming(false);
     }
   };
 
@@ -365,6 +389,69 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
             {pastOrders.map(o => <OrderCard key={o.id} order={o} />)}
           </div>
         )}
+
+        {/* Loyalty card */}
+        {!loading && searched && loyaltyCard?.enabled && (() => {
+          const stampsRequired = loyaltyCard.stamps_required ?? 10;
+          const stampsEarned   = loyaltyCard.stamps ?? 0;
+          const canRedeem      = stampsEarned >= stampsRequired;
+          return (
+            <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center gap-2">
+                <Gift className="h-5 w-5 text-amber-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-foreground">
+                    {canRedeem ? "🎉 Reward Unlocked!" : "Your Loyalty Card"}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
+                    {canRedeem
+                      ? <>You've earned your reward: <strong className="text-foreground">{loyaltyCard.reward}</strong></>
+                      : <>Collect <strong className="text-foreground">{stampsRequired}</strong> stamps to unlock: <strong className="text-foreground">{loyaltyCard.reward}</strong></>
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Stamp grid */}
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: stampsRequired }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-base border-2 transition-colors ${
+                      i < stampsEarned
+                        ? "bg-amber-500 border-amber-500 text-white"
+                        : "border-border bg-muted/30 text-muted-foreground"
+                    }`}
+                  >
+                    {i < stampsEarned ? "★" : ""}
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {stampsEarned} / {stampsRequired} stamps collected
+                {(loyaltyCard.redeemed_count ?? 0) > 0 && (
+                  <span className="ml-2 text-amber-600 dark:text-amber-400">
+                    · {loyaltyCard.redeemed_count} reward{loyaltyCard.redeemed_count !== 1 ? "s" : ""} redeemed
+                  </span>
+                )}
+              </p>
+
+              {canRedeem && (
+                <Button
+                  className="w-full h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white border-transparent"
+                  onClick={handleRedeemLoyalty}
+                  disabled={loyaltyRedeeming}
+                >
+                  {loyaltyRedeeming
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : "🎁 Claim Your Reward"
+                  }
+                </Button>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
