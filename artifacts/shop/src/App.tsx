@@ -22,6 +22,7 @@ import { DataDeletionPage } from "@/pages/DataDeletionPage";
 import { CartPage } from "@/pages/CartPage";
 import { OrderHistoryPage } from "@/pages/OrderHistoryPage";
 import { CartProvider } from "@/contexts/CartContext";
+import LoyaltyPage from "@/pages/LoyaltyPage";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,9 @@ function Router() {
         </Route>
         <Route path="/dashboard">
           <ProtectedRoute><DashboardPage /></ProtectedRoute>
+        </Route>
+        <Route path="/loyalty">
+          <ProtectedRoute><LoyaltyPage /></ProtectedRoute>
         </Route>
         <Route path="/add-product">
           <ProtectedRoute><AddProductPage /></ProtectedRoute>
