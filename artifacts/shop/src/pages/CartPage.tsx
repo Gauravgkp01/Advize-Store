@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { useCart } from "@/contexts/CartContext";
 import type { CartItem } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, verifyAdvizePayment, getLoyaltyCard, redeemLoyalty, validateCoupon } from "@/lib/api";
-import type { Store as StoreType, LoyaltyCard, CouponValidation } from "@/lib/api";
+import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, verifyAdvizePayment, getLoyaltyCard, redeemLoyalty, validateCoupon, getCoupons } from "@/lib/api";
+import type { Store as StoreType, LoyaltyCard, CouponValidation, Coupon } from "@/lib/api";
 
 type Screen = "cart" | "checkout" | "success";
 
@@ -56,6 +56,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [couponCode, setCouponCode] = useState("");
   const [couponData, setCouponData] = useState<CouponValidation | null>(null);
   const [couponApplying, setCouponApplying] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
 
   /* Always dark on storefront pages */
   useEffect(() => {
@@ -64,10 +65,13 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     return () => {};
   }, []);
 
-  /* Load store info */
+  /* Load store info + available coupons */
   useEffect(() => {
     if (!slug) return;
-    getStore(slug).then(setStore).catch(() => {});
+    getStore(slug).then(s => {
+      setStore(s);
+      if (s?.id) getCoupons(s.id).then(setAvailableCoupons).catch(() => {});
+    }).catch(() => {});
   }, [slug]);
 
   /* Fetch loyalty card after successful payment */
@@ -105,7 +109,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const hasPayment  = hasAdvize || hasRazorpay;
   const deliveryCharge = store?.delivery_charge ?? 0;
   const couponDiscount = couponData?.valid ? (couponData.discount_rupees ?? 0) : 0;
-  const grandTotal = Math.max(0, totalPrice + deliveryCharge - couponDiscount);
+  const grandTotal = Math.floor(Math.max(0, totalPrice + deliveryCharge - couponDiscount));
 
   /* ── WhatsApp order (no payment) ── */
   const handleWhatsAppOrder = (extraInfo?: string) => {
@@ -140,9 +144,10 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     return true;
   };
 
-  const handleApplyCoupon = async () => {
-    const code = couponCode.trim();
+  const handleApplyCoupon = async (overrideCode?: string) => {
+    const code = (overrideCode ?? couponCode).trim();
     if (!code || !store?.id) return;
+    if (overrideCode) setCouponCode(overrideCode);
     setCouponApplying(true);
     try {
       const result = await validateCoupon(store.id, code, Math.round(totalPrice * 100));
@@ -512,23 +517,49 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 </button>
               </div>
             ) : (
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter code (e.g. SAVE10)"
-                  value={couponCode}
-                  onChange={e => setCouponCode(e.target.value.toUpperCase().replace(/\s/g, ""))}
-                  className="h-10 rounded-xl flex-1 font-mono"
-                  onKeyDown={e => e.key === "Enter" && handleApplyCoupon()}
-                />
-                <Button
-                  variant="outline"
-                  onClick={handleApplyCoupon}
-                  disabled={couponApplying || !couponCode.trim()}
-                  className="h-10 rounded-xl px-4 shrink-0"
-                >
-                  {couponApplying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
-                </Button>
-              </div>
+              <>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter code (e.g. SAVE10)"
+                    value={couponCode}
+                    onChange={e => setCouponCode(e.target.value.toUpperCase().replace(/\s/g, ""))}
+                    className="h-10 rounded-xl flex-1 font-mono"
+                    onKeyDown={e => e.key === "Enter" && handleApplyCoupon()}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => handleApplyCoupon()}
+                    disabled={couponApplying || !couponCode.trim()}
+                    className="h-10 rounded-xl px-4 shrink-0"
+                  >
+                    {couponApplying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                  </Button>
+                </div>
+                {availableCoupons.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">Available offers</p>
+                    <div className="space-y-2">
+                      {availableCoupons.map(c => (
+                        <button
+                          key={c.code}
+                          onClick={() => handleApplyCoupon(c.code)}
+                          disabled={couponApplying}
+                          className="w-full flex items-center justify-between bg-muted/40 hover:bg-primary/5 border border-dashed border-muted-foreground/30 hover:border-primary/40 rounded-xl px-3 py-2.5 text-left transition-colors disabled:opacity-50 group"
+                        >
+                          <div className="min-w-0">
+                            <span className="text-sm font-bold font-mono tracking-wide text-foreground group-hover:text-primary transition-colors">{c.code}</span>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {c.type === "percent" ? `${c.value}% off` : `₹${c.value} off`}
+                              {c.description ? ` · ${c.description}` : ""}
+                            </p>
+                          </div>
+                          <span className="text-xs font-semibold text-primary ml-3 shrink-0">Apply</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
