@@ -29,11 +29,11 @@ function buildOgHtml(params: {
   description: string;
   price: number;
   inStock: boolean;
-  proxyImage: string;
+  imageUrl: string;
   productUrl: string;
   title: string;
 }): string {
-  const { name, storeName, description, price, inStock, proxyImage, productUrl, title } = params;
+  const { name, storeName, description, price, inStock, imageUrl, productUrl, title } = params;
   const priceStr         = price > 0 ? String(price) : "0";
   // Pinterest requires "instock" (no space) and "out of stock" (with space)
   const ogAvailability   = inStock ? "instock" : "out of stock";
@@ -50,11 +50,10 @@ function buildOgHtml(params: {
   <meta property="og:type"                content="product" />
   <meta property="og:title"               content="${escHtml(title)}" />
   <meta property="og:description"         content="${escHtml(description)}" />
-  <meta property="og:image"               content="${escHtml(proxyImage)}" />
+  <meta property="og:image"               content="${escHtml(imageUrl)}" />
   <meta property="og:image:width"         content="1200" />
   <meta property="og:image:height"        content="630" />
-  <meta property="og:image:type"          content="image/jpeg" />
-  <meta property="og:image:secure_url"    content="${escHtml(proxyImage)}" />
+  <meta property="og:image:secure_url"    content="${escHtml(imageUrl)}" />
   <meta property="og:url"                 content="${escHtml(productUrl)}" />
   <meta property="og:site_name"           content="${escHtml(storeName)}" />
   <meta property="og:availability"        content="${ogAvailability}" />
@@ -72,7 +71,7 @@ function buildOgHtml(params: {
   <meta name="twitter:card"              content="summary_large_image" />
   <meta name="twitter:title"             content="${escHtml(title)}" />
   <meta name="twitter:description"       content="${escHtml(description)}" />
-  <meta name="twitter:image"             content="${escHtml(proxyImage)}" />
+  <meta name="twitter:image"             content="${escHtml(imageUrl)}" />
 
   <!-- Schema.org Product structured data -->
   <script type="application/ld+json">${JSON.stringify({
@@ -80,7 +79,7 @@ function buildOgHtml(params: {
     "@type": "Product",
     name,
     description,
-    image: [proxyImage],
+    image: [imageUrl],
     brand: { "@type": "Brand", name: storeName },
     offers: {
       "@type": "Offer",
@@ -148,14 +147,16 @@ export async function handleProductPage(req: Request, res: Response) {
     }
 
     const productUrl  = `${BASE_URL}/product/${id}`;
-    const proxyImage  = `${BASE_URL}/api/og/product/${id}/image`;
+    // Always use the proxy — it transcodes any format (AVIF, WebP, PNG) to JPEG
+    // so the content-type is guaranteed to match what Pinterest/social crawlers expect.
+    const imageUrl    = `${BASE_URL}/api/og/product/${id}/image`;
     const title       = `${name} — ${storeName}`;
     const pricePrefix = price > 0 ? `₹${price.toLocaleString("en-IN")} · ` : "";
     const description = `${pricePrefix}${rawDesc.slice(0, 180) || `Buy ${name} online. Order directly on WhatsApp.`}`;
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=300");
-    return res.send(buildOgHtml({ id, name, storeName, description, price, inStock, proxyImage, productUrl, title }));
+    return res.send(buildOgHtml({ id, name, storeName, description, price, inStock, imageUrl, productUrl, title }));
   } catch (err) {
     console.error("product-page handler error:", err);
     return res.status(500).send("Error generating preview");

@@ -34,21 +34,17 @@ router.get("/og/product/:id/image", async (req, res) => {
     if (!imageUrl) return res.status(404).send("No image");
 
     const upstream = await fetch(imageUrl, {
-      headers: {
-        "User-Agent": "Advize-OG-Bot/1.0",
-        // Explicitly exclude AVIF/WebP so Cloudflare CDN returns JPEG/PNG.
-        // og:image must be JPEG or PNG for Pinterest and most social crawlers.
-        "Accept": "image/jpeg,image/png,image/*;q=0.8",
-      },
+      headers: { "User-Agent": "Advize-OG-Bot/1.0" },
     });
 
     if (!upstream.ok) return res.status(502).send("Could not fetch image");
 
-    // Always re-serve as JPEG MIME type regardless of what upstream returns,
-    // so the Content-Type header matches the og:image:type meta tag.
+    // Pass through the real content-type — never lie about the format.
+    // The upstream file may be AVIF/WebP/JPEG/PNG depending on what was uploaded.
+    const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
     const buffer = Buffer.from(await upstream.arrayBuffer());
 
-    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Content-Type", contentType);
     res.setHeader("Cache-Control", "public, max-age=3600, immutable");
     res.setHeader("Content-Length", buffer.length);
     return res.send(buffer);
@@ -91,7 +87,9 @@ router.get("/og/product/:id", async (req, res) => {
       if (storeDoc.exists) storeName = storeDoc.data()?.["name"] ?? storeName;
     }
 
-    const proxyImage    = `${BASE_URL}/api/og/product/${id}/image`;
+    // Always use the proxy — it transcodes any format (AVIF, WebP, PNG) to JPEG
+    // so the content-type is guaranteed to match what Pinterest/social crawlers expect.
+    const imageUrl      = `${BASE_URL}/api/og/product/${id}/image`;
     const title         = `${name} — ${storeName}`;
     // Pinterest requires "instock" (no space) and "out of stock" (with space)
     const ogAvailability  = inStock ? "instock" : "out of stock";
@@ -113,11 +111,8 @@ router.get("/og/product/:id", async (req, res) => {
   <meta property="og:type"                content="product" />
   <meta property="og:title"               content="${escHtml(title)}" />
   <meta property="og:description"         content="${escHtml(description)}" />
-  <meta property="og:image"               content="${escHtml(proxyImage)}" />
-  <meta property="og:image:width"         content="1200" />
-  <meta property="og:image:height"        content="630" />
-  <meta property="og:image:type"          content="image/jpeg" />
-  <meta property="og:image:secure_url"    content="${escHtml(proxyImage)}" />
+  <meta property="og:image"               content="${escHtml(imageUrl)}" />
+  <meta property="og:image:secure_url"    content="${escHtml(imageUrl)}" />
   <meta property="og:url"                 content="${escHtml(productUrl)}" />
   <meta property="og:site_name"           content="${escHtml(storeName)}" />
   <meta property="og:availability"        content="${ogAvailability}" />
@@ -135,7 +130,7 @@ router.get("/og/product/:id", async (req, res) => {
   <meta name="twitter:card"              content="summary_large_image" />
   <meta name="twitter:title"             content="${escHtml(title)}" />
   <meta name="twitter:description"       content="${escHtml(description)}" />
-  <meta name="twitter:image"             content="${escHtml(proxyImage)}" />
+  <meta name="twitter:image"             content="${escHtml(imageUrl)}" />
 
   <!-- Schema.org structured data -->
   <script type="application/ld+json">${JSON.stringify({
@@ -143,7 +138,7 @@ router.get("/og/product/:id", async (req, res) => {
     "@type": "Product",
     name,
     description,
-    image: [proxyImage],
+    image: [imageUrl],
     brand: { "@type": "Brand", name: storeName },
     offers: {
       "@type": "Offer",
