@@ -34,15 +34,21 @@ router.get("/og/product/:id/image", async (req, res) => {
     if (!imageUrl) return res.status(404).send("No image");
 
     const upstream = await fetch(imageUrl, {
-      headers: { "User-Agent": "Advize-OG-Bot/1.0" },
+      headers: {
+        "User-Agent": "Advize-OG-Bot/1.0",
+        // Explicitly exclude AVIF/WebP so Cloudflare CDN returns JPEG/PNG.
+        // og:image must be JPEG or PNG for Pinterest and most social crawlers.
+        "Accept": "image/jpeg,image/png,image/*;q=0.8",
+      },
     });
 
     if (!upstream.ok) return res.status(502).send("Could not fetch image");
 
-    const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
+    // Always re-serve as JPEG MIME type regardless of what upstream returns,
+    // so the Content-Type header matches the og:image:type meta tag.
     const buffer = Buffer.from(await upstream.arrayBuffer());
 
-    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Type", "image/jpeg");
     res.setHeader("Cache-Control", "public, max-age=3600, immutable");
     res.setHeader("Content-Length", buffer.length);
     return res.send(buffer);
@@ -111,6 +117,7 @@ router.get("/og/product/:id", async (req, res) => {
   <meta property="og:image:width"         content="1200" />
   <meta property="og:image:height"        content="630" />
   <meta property="og:image:type"          content="image/jpeg" />
+  <meta property="og:image:secure_url"    content="${escHtml(proxyImage)}" />
   <meta property="og:url"                 content="${escHtml(productUrl)}" />
   <meta property="og:site_name"           content="${escHtml(storeName)}" />
   <meta property="og:availability"        content="${ogAvailability}" />
