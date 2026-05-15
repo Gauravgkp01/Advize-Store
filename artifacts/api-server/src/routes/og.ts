@@ -4,9 +4,11 @@ import { db } from "../lib/firebase.js";
 const router = Router();
 const BASE_URL = process.env.STORE_BASE_URL ?? "https://store.advize.in";
 
-// Social crawler User-Agent patterns
+// Social crawler / link-preview User-Agent patterns.
+// Note: WhatsApp sends "WhatsApp/2.x.x" (not "whatsappbot"), Telegram sends
+// "TelegramBot" — both are matched by the patterns below.
 const BOT_RE =
-  /pinterestbot|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|whatsappbot|telegrambot|googlebot|bingbot|applebot|discordbot|embedly|yahoo|ia_archiver|semrushbot|ahrefsbot/i;
+  /pinterestbot|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|whatsapp|telegram|googlebot|bingbot|applebot|discordbot|embedly|yahoo|ia_archiver|semrushbot|ahrefsbot|signal|viber/i;
 
 function escHtml(s: string) {
   return String(s)
@@ -71,11 +73,11 @@ router.get("/og/product/:id", async (req, res) => {
     if (!productDoc.exists) return res.status(404).send("Product not found");
 
     const data = productDoc.data()!;
-    const storeId: string  = data["store_id"] ?? "";
-    const name: string     = data["name"] ?? "Product";
-    const rawDesc: string  = (data["description"] ?? "").replace(/<[^>]*>/g, "").trim();
-    const price: number    = Number(data["sale_price"] || data["price"] || 0);
-    const inStock: boolean = (data["units"] ?? 1) > 0;
+    const storeId: string   = data["store_id"] ?? "";
+    const name: string      = data["name"] ?? "Product";
+    const rawDesc: string   = (data["description"] ?? "").replace(/<[^>]*>/g, "").trim();
+    const price: number     = Number(data["sale_price"] || data["price"] || 0);
+    const inStock: boolean  = (data["units"] ?? 1) > 0;
 
     let storeName = "Advize Store";
     if (storeId) {
@@ -83,13 +85,14 @@ router.get("/og/product/:id", async (req, res) => {
       if (storeDoc.exists) storeName = storeDoc.data()?.["name"] ?? storeName;
     }
 
-    const proxyImage  = `${BASE_URL}/api/og/product/${id}/image`;
-    const title       = `${name} — ${storeName}`;
-    const priceStr    = price > 0 ? price.toFixed(2) : "0.00";
-    const pricePrefix = price > 0 ? `₹${price.toLocaleString("en-IN")} · ` : "";
-    const description = `${pricePrefix}${rawDesc.slice(0, 180) || `Buy ${name} online. Order directly on WhatsApp.`}`;
-    const availability = inStock ? "in stock" : "out of stock";
+    const proxyImage    = `${BASE_URL}/api/og/product/${id}/image`;
+    const title         = `${name} — ${storeName}`;
+    // Pinterest requires "instock" (no space) and "out of stock" (with space)
+    const ogAvailability  = inStock ? "instock" : "out of stock";
     const schemaAvailability = inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
+    const priceStr      = price > 0 ? String(price) : "0";
+    const pricePrefix   = price > 0 ? `₹${price.toLocaleString("en-IN")} · ` : "";
+    const description   = `${pricePrefix}${rawDesc.slice(0, 180) || `Buy ${name} online. Order directly on WhatsApp.`}`;
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=300");
@@ -109,13 +112,13 @@ router.get("/og/product/:id", async (req, res) => {
   <meta property="og:image:height"        content="630" />
   <meta property="og:image:type"          content="image/jpeg" />
   <meta property="og:url"                 content="${escHtml(productUrl)}" />
-  <meta property="og:site_name"           content="Advize Store" />
-  <meta property="og:availability"        content="${escHtml(availability)}" />
+  <meta property="og:site_name"           content="${escHtml(storeName)}" />
+  <meta property="og:availability"        content="${ogAvailability}" />
 
   <!-- Pinterest Product Rich Pin required tags -->
   <meta property="product:price:amount"   content="${escHtml(priceStr)}" />
   <meta property="product:price:currency" content="INR" />
-  <meta property="product:availability"   content="${escHtml(availability)}" />
+  <meta property="product:availability"   content="${ogAvailability}" />
 
   <!-- Legacy og:price tags (broader compatibility) -->
   <meta property="og:price:amount"        content="${escHtml(priceStr)}" />
@@ -133,10 +136,11 @@ router.get("/og/product/:id", async (req, res) => {
     "@type": "Product",
     name,
     description,
-    image: proxyImage,
-    url: productUrl,
+    image: [proxyImage],
+    brand: { "@type": "Brand", name: storeName },
     offers: {
       "@type": "Offer",
+      url: productUrl,
       priceCurrency: "INR",
       price: priceStr,
       availability: schemaAvailability,

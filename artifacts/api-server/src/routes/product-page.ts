@@ -7,9 +7,11 @@ const IS_PROD = process.env.NODE_ENV === "production";
 // Vite dev server port (matches artifact.toml PORT for shop service)
 const VITE_PORT = process.env.SHOP_DEV_PORT ?? "24349";
 
-// Social crawler User-Agent patterns — these bots don't run JavaScript
+// Social crawler / link-preview User-Agent patterns.
+// Note: WhatsApp sends "WhatsApp/2.x.x" (not "whatsappbot"), Telegram sends
+// "TelegramBot" — both are matched by the patterns below.
 const BOT_RE =
-  /pinterestbot|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|whatsappbot|telegrambot|googlebot|bingbot|applebot|discordbot|embedly|yahoo|ia_archiver|semrushbot|ahrefsbot/i;
+  /pinterestbot|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|whatsapp|telegram|googlebot|bingbot|applebot|discordbot|embedly|yahoo|ia_archiver|semrushbot|ahrefsbot|signal|viber/i;
 
 function escHtml(s: string) {
   return String(s)
@@ -23,6 +25,7 @@ function escHtml(s: string) {
 function buildOgHtml(params: {
   id: string;
   name: string;
+  storeName: string;
   description: string;
   price: number;
   inStock: boolean;
@@ -30,9 +33,10 @@ function buildOgHtml(params: {
   productUrl: string;
   title: string;
 }): string {
-  const { id, name, description, price, inStock, proxyImage, productUrl, title } = params;
-  const priceStr = price > 0 ? price.toFixed(2) : "0.00";
-  const availability = inStock ? "in stock" : "out of stock";
+  const { name, storeName, description, price, inStock, proxyImage, productUrl, title } = params;
+  const priceStr         = price > 0 ? String(price) : "0";
+  // Pinterest requires "instock" (no space) and "out of stock" (with space)
+  const ogAvailability   = inStock ? "instock" : "out of stock";
   const schemaAvailability = inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
 
   return `<!DOCTYPE html>
@@ -51,13 +55,13 @@ function buildOgHtml(params: {
   <meta property="og:image:height"        content="630" />
   <meta property="og:image:type"          content="image/jpeg" />
   <meta property="og:url"                 content="${escHtml(productUrl)}" />
-  <meta property="og:site_name"           content="Advize Store" />
-  <meta property="og:availability"        content="${availability}" />
+  <meta property="og:site_name"           content="${escHtml(storeName)}" />
+  <meta property="og:availability"        content="${ogAvailability}" />
 
   <!-- Pinterest Product Rich Pin required tags -->
   <meta property="product:price:amount"   content="${escHtml(priceStr)}" />
   <meta property="product:price:currency" content="INR" />
-  <meta property="product:availability"   content="${availability}" />
+  <meta property="product:availability"   content="${ogAvailability}" />
 
   <!-- Legacy og:price tags (broader compatibility) -->
   <meta property="og:price:amount"        content="${escHtml(priceStr)}" />
@@ -75,10 +79,11 @@ function buildOgHtml(params: {
     "@type": "Product",
     name,
     description,
-    image: proxyImage,
-    url: productUrl,
+    image: [proxyImage],
+    brand: { "@type": "Brand", name: storeName },
     offers: {
       "@type": "Offer",
+      url: productUrl,
       priceCurrency: "INR",
       price: priceStr,
       availability: schemaAvailability,
@@ -112,10 +117,9 @@ export async function handleProductPage(req: Request, res: Response) {
       if (!spaRes.ok) throw new Error(`SPA fetch failed: ${spaRes.status}`);
       const html = await spaRes.text();
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Cache-Control", "no-store"); // always fresh in case SPA is updated
+      res.setHeader("Cache-Control", "no-store");
       return res.send(html);
     } catch (err) {
-      // Last resort: JS redirect back to the same URL (works for browsers)
       console.error("product-page: could not fetch SPA shell:", err);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       return res.send(`<!DOCTYPE html><html><head>
@@ -131,9 +135,9 @@ export async function handleProductPage(req: Request, res: Response) {
 
     const data = productDoc.data()!;
     const storeId: string = data["store_id"] ?? "";
-    const name: string = data["name"] ?? "Product";
+    const name: string    = data["name"] ?? "Product";
     const rawDesc: string = (data["description"] ?? "").replace(/<[^>]*>/g, "").trim();
-    const price: number = Number(data["sale_price"] || data["price"] || 0);
+    const price: number   = Number(data["sale_price"] || data["price"] || 0);
     const inStock: boolean = (data["units"] ?? 1) > 0;
 
     let storeName = "Advize Store";
@@ -142,16 +146,15 @@ export async function handleProductPage(req: Request, res: Response) {
       if (storeDoc.exists) storeName = storeDoc.data()?.["name"] ?? storeName;
     }
 
-    const productUrl = `${BASE_URL}/product/${id}`;
-    const proxyImage = `${BASE_URL}/api/og/product/${id}/image`;
-    const title = `${name} — ${storeName}`;
+    const productUrl  = `${BASE_URL}/product/${id}`;
+    const proxyImage  = `${BASE_URL}/api/og/product/${id}/image`;
+    const title       = `${name} — ${storeName}`;
     const pricePrefix = price > 0 ? `₹${price.toLocaleString("en-IN")} · ` : "";
-    const description =
-      `${pricePrefix}${rawDesc.slice(0, 180) || `Buy ${name} online. Order directly on WhatsApp.`}`;
+    const description = `${pricePrefix}${rawDesc.slice(0, 180) || `Buy ${name} online. Order directly on WhatsApp.`}`;
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=300");
-    return res.send(buildOgHtml({ id, name, description, price, inStock, proxyImage, productUrl, title }));
+    return res.send(buildOgHtml({ id, name, storeName, description, price, inStock, proxyImage, productUrl, title }));
   } catch (err) {
     console.error("product-page handler error:", err);
     return res.status(500).send("Error generating preview");
