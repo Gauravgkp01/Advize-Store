@@ -331,9 +331,45 @@ export interface ProductAnalytics {
 export const getProductAnalytics = (product_id: string) =>
   request<ProductAnalytics>(`/analytics/product/${product_id}`);
 
+// Convert any image format (AVIF, WebP, HEIC, PNG, etc.) to JPEG in the browser
+// using the Canvas API before uploading. This guarantees stored images are always
+// JPEG — compatible with Pinterest, WhatsApp, and all social crawlers.
+const convertToJpeg = (file: File, quality = 0.88): Promise<File> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(objectUrl);
+        return reject(new Error("Canvas not available"));
+      }
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(objectUrl);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error("Image conversion failed"));
+          const jpegName = file.name.replace(/\.[^.]+$/, ".jpg");
+          resolve(new File([blob], jpegName, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to load image for conversion"));
+    };
+    img.src = objectUrl;
+  });
+
 export const uploadImage = async (file: File): Promise<string> => {
+  const jpeg = await convertToJpeg(file);
   const formData = new FormData();
-  formData.append("image", file);
+  formData.append("image", jpeg);
   const res = await fetch("/api/upload", { method: "POST", body: formData });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
