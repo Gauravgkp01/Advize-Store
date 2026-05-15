@@ -4,6 +4,10 @@ import { db } from "../lib/firebase.js";
 const router = Router();
 const BASE_URL = process.env.STORE_BASE_URL ?? "https://store.advize.in";
 
+// Social crawler User-Agent patterns
+const BOT_RE =
+  /pinterestbot|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|whatsappbot|telegrambot|googlebot|bingbot|applebot|discordbot|embedly|yahoo|ia_archiver|semrushbot|ahrefsbot/i;
+
 function escHtml(s: string) {
   return String(s)
     .replace(/&/g, "&amp;")
@@ -47,12 +51,21 @@ router.get("/og/product/:id/image", async (req, res) => {
 });
 
 /* ── OG meta page ────────────────────────────────────────────────────────
-   Returns a tiny HTML page with Open Graph / Twitter Card meta tags.
-   Social crawlers read this; browsers are immediately redirected to the SPA.
+   - Social bots  → full OG HTML with Pinterest Product Rich Pin tags (no redirect)
+   - Real browsers → 302 redirect straight to the SPA product page
    GET /api/og/product/:id
 ───────────────────────────────────────────────────────────────────────── */
 router.get("/og/product/:id", async (req, res) => {
   const { id } = req.params;
+  const ua = req.headers["user-agent"] ?? "";
+  const isBot = BOT_RE.test(ua);
+  const productUrl = `${BASE_URL}/product/${id}`;
+
+  // Browsers get a plain 302 — no meta-refresh, no confusion for crawlers
+  if (!isBot) {
+    return res.redirect(302, productUrl);
+  }
+
   try {
     const productDoc = await db.collection("products").doc(id).get();
     if (!productDoc.exists) return res.status(404).send("Product not found");
@@ -61,7 +74,8 @@ router.get("/og/product/:id", async (req, res) => {
     const storeId: string  = data["store_id"] ?? "";
     const name: string     = data["name"] ?? "Product";
     const rawDesc: string  = (data["description"] ?? "").replace(/<[^>]*>/g, "").trim();
-    const price: number    = data["sale_price"] || data["price"] || 0;
+    const price: number    = Number(data["sale_price"] || data["price"] || 0);
+    const inStock: boolean = (data["units"] ?? 1) > 0;
 
     let storeName = "Advize Store";
     if (storeId) {
@@ -69,11 +83,13 @@ router.get("/og/product/:id", async (req, res) => {
       if (storeDoc.exists) storeName = storeDoc.data()?.["name"] ?? storeName;
     }
 
-    const productUrl = `${BASE_URL}/product/${id}`;
-    const proxyImage = `${BASE_URL}/api/og/product/${id}/image`;
-    const title      = `${name} — ${storeName}`;
-    const priceStr   = price > 0 ? `₹${price.toLocaleString("en-IN")} · ` : "";
-    const description = `${priceStr}${rawDesc.slice(0, 180) || `Buy ${name} online. Order directly on WhatsApp.`}`;
+    const proxyImage  = `${BASE_URL}/api/og/product/${id}/image`;
+    const title       = `${name} — ${storeName}`;
+    const priceStr    = price > 0 ? price.toFixed(2) : "0.00";
+    const pricePrefix = price > 0 ? `₹${price.toLocaleString("en-IN")} · ` : "";
+    const description = `${pricePrefix}${rawDesc.slice(0, 180) || `Buy ${name} online. Order directly on WhatsApp.`}`;
+    const availability = inStock ? "in stock" : "out of stock";
+    const schemaAvailability = inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=300");
@@ -84,26 +100,52 @@ router.get("/og/product/:id", async (req, res) => {
   <title>${escHtml(title)}</title>
   <meta name="description" content="${escHtml(description)}" />
 
-  <meta property="og:type"         content="product" />
-  <meta property="og:title"        content="${escHtml(title)}" />
-  <meta property="og:description"  content="${escHtml(description)}" />
-  <meta property="og:image"        content="${escHtml(proxyImage)}" />
-  <meta property="og:image:width"  content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:type"   content="image/jpeg" />
-  <meta property="og:url"          content="${escHtml(productUrl)}" />
-  <meta property="og:site_name"    content="Advize Store" />
+  <!-- Open Graph / Pinterest Product Rich Pins -->
+  <meta property="og:type"                content="product" />
+  <meta property="og:title"               content="${escHtml(title)}" />
+  <meta property="og:description"         content="${escHtml(description)}" />
+  <meta property="og:image"               content="${escHtml(proxyImage)}" />
+  <meta property="og:image:width"         content="1200" />
+  <meta property="og:image:height"        content="630" />
+  <meta property="og:image:type"          content="image/jpeg" />
+  <meta property="og:url"                 content="${escHtml(productUrl)}" />
+  <meta property="og:site_name"           content="Advize Store" />
+  <meta property="og:availability"        content="${escHtml(availability)}" />
 
-  <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="${escHtml(title)}" />
-  <meta name="twitter:description" content="${escHtml(description)}" />
-  <meta name="twitter:image"       content="${escHtml(proxyImage)}" />
+  <!-- Pinterest Product Rich Pin required tags -->
+  <meta property="product:price:amount"   content="${escHtml(priceStr)}" />
+  <meta property="product:price:currency" content="INR" />
+  <meta property="product:availability"   content="${escHtml(availability)}" />
 
-  <meta http-equiv="refresh" content="0;url=${escHtml(productUrl)}" />
+  <!-- Legacy og:price tags (broader compatibility) -->
+  <meta property="og:price:amount"        content="${escHtml(priceStr)}" />
+  <meta property="og:price:currency"      content="INR" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"              content="summary_large_image" />
+  <meta name="twitter:title"             content="${escHtml(title)}" />
+  <meta name="twitter:description"       content="${escHtml(description)}" />
+  <meta name="twitter:image"             content="${escHtml(proxyImage)}" />
+
+  <!-- Schema.org structured data -->
+  <script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    name,
+    description,
+    image: proxyImage,
+    url: productUrl,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "INR",
+      price: priceStr,
+      availability: schemaAvailability,
+    },
+  })}</script>
+
+  <link rel="canonical" href="${escHtml(productUrl)}" />
 </head>
-<body style="font-family:sans-serif;padding:2rem;background:#0f0f0f;color:#fff">
-  <p>Redirecting to <a href="${escHtml(productUrl)}" style="color:#22c55e">${escHtml(name)}</a>…</p>
-  <script>window.location.replace("${productUrl.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}");</script>
+<body>
 </body>
 </html>`);
   } catch (err) {

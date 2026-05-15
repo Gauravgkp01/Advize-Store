@@ -86,11 +86,8 @@ function buildOgHtml(params: {
   })}</script>
 
   <link rel="canonical" href="${escHtml(productUrl)}" />
-  <meta http-equiv="refresh" content="0;url=${escHtml(productUrl)}" />
 </head>
-<body style="font-family:sans-serif;padding:2rem;background:#0f0f0f;color:#fff">
-  <p>Redirecting to <a href="${escHtml(productUrl)}" style="color:#22c55e">${escHtml(name)}</a>…</p>
-  <script>window.location.replace(${JSON.stringify(productUrl)});</script>
+<body>
 </body>
 </html>`;
 }
