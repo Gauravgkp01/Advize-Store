@@ -740,6 +740,12 @@ function ListingsPanel({ products, onRefresh, onProductsChange, onDeleteProduct,
                 : `${filtered.length} of ${products.length} products`}
             </p>
           </div>
+          <Link href="/add-product">
+            <button className="flex items-center gap-1.5 bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors">
+              <Plus className="h-4 w-4" />
+              List New Product
+            </button>
+          </Link>
         </div>
 
         {/* Category filter pills */}
