@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Store, Menu, LayoutDashboard, LogIn, LogOut, UserPlus } from "lucide-react";
+import { Store, Menu, LayoutDashboard, LogIn, LogOut, UserPlus, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,6 +31,13 @@ export function Navbar() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-3">
+          <Link
+            href="/pricing"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+          >
+            <Tag className="h-4 w-4" />
+            Pricing
+          </Link>
           {user ? (
             <>
               <Link
@@ -98,6 +105,13 @@ export function Navbar() {
                 </>
               ) : (
                 <>
+                  <DropdownMenuItem asChild className="rounded-lg mb-1 cursor-pointer">
+                    <Link href="/pricing" className="flex items-center w-full">
+                      <Tag className="mr-2 h-4 w-4" />
+                      <span>Pricing</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="rounded-lg mb-1 cursor-pointer">
                     <Link href="/login" className="flex items-center w-full">
                       <LogIn className="mr-2 h-4 w-4" />

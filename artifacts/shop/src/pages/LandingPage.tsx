@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowRight, Store, Share2, MessageCircle, LogIn, UserPlus } from "lucide-react";
+import { ArrowRight, Store, Share2, MessageCircle, LogIn, UserPlus, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,6 +50,12 @@ export function LandingPage() {
                 <Link href="/login">
                   <LogIn className="mr-2 h-5 w-5" />
                   Sign In
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="ghost" className="h-14 px-8 text-lg rounded-full w-full sm:w-auto">
+                <Link href="/pricing">
+                  <Tag className="mr-2 h-5 w-5" />
+                  Pricing
                 </Link>
               </Button>
             </div>
