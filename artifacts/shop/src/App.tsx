@@ -24,6 +24,7 @@ import { OrderHistoryPage } from "@/pages/OrderHistoryPage";
 import { CartProvider } from "@/contexts/CartContext";
 import LoyaltyPage from "@/pages/LoyaltyPage";
 import { MyOffersSheet } from "@/components/MyOffersSheet";
+import { PricingPage } from "@/pages/PricingPage";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ function Router() {
         <Route path="/store/:slug/cart" component={CartPage} />
         <Route path="/store/:slug/orders" component={OrderHistoryPage} />
         <Route path="/product/:id" component={ProductDetailPage} />
+        <Route path="/pricing" component={PricingPage} />
         <Route path="/terms" component={TermsPage} />
         <Route path="/privacy" component={PrivacyPage} />
         <Route path="/data-deletion" component={DataDeletionPage} />
