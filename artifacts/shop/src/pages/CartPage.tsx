@@ -201,7 +201,12 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
         order_id: orderData.order_id,
         prefill: {
           name: buyer.name,
-          contact: `+91${buyer.phone.replace(/\D/g, "")}`,
+          contact: `+91${buyer.phone.replace(/\D/g, "").slice(-10)}`,
+        },
+        config: {
+          display: {
+            preferences: { show_default_blocks: true },
+          },
         },
         notes: {
           delivery_address: `${buyer.addressLine}, ${buyer.city} - ${buyer.pincode}`,
@@ -276,7 +281,12 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
         order_id: orderData.order_id,
         prefill: {
           name: buyer.name,
-          contact: `+91${buyer.phone.replace(/\D/g, "")}`,
+          contact: `+91${buyer.phone.replace(/\D/g, "").slice(-10)}`,
+        },
+        config: {
+          display: {
+            preferences: { show_default_blocks: true },
+          },
         },
         notes: {
           delivery_address: `${buyer.addressLine}, ${buyer.city} - ${buyer.pincode}`,
