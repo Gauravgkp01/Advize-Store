@@ -1,15 +1,8 @@
 import { Request, Response } from "express";
-import path from "path";
-import { fileURLToPath } from "url";
 import { db } from "../lib/firebase.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const BASE_URL = process.env.STORE_BASE_URL ?? "https://store.advize.in";
 const IS_PROD = process.env.NODE_ENV === "production";
-
-// Path to the Vite build output (used in production)
-const SHOP_STATIC_DIR = path.resolve(__dirname, "../../../../artifacts/shop/dist/public");
 
 // Vite dev server port (matches artifact.toml PORT for shop service)
 const VITE_PORT = process.env.SHOP_DEV_PORT ?? "24349";
@@ -109,22 +102,28 @@ export async function handleProductPage(req: Request, res: Response) {
 
   if (!isBot) {
     // ── Regular browser ──────────────────────────────────────────────────────
-    // Serve the SPA index.html so client-side routing takes over at /product/:id
-    if (IS_PROD) {
-      return res.sendFile(path.join(SHOP_STATIC_DIR, "index.html"), (err) => {
-        if (err) res.status(500).send("Could not serve app");
+    // Fetch the SPA index.html and serve it — the React app boots at the
+    // current URL (/product/:id) and its router renders the product page.
+    const spaRoot = IS_PROD
+      ? `${BASE_URL}/`                      // shop CDN in production
+      : `http://localhost:${VITE_PORT}/`;   // Vite dev server locally
+    try {
+      const spaRes = await fetch(spaRoot, {
+        headers: { "Accept": "text/html" },
+        signal: AbortSignal.timeout(5000),
       });
-    } else {
-      // In dev, fetch index.html from the Vite dev server
-      try {
-        const viteRes = await fetch(`http://localhost:${VITE_PORT}/`);
-        const html = await viteRes.text();
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        return res.send(html);
-      } catch {
-        // Fallback: hard redirect to root (Vite dev handles it)
-        return res.redirect(302, `http://localhost:${VITE_PORT}/product/${id}`);
-      }
+      if (!spaRes.ok) throw new Error(`SPA fetch failed: ${spaRes.status}`);
+      const html = await spaRes.text();
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store"); // always fresh in case SPA is updated
+      return res.send(html);
+    } catch (err) {
+      // Last resort: JS redirect back to the same URL (works for browsers)
+      console.error("product-page: could not fetch SPA shell:", err);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.send(`<!DOCTYPE html><html><head>
+        <meta http-equiv="refresh" content="0;url=${escHtml(`${BASE_URL}/product/${id}`)}" />
+      </head><body><script>location.href=${JSON.stringify(`${BASE_URL}/product/${id}`)}</script></body></html>`);
     }
   }
 
