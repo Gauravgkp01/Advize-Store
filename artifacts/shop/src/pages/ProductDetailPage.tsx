@@ -809,7 +809,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
     try { localStorage.setItem(`liked_${product.id}`, next ? "1" : "0"); } catch {}
     if (next) toast({ title: "Saved!", description: "Added to your favourites." });
   };
-  const ogUrl = `https://store.advize.in/api/og/product/${product.id}`;
+  const ogUrl = `https://store.advize.in/product/${product.id}`;
   const handleShare = async () => {
     try {
       if (navigator.share) {
