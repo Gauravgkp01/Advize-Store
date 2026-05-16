@@ -23,7 +23,7 @@ router.get("/loyalty/card", async (req, res) => {
     if (!storeSnap.exists) return res.status(404).json({ error: "Store not found" });
     const storeData = storeSnap.data()!;
 
-    if (!storeData.loyalty_enabled) {
+    if (storeData.loyalty_enabled === false) {
       return res.json({ enabled: false });
     }
 
