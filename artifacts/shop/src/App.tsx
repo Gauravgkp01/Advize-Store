@@ -63,9 +63,9 @@ function Router() {
         <Route path="/edit-product/:id">
           <ProtectedRoute><EditProductPage /></ProtectedRoute>
         </Route>
-        <Route path="/store/:slug" component={StorefrontPage} />
-        <Route path="/store/:slug/cart" component={CartPage} />
-        <Route path="/store/:slug/orders" component={OrderHistoryPage} />
+        <Route path="/store/:slug">{() => <StorefrontPage />}</Route>
+        <Route path="/store/:slug/cart">{() => <CartPage />}</Route>
+        <Route path="/store/:slug/orders">{() => <OrderHistoryPage />}</Route>
         <Route path="/product/:id" component={ProductDetailPage} />
         <Route path="/pricing" component={PricingPage} />
         <Route path="/terms" component={TermsPage} />

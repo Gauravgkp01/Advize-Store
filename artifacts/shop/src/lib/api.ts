@@ -259,6 +259,11 @@ export const updateProduct = (id: string, body: Partial<{
   units: number;
   trending: boolean;
   variants: ProductVariant[];
+  product_type: "normal" | "mix_match";
+  pricing_tiers: PricingTier[];
+  mix_options: string[];
+  mix_inventory: Record<string, number>;
+  mix_attribute_label: string;
 }>) => request<ApiProduct>(`/products/${id}`, { method: "PATCH", body: JSON.stringify(body) }).then(toProduct);
 
 export const deleteProduct = (id: string) =>
@@ -459,6 +464,7 @@ export interface Order {
   payment_status?: PaymentStatus;
   cashfree_order_id?: string;
   cashfree_payment_id?: string;
+  razorpay_order_id?: string;
   razorpay_payment_id?: string;
   amount_paise: number;
   items: OrderItem[];
