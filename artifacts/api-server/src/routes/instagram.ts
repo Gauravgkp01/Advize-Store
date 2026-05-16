@@ -29,15 +29,35 @@ router.post("/instagram/webhook", async (req, res) => {
   res.status(200).json({ ok: true }); // respond immediately — Meta requires < 20 s
   try {
     const body = req.body as any;
-    if (body?.object !== "instagram") return;
+    if (body?.object !== "instagram") {
+      console.log("[Instagram webhook] Ignored non-instagram object:", body?.object);
+      return;
+    }
 
     for (const entry of body.entry ?? []) {
       const igUserId: string = entry.id;
-      for (const event of entry.messaging ?? []) {
+
+      // Collect messaging events — Instagram may send via entry.messaging OR entry.changes[].value
+      const messagingEvents: any[] = [];
+      if (Array.isArray(entry.messaging)) {
+        messagingEvents.push(...entry.messaging);
+      }
+      if (Array.isArray(entry.changes)) {
+        for (const change of entry.changes) {
+          if (change.field === "messages" && change.value) {
+            messagingEvents.push(change.value);
+          }
+        }
+      }
+
+      for (const event of messagingEvents) {
         const senderIgsid: string = event.sender?.id;
         const text: string | undefined = event.message?.text;
+
         // Skip echo events (messages sent by the page itself)
         if (!senderIgsid || !text || event.message?.is_echo) continue;
+
+        console.log(`[Instagram webhook] Message from ${senderIgsid} to ig_user_id ${igUserId}: "${text}"`);
 
         // Find the store that owns this Instagram account
         const storeSnap = await db
@@ -45,12 +65,18 @@ router.post("/instagram/webhook", async (req, res) => {
           .where("ig_user_id", "==", igUserId)
           .limit(1)
           .get();
-        if (storeSnap.empty) continue;
+        if (storeSnap.empty) {
+          console.log(`[Instagram webhook] No store found for ig_user_id: ${igUserId}`);
+          continue;
+        }
 
         const storeDoc = storeSnap.docs[0];
         const storeData = storeDoc.data();
         const accessToken: string = storeData.ig_access_token;
-        if (!accessToken) continue;
+        if (!accessToken) {
+          console.log(`[Instagram webhook] No access token for store: ${storeDoc.id}`);
+          continue;
+        }
 
         // Load enabled rules for this store
         const rulesSnap = await db
@@ -58,7 +84,10 @@ router.post("/instagram/webhook", async (req, res) => {
           .where("store_id", "==", storeDoc.id)
           .where("enabled", "==", true)
           .get();
-        if (rulesSnap.empty) continue;
+        if (rulesSnap.empty) {
+          console.log(`[Instagram webhook] No enabled rules for store: ${storeDoc.id}`);
+          continue;
+        }
 
         const lower = text.toLowerCase().trim();
         let matchedReply: string | null = null;
@@ -73,13 +102,17 @@ router.post("/instagram/webhook", async (req, res) => {
             (mt === "starts_with" && lower.startsWith(kw))
           ) {
             matchedReply = rule.reply as string;
+            console.log(`[Instagram webhook] Rule matched (${mt} "${kw}") → replying to ${senderIgsid}`);
             break; // first match wins
           }
         }
-        if (!matchedReply) continue;
+        if (!matchedReply) {
+          console.log(`[Instagram webhook] No rule matched for text: "${lower}"`);
+          continue;
+        }
 
-        // Send the automated reply
-        await fetch(`${IG_GRAPH}/me/messages`, {
+        // Send the automated reply via Instagram Graph API
+        const sendRes = await fetch(`${IG_GRAPH}/me/messages`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -88,8 +121,15 @@ router.post("/instagram/webhook", async (req, res) => {
           body: JSON.stringify({
             recipient: { id: senderIgsid },
             message: { text: matchedReply },
+            messaging_product: "instagram",
           }),
         });
+        const sendData = await sendRes.json() as any;
+        if (!sendRes.ok) {
+          console.error(`[Instagram webhook] Send DM failed (${sendRes.status}):`, JSON.stringify(sendData));
+        } else {
+          console.log(`[Instagram webhook] DM sent successfully, message_id: ${sendData.message_id}`);
+        }
       }
     }
   } catch (err) {
