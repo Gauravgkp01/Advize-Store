@@ -599,6 +599,26 @@ export const disconnectInstagram = (storeId: string) =>
     body: JSON.stringify({ store_id: storeId }),
   });
 
+export interface IgTestResult {
+  ok: boolean;
+  step?: string;
+  error?: string;
+  ig_user_id?: string;
+  username?: string;
+  token_expires_at?: string | null;
+  days_until_expiry?: number | null;
+  permissions?: string[];
+  has_messages_permission?: boolean;
+  warning?: string | null;
+  meta?: unknown;
+}
+
+export const testInstagramConnection = (storeId: string) =>
+  request<IgTestResult>("/instagram/test", {
+    method: "POST",
+    body: JSON.stringify({ store_id: storeId }),
+  });
+
 // ── Coupon Codes ─────────────────────────────────────────────────────────────
 
 export type Coupon = {

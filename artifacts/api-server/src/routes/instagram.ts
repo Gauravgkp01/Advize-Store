@@ -2,8 +2,10 @@ import { Router } from "express";
 import { db } from "../lib/firebase.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
 import { cacheDeleteByPrefix } from "../lib/cache.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
+const igLog = logger.child({ module: "instagram" });
 
 const META_APP_ID = process.env.META_APP_ID ?? "";
 const META_APP_SECRET = process.env.META_APP_SECRET ?? "";
@@ -30,7 +32,7 @@ router.post("/instagram/webhook", async (req, res) => {
   try {
     const body = req.body as any;
     if (body?.object !== "instagram") {
-      console.log("[Instagram webhook] Ignored non-instagram object:", body?.object);
+      igLog.info({ object: body?.object }, "webhook: ignored non-instagram object");
       return;
     }
 
@@ -57,7 +59,7 @@ router.post("/instagram/webhook", async (req, res) => {
         // Skip echo events (messages sent by the page itself)
         if (!senderIgsid || !text || event.message?.is_echo) continue;
 
-        console.log(`[Instagram webhook] Message from ${senderIgsid} to ig_user_id ${igUserId}: "${text}"`);
+        igLog.info({ senderIgsid, igUserId, text }, "webhook: incoming DM");
 
         // Find the store that owns this Instagram account
         const storeSnap = await db
@@ -66,7 +68,7 @@ router.post("/instagram/webhook", async (req, res) => {
           .limit(1)
           .get();
         if (storeSnap.empty) {
-          console.log(`[Instagram webhook] No store found for ig_user_id: ${igUserId}`);
+          igLog.warn({ igUserId }, "webhook: no store found for ig_user_id");
           continue;
         }
 
@@ -74,7 +76,14 @@ router.post("/instagram/webhook", async (req, res) => {
         const storeData = storeDoc.data();
         const accessToken: string = storeData.ig_access_token;
         if (!accessToken) {
-          console.log(`[Instagram webhook] No access token for store: ${storeDoc.id}`);
+          igLog.warn({ storeId: storeDoc.id }, "webhook: no access token on store");
+          continue;
+        }
+
+        // Check token expiry
+        const expiresAt: number = storeData.ig_token_expires_at ?? 0;
+        if (expiresAt && Date.now() > expiresAt) {
+          igLog.warn({ storeId: storeDoc.id, expiresAt }, "webhook: access token has expired — merchant must reconnect Instagram");
           continue;
         }
 
@@ -85,7 +94,7 @@ router.post("/instagram/webhook", async (req, res) => {
           .where("enabled", "==", true)
           .get();
         if (rulesSnap.empty) {
-          console.log(`[Instagram webhook] No enabled rules for store: ${storeDoc.id}`);
+          igLog.info({ storeId: storeDoc.id }, "webhook: no enabled rules");
           continue;
         }
 
@@ -102,12 +111,12 @@ router.post("/instagram/webhook", async (req, res) => {
             (mt === "starts_with" && lower.startsWith(kw))
           ) {
             matchedReply = rule.reply as string;
-            console.log(`[Instagram webhook] Rule matched (${mt} "${kw}") → replying to ${senderIgsid}`);
+            igLog.info({ mt, kw, senderIgsid }, "webhook: rule matched → sending reply");
             break; // first match wins
           }
         }
         if (!matchedReply) {
-          console.log(`[Instagram webhook] No rule matched for text: "${lower}"`);
+          igLog.info({ lower, storeId: storeDoc.id }, "webhook: no rule matched");
           continue;
         }
 
@@ -126,14 +135,14 @@ router.post("/instagram/webhook", async (req, res) => {
         });
         const sendData = await sendRes.json() as any;
         if (!sendRes.ok) {
-          console.error(`[Instagram webhook] Send DM failed (${sendRes.status}):`, JSON.stringify(sendData));
+          igLog.error({ status: sendRes.status, metaError: sendData?.error ?? sendData }, "webhook: send DM failed");
         } else {
-          console.log(`[Instagram webhook] DM sent successfully, message_id: ${sendData.message_id}`);
+          igLog.info({ messageId: sendData.message_id, senderIgsid }, "webhook: DM sent successfully");
         }
       }
     }
   } catch (err) {
-    console.error("[Instagram webhook]", err);
+    igLog.error({ err }, "webhook: unhandled error");
   }
 });
 
@@ -220,7 +229,7 @@ router.get("/instagram/callback", async (req, res) => {
         `${IG_GRAPH}/me?fields=id,username&access_token=${longToken}`,
       );
       const userData = (await userRes.json()) as any;
-      console.log("[Instagram user data]", userData);
+      igLog.info({ userData }, "callback: fetched user data from /me");
       finalUserId = userData.id?.toString() ?? "";
       finalUsername = userData.username ?? "";
     }
@@ -242,10 +251,68 @@ router.get("/instagram/callback", async (req, res) => {
     cacheDeleteByPrefix(`store:id:${storeId}`);
     return res.redirect(`${dashboard}&ig_connected=1`);
   } catch (err: any) {
-    console.error("[Instagram callback]", err);
+    igLog.error({ err }, "callback: OAuth error");
     return res.redirect(
       `${dashboard}&ig_error=${encodeURIComponent(err.message ?? "unknown")}`,
     );
+  }
+});
+
+// ── Test Instagram connection (token + send permissions) ─────────────────────
+router.post("/instagram/test", verifyToken, async (req, res) => {
+  const { store_id } = req.body as { store_id?: string };
+  if (!store_id) return res.status(400).json({ error: "store_id required" });
+
+  try {
+    const storeSnap = await db.collection("stores").doc(store_id).get();
+    if (!storeSnap.exists) return res.status(404).json({ error: "Store not found" });
+    const storeData = storeSnap.data()!;
+
+    const accessToken: string = storeData.ig_access_token ?? "";
+    const igUserId: string = storeData.ig_user_id ?? "";
+    const expiresAt: number = storeData.ig_token_expires_at ?? 0;
+
+    if (!accessToken || !igUserId) {
+      return res.json({ ok: false, step: "token", error: "Instagram not connected — reconnect from dashboard" });
+    }
+
+    if (expiresAt && Date.now() > expiresAt) {
+      const expiredDate = new Date(expiresAt).toISOString();
+      return res.json({ ok: false, step: "token", error: `Access token expired on ${expiredDate} — reconnect Instagram` });
+    }
+
+    // Verify token is still valid by calling /me
+    const meRes = await fetch(`${IG_GRAPH}/me?fields=id,username&access_token=${accessToken}`);
+    const meData = await meRes.json() as any;
+    if (!meRes.ok || meData.error) {
+      return res.json({ ok: false, step: "token_verify", error: meData?.error?.message ?? "Token invalid", meta: meData });
+    }
+
+    // Check token permissions
+    const permRes = await fetch(`${IG_GRAPH}/me/permissions?access_token=${accessToken}`);
+    const permData = await permRes.json() as any;
+    const permissions: string[] = (permData?.data ?? [])
+      .filter((p: any) => p.status === "granted")
+      .map((p: any) => p.permission as string);
+
+    const hasMessages = permissions.includes("instagram_manage_messages") ||
+                        permissions.includes("instagram_business_manage_messages");
+
+    igLog.info({ storeId: store_id, igUserId, username: meData.username, permissions, tokenExpiresAt: expiresAt }, "test: connection verified");
+
+    return res.json({
+      ok: true,
+      ig_user_id: igUserId,
+      username: meData.username ?? "",
+      token_expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
+      days_until_expiry: expiresAt ? Math.floor((expiresAt - Date.now()) / 86_400_000) : null,
+      permissions,
+      has_messages_permission: hasMessages,
+      warning: !hasMessages ? "Missing instagram_business_manage_messages permission — auto-DM will fail" : null,
+    });
+  } catch (err: any) {
+    igLog.error({ err }, "test: error");
+    return res.status(500).json({ ok: false, error: err.message ?? "Internal error" });
   }
 });
 

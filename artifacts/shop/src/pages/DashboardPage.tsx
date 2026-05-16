@@ -28,7 +28,7 @@ import {
 import {
   Sheet, SheetContent, SheetTitle,
 } from "@/components/ui/sheet";
-import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, getOrderStats, updateOrderStatus, requestPayout, getPayoutRequests, getIgRules, createIgRule, updateIgRule, deleteIgRule, disconnectInstagram, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus, type PayoutRequest, type IgRule } from "@/lib/api";
+import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, getOrderStats, updateOrderStatus, requestPayout, getPayoutRequests, getIgRules, createIgRule, updateIgRule, deleteIgRule, disconnectInstagram, testInstagramConnection, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus, type PayoutRequest, type IgRule, type IgTestResult } from "@/lib/api";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
 
@@ -847,6 +847,8 @@ function InstagramPlugin({ store, onStoreChange }: {
   const [reply, setReply]                 = useState("");
   const [savingRule, setSavingRule]       = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [testing, setTesting]             = useState(false);
+  const [testResult, setTestResult]       = useState<IgTestResult | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -946,10 +948,23 @@ function InstagramPlugin({ store, onStoreChange }: {
       await disconnectInstagram(store.id);
       onStoreChange({ ...store, ig_user_id: undefined, ig_username: undefined });
       setRules([]); setRulesFetched(false);
+      setTestResult(null);
       toast({ title: "Instagram disconnected" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Failed", description: e.message });
     } finally { setDisconnecting(false); }
+  };
+
+  const handleTest = async () => {
+    if (!store?.id) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const result = await testInstagramConnection(store.id);
+      setTestResult(result);
+    } catch (e: any) {
+      setTestResult({ ok: false, error: e.message ?? "Request failed" });
+    } finally { setTesting(false); }
   };
 
   const MATCH_LABELS: Record<string, string> = {
@@ -1047,24 +1062,60 @@ function InstagramPlugin({ store, onStoreChange }: {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center justify-between gap-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-lg bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex-shrink-0">
-                    <IgIcon className="h-4 w-4 text-white" />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex-shrink-0">
+                      <IgIcon className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">@{store?.ig_username || "your_account"}</p>
+                      <p className="text-xs text-muted-foreground">Connected</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">@{store?.ig_username || "your_account"}</p>
-                    <p className="text-xs text-muted-foreground">Connected</p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleTest}
+                      disabled={testing}
+                      className="text-xs text-primary hover:text-primary/80 transition-colors font-medium flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      {testing ? "Testing…" : "Test Connection"}
+                    </button>
+                    <button
+                      onClick={handleDisconnect}
+                      disabled={disconnecting}
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors font-medium flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {disconnecting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      Disconnect
+                    </button>
                   </div>
                 </div>
-                <button
-                  onClick={handleDisconnect}
-                  disabled={disconnecting}
-                  className="text-xs text-muted-foreground hover:text-destructive transition-colors font-medium flex items-center gap-1 disabled:opacity-50"
-                >
-                  {disconnecting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  Disconnect
-                </button>
+
+                {testResult && (
+                  <div className={`rounded-xl border px-4 py-3 text-xs space-y-1.5 ${testResult.ok ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800" : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"}`}>
+                    <p className={`font-semibold ${testResult.ok ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
+                      {testResult.ok ? "✓ Connection healthy" : "✗ " + (testResult.error ?? "Connection issue")}
+                    </p>
+                    {testResult.ok && (
+                      <>
+                        {testResult.days_until_expiry != null && (
+                          <p className="text-muted-foreground">Token expires in <span className="font-semibold text-foreground">{testResult.days_until_expiry} days</span> ({testResult.token_expires_at?.slice(0, 10)})</p>
+                        )}
+                        {testResult.has_messages_permission === false && (
+                          <p className="text-amber-700 dark:text-amber-400 font-medium">⚠ Missing messaging permission — auto-DM will not work. Reconnect Instagram and accept all permissions.</p>
+                        )}
+                        {testResult.has_messages_permission && (
+                          <p className="text-green-700 dark:text-green-400">✓ Messaging permission granted</p>
+                        )}
+                      </>
+                    )}
+                    {!testResult.ok && testResult.step && (
+                      <p className="text-muted-foreground">Failed at: <span className="font-mono">{testResult.step}</span></p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
