@@ -1636,11 +1636,29 @@ function PluginsPanel({ store, onStoreChange }: {
           )}
         </div>
 
-        {/* ── Instagram DM Automation ── */}
-        <InstagramPlugin store={store} onStoreChange={onStoreChange} />
+        {/* ── Instagram DM Automation — Coming Soon ── */}
+        <div className="relative pointer-events-none select-none">
+          <div className="opacity-50">
+            <InstagramPlugin store={store} onStoreChange={onStoreChange} />
+          </div>
+          <div className="absolute inset-0 flex items-start justify-end p-4">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300">
+              Coming Soon
+            </span>
+          </div>
+        </div>
 
-        {/* ── WhatsApp Marketing ── */}
-        <WhatsAppMarketingPlugin store={store} onStoreChange={onStoreChange} />
+        {/* ── WhatsApp Marketing — Coming Soon ── */}
+        <div className="relative pointer-events-none select-none">
+          <div className="opacity-50">
+            <WhatsAppMarketingPlugin store={store} onStoreChange={onStoreChange} />
+          </div>
+          <div className="absolute inset-0 flex items-start justify-end p-4">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+              Coming Soon
+            </span>
+          </div>
+        </div>
 
         {/* ── Custom Domain ── */}
         <div className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm opacity-75">
