@@ -2,18 +2,47 @@ import { useState, useEffect } from "react";
 import {
   ChevronDown, Plus, Loader2, Trash2, Pencil, Send, Users,
   BarChart3, MessageSquare, Settings, CheckCircle2, XCircle,
-  Clock, Megaphone, EyeOff, Eye, X, Zap, RefreshCw, ChevronRight,
+  Clock, Megaphone, X, Zap, RefreshCw, ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import {
-  connectWA, disconnectWA, testWA,
+  getWAConfig, waEmbeddedSignup, disconnectWA, testWA,
   getWACampaigns, createWACampaign, deleteWACampaign, sendWACampaign,
   getWATemplates, createWATemplate, updateWATemplate, deleteWATemplate,
   getWAContacts, getWAAnalytics,
   type Store, type WaCampaign, type WaTemplate, type WaContact,
   type WaAnalytics, type WaTestResult,
 } from "@/lib/api";
+
+declare global {
+  interface Window {
+    FB: any;
+    fbAsyncInit?: () => void;
+  }
+}
+
+function loadFBSDK(appId: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.FB) {
+      window.FB.init({ appId, cookie: true, xfbml: true, version: "v21.0" });
+      resolve();
+      return;
+    }
+    window.fbAsyncInit = () => {
+      window.FB.init({ appId, cookie: true, xfbml: true, version: "v21.0" });
+      resolve();
+    };
+    if (document.getElementById("facebook-jssdk")) return;
+    const s = document.createElement("script");
+    s.id = "facebook-jssdk";
+    s.src = "https://connect.facebook.net/en_US/sdk.js";
+    s.async = true;
+    s.defer = true;
+    s.onerror = () => reject(new Error("Failed to load Facebook SDK"));
+    document.head.appendChild(s);
+  });
+}
 
 // ── WhatsApp Icon ─────────────────────────────────────────────────────────────
 function WaIcon({ className }: { className?: string }) {
@@ -65,17 +94,12 @@ export function WhatsAppMarketingPlugin({
   const [open, setOpen]     = useState(false);
   const [tab, setTab]       = useState<Tab>("overview");
 
-  // ── connection form ──
-  const [phId, setPhId]       = useState("");
-  const [token, setToken]     = useState("");
-  const [bizPhone, setBizPhone] = useState("");
-  const [dispName, setDispName] = useState("");
-  const [wabaId, setWabaId]   = useState("");
-  const [showToken, setShowToken] = useState(false);
-  const [connecting, setConnecting]     = useState(false);
+  // ── connection state ──
+  const [esLoading, setEsLoading]     = useState(false);
+  const [esError, setEsError]         = useState("");
   const [disconnecting, setDisconnecting] = useState(false);
-  const [testing, setTesting]   = useState(false);
-  const [testResult, setTestResult] = useState<WaTestResult | null>(null);
+  const [testing, setTesting]         = useState(false);
+  const [testResult, setTestResult]   = useState<WaTestResult | null>(null);
 
   // ── data ──
   const [analytics, setAnalytics]   = useState<WaAnalytics | null>(null);
@@ -140,34 +164,51 @@ export function WhatsAppMarketingPlugin({
   }, [open, tab, connected, store?.id]);
 
   // ── connection handlers ───────────────────────────────────────────────────
-  const handleConnect = async () => {
-    if (!store?.id || !phId.trim() || !token.trim() || !bizPhone.trim()) {
-      toast({ variant: "destructive", title: "Phone Number ID, Access Token and Business Phone are required" });
-      return;
-    }
-    setConnecting(true);
+  const handleEmbeddedSignup = async () => {
+    if (!store?.id) return;
+    setEsLoading(true);
+    setEsError("");
     try {
-      const res = await connectWA({
-        store_id: store.id,
-        phone_number_id: phId.trim(),
-        access_token: token.trim(),
-        business_phone: bizPhone.trim(),
-        display_name: dispName.trim(),
-        waba_id: wabaId.trim(),
+      const config = await getWAConfig();
+      if (!config.app_id) {
+        setEsError("WhatsApp integration is not configured on this platform yet. Please contact support.");
+        return;
+      }
+      await loadFBSDK(config.app_id);
+      const code = await new Promise<string>((resolve, reject) => {
+        window.FB.login(
+          (response: any) => {
+            if (response.authResponse?.code) {
+              resolve(response.authResponse.code);
+            } else {
+              reject(new Error(
+                response.status === "not_authorized"
+                  ? "You cancelled the WhatsApp setup. Please try again."
+                  : "Connection was not completed. Please try again.",
+              ));
+            }
+          },
+          {
+            scope: "whatsapp_business_management,whatsapp_business_messaging,business_management",
+            response_type: "code",
+            override_default_response_type: true,
+            extras: { feature: "whatsapp_embedded_signup", sessionInfoVersion: 2 },
+          },
+        );
       });
+      const result = await waEmbeddedSignup(store.id, code);
       onStoreChange({
         ...store,
-        wa_phone_number_id: phId.trim(),
-        wa_business_phone: bizPhone.trim(),
-        wa_display_name: res.verified_name || dispName.trim(),
+        wa_phone_number_id: "connected",
+        wa_display_name: result.verified_name || result.waba_name,
+        wa_business_phone: result.display_phone?.replace(/\D/g, ""),
       });
-      toast({ title: "WhatsApp connected!", description: `Verified as ${res.verified_name}` });
-      setPhId(""); setToken(""); setBizPhone(""); setDispName(""); setWabaId("");
+      toast({ title: "WhatsApp connected!", description: `Connected as ${result.verified_name || result.display_phone}` });
       setTab("overview");
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Connection failed", description: e.message });
+      setEsError(e.message ?? "Something went wrong. Please try again.");
     } finally {
-      setConnecting(false);
+      setEsLoading(false);
     }
   };
 
@@ -864,86 +905,57 @@ export function WhatsAppMarketingPlugin({
             {tab === "settings" && (
               <div className="space-y-5">
                 {!connected ? (
-                  <>
-                    {/* Instructions */}
-                    <div className="space-y-3">
-                      <p className="text-sm font-semibold text-foreground">Connect Your WhatsApp Business Account</p>
-                      <div className="space-y-2">
-                        {[
-                          { step: 1, title: "Go to Meta Developer Console", detail: "Visit developers.facebook.com → My Apps → select or create your app → Add product: WhatsApp." },
-                          { step: 2, title: "Create a WhatsApp Business Account (WABA)", detail: "In the WhatsApp Setup, create a WABA and add your business phone number. Verify it with OTP." },
-                          { step: 3, title: "Get your Phone Number ID", detail: "Go to WhatsApp → API Setup. Copy the Phone number ID (a long number, not your actual phone number)." },
-                          { step: 4, title: "Generate a Permanent System User Token", detail: "In Business Settings → System Users → create a System User with Admin role → Generate Token → select your WhatsApp app → enable whatsapp_business_messaging. Copy the token." },
-                          { step: 5, title: "Paste credentials below and connect", detail: "Enter all values below. We will verify them live with the WhatsApp API before saving." },
-                        ].map(({ step, title, detail }) => (
-                          <div key={step} className="flex gap-3 bg-muted/40 border rounded-xl px-3 py-3">
-                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#25D366]/10 text-[#25D366] text-xs font-bold flex items-center justify-center mt-0.5">
-                              {step}
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold text-foreground leading-snug">{title}</p>
-                              <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">{detail}</p>
-                            </div>
-                          </div>
-                        ))}
+                  <div className="space-y-5">
+                    {/* Hero */}
+                    <div className="text-center py-4 space-y-3">
+                      <div className="w-16 h-16 rounded-2xl bg-[#25D366]/10 flex items-center justify-center mx-auto">
+                        <WaIcon className="h-8 w-8 text-[#25D366]" />
+                      </div>
+                      <div>
+                        <p className="text-base font-bold text-foreground">Connect WhatsApp Business</p>
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                          Reach your customers on WhatsApp — no developer account or API keys needed.
+                        </p>
                       </div>
                     </div>
 
-                    {/* Credentials form */}
-                    <div className="space-y-3">
-                      <p className="text-xs font-bold text-foreground uppercase tracking-wide">Your Credentials</p>
-
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground block mb-1">Phone Number ID <span className="text-red-500">*</span></label>
-                        <Input value={phId} onChange={e => setPhId(e.target.value)} placeholder="e.g. 123456789012345" className="h-9 text-sm rounded-xl font-mono" />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground block mb-1">Permanent Access Token <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                          <Input
-                            type={showToken ? "text" : "password"}
-                            value={token}
-                            onChange={e => setToken(e.target.value)}
-                            placeholder="EAAxxxxx..."
-                            className="h-9 text-sm rounded-xl pr-9 font-mono"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowToken(s => !s)}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          >
-                            {showToken ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                          </button>
+                    {/* Feature list */}
+                    <div className="space-y-2.5">
+                      {[
+                        "Broadcast campaigns to opted-in customers",
+                        "Segment by buyers, new signups, or all subscribers",
+                        "Save reusable message templates",
+                        "Collect opt-ins with a banner on your store page",
+                        "Track delivery and read analytics per campaign",
+                      ].map((f, i) => (
+                        <div key={i} className="flex items-start gap-2.5">
+                          <CheckCircle2 className="h-4 w-4 text-[#25D366] flex-shrink-0 mt-0.5" />
+                          <span className="text-sm text-muted-foreground">{f}</span>
                         </div>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground block mb-1">Business Phone Number <span className="text-red-500">*</span></label>
-                        <Input value={bizPhone} onChange={e => setBizPhone(e.target.value)} placeholder="e.g. 919876543210" className="h-9 text-sm rounded-xl" />
-                        <p className="text-[10px] text-muted-foreground mt-1">Include country code, no + or spaces (e.g. 919876543210)</p>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground block mb-1">Display Name</label>
-                        <Input value={dispName} onChange={e => setDispName(e.target.value)} placeholder="e.g. My Fashion Store" className="h-9 text-sm rounded-xl" />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground block mb-1">WABA ID <span className="text-muted-foreground font-normal">(optional)</span></label>
-                        <Input value={wabaId} onChange={e => setWabaId(e.target.value)} placeholder="e.g. 987654321012345" className="h-9 text-sm rounded-xl font-mono" />
-                      </div>
-
-                      <button
-                        onClick={handleConnect}
-                        disabled={connecting}
-                        className="w-full flex items-center justify-center gap-2 text-sm font-semibold bg-[#25D366] hover:bg-[#20BA5A] text-white py-3 rounded-xl disabled:opacity-60 transition-colors"
-                      >
-                        {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <WaIcon className="h-4 w-4" />}
-                        {connecting ? "Verifying & Connecting…" : "Connect WhatsApp Business"}
-                      </button>
+                      ))}
                     </div>
-                  </>
+
+                    {/* Error */}
+                    {esError && (
+                      <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-xs text-red-700 dark:text-red-400">
+                        {esError}
+                      </div>
+                    )}
+
+                    {/* CTA */}
+                    <button
+                      onClick={handleEmbeddedSignup}
+                      disabled={esLoading}
+                      className="w-full flex items-center justify-center gap-2 text-sm font-semibold bg-[#25D366] hover:bg-[#20BA5A] text-white py-3 rounded-xl disabled:opacity-60 transition-colors"
+                    >
+                      {esLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <WaIcon className="h-4 w-4" />}
+                      {esLoading ? "Connecting…" : "Connect with WhatsApp"}
+                    </button>
+
+                    <p className="text-[11px] text-center text-muted-foreground leading-relaxed">
+                      A secure Meta popup will guide you through the setup. We never see your WhatsApp password.
+                    </p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {/* Connected account */}

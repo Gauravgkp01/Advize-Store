@@ -9,7 +9,94 @@ const router = Router();
 const waLog = logger.child({ module: "wa-marketing" });
 const WA_GRAPH = "https://graph.facebook.com/v21.0";
 
-// ── Connect WhatsApp Business ─────────────────────────────────────────────────
+// ── Public config (App ID for FB SDK init) ─────────────────────────────────────
+router.get("/wa/config", (_req, res) => {
+  const app_id = process.env.META_APP_ID ?? "";
+  return res.json({ app_id });
+});
+
+// ── Embedded Signup — exchange OAuth code for access token ────────────────────
+router.post("/wa/embedded-signup", verifyToken, async (req, res) => {
+  const { store_id, code } = req.body as { store_id?: string; code?: string };
+  if (!store_id || !code) {
+    return res.status(400).json({ error: "store_id and code required" });
+  }
+
+  const appId = process.env.META_APP_ID;
+  const appSecret = process.env.META_APP_SECRET;
+  if (!appId || !appSecret) {
+    return res.status(500).json({ error: "Meta App credentials not configured on the server" });
+  }
+
+  try {
+    // 1. Exchange authorization code for access token
+    const tokenRes = await fetch(
+      `${WA_GRAPH}/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&code=${encodeURIComponent(code)}`,
+    );
+    const tokenData = (await tokenRes.json()) as any;
+    if (!tokenRes.ok || tokenData.error) {
+      return res.status(400).json({
+        error: tokenData?.error?.message ?? "Failed to exchange authorization code",
+      });
+    }
+    const access_token: string = tokenData.access_token;
+
+    // 2. Get WhatsApp Business Accounts for this user
+    const wabaRes = await fetch(
+      `${WA_GRAPH}/me/whatsapp_business_accounts?access_token=${access_token}&fields=id,name`,
+    );
+    const wabaData = (await wabaRes.json()) as any;
+    if (!wabaRes.ok || !wabaData.data?.length) {
+      return res.status(400).json({
+        error:
+          "No WhatsApp Business Account found. Please complete the WhatsApp Business setup and try again.",
+      });
+    }
+    const waba = wabaData.data[0] as { id: string; name: string };
+
+    // 3. Get phone numbers registered in this WABA
+    const phonesRes = await fetch(
+      `${WA_GRAPH}/${waba.id}/phone_numbers?access_token=${access_token}&fields=id,display_phone_number,verified_name,quality_rating`,
+    );
+    const phonesData = (await phonesRes.json()) as any;
+    if (!phonesRes.ok || !phonesData.data?.length) {
+      return res.status(400).json({
+        error: "No phone number registered in your WhatsApp Business Account.",
+      });
+    }
+    const phone = phonesData.data[0] as {
+      id: string;
+      display_phone_number: string;
+      verified_name: string;
+      quality_rating: string;
+    };
+
+    // 4. Save everything to Firestore
+    await db.collection("stores").doc(store_id).update({
+      wa_phone_number_id: phone.id,
+      wa_access_token: access_token,
+      wa_business_phone: phone.display_phone_number.replace(/\D/g, ""),
+      wa_display_name: phone.verified_name || waba.name || "",
+      wa_waba_id: waba.id,
+      wa_connected_at: Date.now(),
+    });
+
+    cacheDeleteByPrefix(`store:id:${store_id}`);
+    waLog.info({ storeId: store_id, wabaId: waba.id }, "embedded-signup: WhatsApp connected");
+
+    return res.json({
+      ok: true,
+      verified_name: phone.verified_name,
+      display_phone: phone.display_phone_number,
+      waba_name: waba.name,
+    });
+  } catch (err: any) {
+    waLog.error({ err }, "embedded-signup: error");
+    return res.status(500).json({ error: err.message ?? "Internal error" });
+  }
+});
+
+// ── Connect WhatsApp Business (manual fallback) ───────────────────────────────
 router.post("/wa/connect", verifyToken, async (req, res) => {
   const { store_id, phone_number_id, access_token, business_phone, display_name, waba_id } =
     req.body as {

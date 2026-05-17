@@ -718,6 +718,15 @@ export interface WaTestResult {
   error?: string;
 }
 
+export const getWAConfig = () =>
+  request<{ app_id: string }>("/wa/config");
+
+export const waEmbeddedSignup = (storeId: string, code: string) =>
+  request<{ ok: boolean; verified_name: string; display_phone: string; waba_name: string }>(
+    "/wa/embedded-signup",
+    { method: "POST", body: JSON.stringify({ store_id: storeId, code }) },
+  );
+
 export const connectWA = (data: {
   store_id: string;
   phone_number_id: string;
