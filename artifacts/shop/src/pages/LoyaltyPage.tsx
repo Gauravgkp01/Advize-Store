@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/hooks/use-store";
 import {
-  updateStore, getCoupons, createCoupon, deleteCoupon,
+  updateStore, getCoupons, createCoupon, deleteCoupon, redeemLoyalty,
   type Coupon,
 } from "@/lib/api";
 
@@ -24,6 +24,8 @@ export default function LoyaltyPage() {
   );
   const [loyaltyReward, setLoyaltyReward] = useState(store?.loyalty_reward ?? "");
   const [savingLoyalty, setSavingLoyalty] = useState(false);
+  const [redeemPhone, setRedeemPhone] = useState("");
+  const [redeemLoading, setRedeemLoading] = useState(false);
 
   useEffect(() => {
     if (store) {
@@ -66,6 +68,22 @@ export default function LoyaltyPage() {
     } catch (err: any) {
       toast({ variant: "destructive", title: "Failed", description: err.message });
     } finally { setSavingLoyalty(false); }
+  };
+
+  const handleMerchantRedeem = async () => {
+    if (!store?.id) return;
+    const phone = redeemPhone.replace(/\D/g, "").slice(-10);
+    if (phone.length < 10) {
+      toast({ variant: "destructive", title: "Enter a valid 10-digit phone number" }); return;
+    }
+    setRedeemLoading(true);
+    try {
+      await redeemLoyalty(store.id, phone);
+      toast({ title: "Reward confirmed!", description: `Stamps deducted for +91 ${phone}.` });
+      setRedeemPhone("");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Could not redeem", description: err.message });
+    } finally { setRedeemLoading(false); }
   };
 
   /* ── Coupons ─────────────────────────────────────── */
@@ -237,6 +255,44 @@ export default function LoyaltyPage() {
               </div>
             )}
           </div>
+
+          {/* ── Redeem for Customer ───────────────────────── */}
+          {loyaltyEnabled && (
+            <div className="bg-card border rounded-3xl overflow-hidden shadow-sm">
+              <div className="p-5 sm:p-6">
+                <div className="flex gap-4 items-start">
+                  <div className="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl flex-shrink-0">
+                    <Gift className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-base font-semibold text-foreground mb-1">Redeem for Customer</h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                      When a customer shows you their completed stamp card, enter their phone to confirm and deduct the stamps.
+                    </p>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1 min-w-0">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">+91</span>
+                        <Input
+                          placeholder="Customer's phone"
+                          value={redeemPhone}
+                          onChange={e => setRedeemPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                          className="h-10 rounded-xl pl-12"
+                          inputMode="numeric"
+                        />
+                      </div>
+                      <Button
+                        onClick={handleMerchantRedeem}
+                        disabled={redeemLoading || redeemPhone.replace(/\D/g, "").length < 10}
+                        className="h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white border-transparent px-5 shrink-0"
+                      >
+                        {redeemLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── Coupon Codes ──────────────────────────────── */}
           <div className="bg-card border rounded-3xl overflow-hidden shadow-sm">

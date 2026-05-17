@@ -448,16 +448,12 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               </p>
 
               {canRedeem && (
-                <Button
-                  className="w-full h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white border-transparent"
-                  onClick={handleRedeemLoyalty}
-                  disabled={loyaltyRedeeming}
-                >
-                  {loyaltyRedeeming
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : "🎁 Claim Your Reward"
-                  }
-                </Button>
+                <div className="flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2.5">
+                  <Gift className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                    🎉 Reward unlocked! Show this screen to the store owner — they will confirm your reward: <strong>{loyaltyCard!.reward}</strong>
+                  </p>
+                </div>
               )}
             </div>
           )}

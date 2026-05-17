@@ -496,19 +496,14 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
                 </div>
               </div>
 
-              {/* Redeem button — outside card so it breathes */}
+              {/* Reward notice — shown when stamp card is complete */}
               {canRedeem && (
-                <Button
-                  className="w-full h-11 rounded-xl font-bold text-sm shadow-lg"
-                  style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)", color: "#1c1917", border: "none" }}
-                  onClick={handleRedeemLoyalty}
-                  disabled={loyaltyRedeeming}
-                >
-                  {loyaltyRedeeming
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <><Gift className="w-4 h-4 mr-2" />Claim Your Reward</>
-                  }
-                </Button>
+                <div className="flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2.5">
+                  <Gift className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                    🎉 Reward unlocked! Show this screen to the store owner — they will confirm your reward.
+                  </p>
+                </div>
               )}
             </div>
           );

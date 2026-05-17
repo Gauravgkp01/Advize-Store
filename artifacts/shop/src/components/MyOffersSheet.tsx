@@ -324,19 +324,14 @@ export function MyOffersSheet() {
                   </div>
                 </div>
 
-                {/* Claim button — prominent when reward ready */}
+                {/* Reward notice — shown when stamp card is complete */}
                 {canRedeem && (
-                  <Button
-                    className="w-full h-12 rounded-xl font-bold text-base shadow-xl"
-                    style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)", color: "#1c1917", border: "none" }}
-                    onClick={handleRedeem}
-                    disabled={redeeming}
-                  >
-                    {redeeming
-                      ? <Loader2 className="h-5 w-5 animate-spin" />
-                      : <><Gift className="w-5 h-5 mr-2" />Claim Your Reward</>
-                    }
-                  </Button>
+                  <div className="flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-3">
+                    <Gift className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
+                      🎉 Reward unlocked! Show this screen to the store owner — they will confirm your reward.
+                    </p>
+                  </div>
                 )}
               </div>
             )}

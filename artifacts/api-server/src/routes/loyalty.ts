@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../lib/firebase.js";
 import { FieldValue } from "firebase-admin/firestore";
+import { verifyToken } from "../middlewares/verifyToken.js";
 
 const router = Router();
 
@@ -49,7 +50,8 @@ router.get("/loyalty/card", async (req, res) => {
  * Body: { store_id, phone }
  * Deducts stamps_required stamps and increments redeemed_count.
  */
-router.post("/loyalty/redeem", async (req, res) => {
+router.post("/loyalty/redeem", verifyToken, async (req, res) => {
+  const uid = (req as any).uid as string;
   const { store_id, phone } = req.body as { store_id?: string; phone?: string };
   if (!store_id || !phone) {
     return res.status(400).json({ error: "store_id and phone are required" });
@@ -59,6 +61,9 @@ router.post("/loyalty/redeem", async (req, res) => {
     const storeSnap = await db.collection("stores").doc(store_id).get();
     if (!storeSnap.exists) return res.status(404).json({ error: "Store not found" });
     const storeData = storeSnap.data()!;
+    if (storeData.owner_id && storeData.owner_id !== uid) {
+      return res.status(403).json({ error: "Forbidden: only the store owner can redeem loyalty rewards" });
+    }
     const stampsRequired: number = storeData.loyalty_stamps_required ?? 10;
 
     const cardId = `${store_id}_${normalizePhone(phone)}`;
