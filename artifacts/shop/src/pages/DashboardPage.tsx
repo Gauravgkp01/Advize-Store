@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/sheet";
 import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, getOrderStats, updateOrderStatus, requestPayout, getPayoutRequests, getIgRules, createIgRule, updateIgRule, deleteIgRule, disconnectInstagram, testInstagramConnection, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus, type PayoutRequest, type IgRule, type IgTestResult } from "@/lib/api";
 import { WhatsAppMarketingPlugin } from "@/components/WhatsAppMarketingPlugin";
+import { bustStorefrontCache } from "@/pages/StorefrontPage";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
 
@@ -430,6 +431,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
       payload.razorpay_enabled = hasRazorpay;
       const updated = await updateStore(store.id, payload);
       onStoreChange(updated);
+      bustStorefrontCache(store.slug);
       setEditing(false);
       toast({ title: "Store updated!", description: "Your store details have been saved." });
     } catch {
@@ -1284,6 +1286,7 @@ function PluginsPanel({ store, onStoreChange }: {
     try {
       const updated = await updateStore(store.id, { storefront_template: templateId });
       onStoreChange(updated);
+      bustStorefrontCache(store.slug);
       toast({ title: "Template activated!", description: "Your storefront now uses the new layout." });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Failed", description: e.message });

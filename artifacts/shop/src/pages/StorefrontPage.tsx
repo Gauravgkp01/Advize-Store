@@ -29,6 +29,11 @@ interface SFCacheEntry {
 const sfCache = new Map<string, SFCacheEntry>();
 const SF_CACHE_TTL = 5 * 60_000; // 5 minutes
 
+/** Call after any store update so the next visit fetches fresh data. */
+export function bustStorefrontCache(slug: string) {
+  sfCache.delete(slug);
+}
+
 /* ── Store Footer ─────────────────────────────────────────── */
 function StoreFooter({ store }: { store: StoreType | null }) {
   const [termsOpen, setTermsOpen] = useState(false);

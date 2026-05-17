@@ -3,6 +3,7 @@ import { db } from "../lib/firebase.js";
 import { FieldValue } from "firebase-admin/firestore";
 import { verifyToken } from "../middlewares/verifyToken.js";
 import { cacheGet, cacheSet, cacheDeleteByPrefix } from "../lib/cache.js";
+import { invalidateStorefront } from "./storefront.js";
 
 const router = Router();
 
@@ -117,6 +118,7 @@ router.patch("/stores/:id", verifyToken, async (req, res) => {
   cacheDeleteByPrefix(`store:id:${req.params.id}`);
   if (storeData.slug) cacheDeleteByPrefix(`store:slug:${storeData.slug}`);
   if (storeData.owner_id) cacheDeleteByPrefix(`store:owner:${storeData.owner_id}`);
+  if (storeData.slug) invalidateStorefront(storeData.slug);
 
   // Re-populate cache with fresh data
   cacheSet(`store:id:${req.params.id}`, result, STORE_TTL);
