@@ -387,7 +387,7 @@ function OwnerView({ product, reviews, analytics }: {
 }
 
 /* ── Zoomable image lightbox ──────────────────────────── */
-function ZoomableImage({ src, alt }: { src: string; alt: string }) {
+function ZoomableImage({ src, alt, imgClassName }: { src: string; alt: string; imgClassName?: string }) {
   const [open, setOpen] = useState(false);
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
@@ -454,7 +454,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
         <img
           src={src}
           alt={alt}
-          className="w-full object-contain object-top max-h-[88vw] sm:max-h-[520px]"
+          className={imgClassName ?? "w-full object-contain object-top max-h-[88vw] sm:max-h-[520px]"}
           draggable={false}
         />
         <div className="absolute bottom-2 right-2 bg-black/40 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm flex items-center gap-1 pointer-events-none">
@@ -885,267 +885,291 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
-      <header className="border-b bg-card sticky top-0 z-10">
-        <div className="container max-w-4xl mx-auto px-4 h-14 flex items-center relative">
-          {/* Back — always goes to the previous page in history */}
+
+      {/* ── Full-width portrait image with overlaid controls ── */}
+      <div className="relative w-full overflow-hidden bg-muted/20" style={{ aspectRatio: "3/4" }}>
+        {/* Floating header: back · share · cart */}
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 pt-3">
           <button
             onClick={() => window.history.back()}
-            className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors shrink-0"
+            className="flex items-center justify-center w-9 h-9 rounded-full bg-black/35 backdrop-blur-sm"
             aria-label="Go back"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5 text-white" />
           </button>
-          {/* Centred title */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="font-semibold text-base">Product Details</span>
+          <div className="flex items-center gap-2">
+            <button onClick={handleShare} className="flex items-center justify-center w-9 h-9 rounded-full bg-black/35 backdrop-blur-sm" aria-label="Share">
+              <Share2 className="h-4 w-4 text-white" />
+            </button>
+            {storeSlug && hasPayment && (
+              <Link href={cartPath} className="relative flex items-center justify-center w-9 h-9 rounded-full bg-black/35 backdrop-blur-sm">
+                <ShoppingCart className="h-4 w-4 text-white" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center leading-none shadow">
+                    {totalItems > 9 ? "9+" : totalItems}
+                  </span>
+                )}
+              </Link>
+            )}
           </div>
-          {/* Share button — always visible */}
-          <button
-            onClick={handleShare}
-            className={`${storeSlug && hasPayment ? "" : "ml-auto"} flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors`}
-            aria-label="Share product"
-          >
-            <Share2 className="h-5 w-5" />
-          </button>
-          {/* Cart icon — only when store has payment gateway */}
-          {storeSlug && hasPayment && (
-            <Link
-              href={cartPath}
-              className="ml-auto relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors"
+        </div>
+
+        {/* Main image — fills portrait container */}
+        <ZoomableImage
+          src={images[activeImageIdx] ?? product.imageUrl}
+          alt={product.name}
+          imgClassName="w-full h-full object-cover object-top"
+        />
+
+        {/* Dot indicators */}
+        {images.length > 1 && (
+          <div className="absolute bottom-14 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none">
+            {images.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveImageIdx(idx)}
+                className={`rounded-full transition-all pointer-events-auto ${idx === activeImageIdx ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50"}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Rating badge — bottom-left */}
+        {localReviews.length > 0 && (
+          <div className="absolute bottom-4 left-3 z-10 flex items-center gap-1 bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1">
+            <span className="text-white text-xs font-bold">{avgRating.toFixed(1)}</span>
+            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+            <span className="text-white/70 text-xs">· {localReviews.length}</span>
+          </div>
+        )}
+
+        {/* Like button — bottom-right */}
+        <button
+          onClick={handleLike}
+          className="absolute bottom-4 right-3 z-10 w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center active:scale-90 transition-transform"
+          aria-label={liked ? "Unlike" : "Like"}
+        >
+          <Heart className={`h-5 w-5 ${liked ? "fill-red-500 text-red-500" : "text-white"}`} />
+        </button>
+      </div>
+
+      {/* Thumbnail strip — multiple images */}
+      {images.length > 1 && (
+        <div className="flex gap-2 px-4 py-2.5 overflow-x-auto scrollbar-hide bg-background">
+          {images.map((url, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveImageIdx(idx)}
+              className={`w-14 h-14 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
+                idx === activeImageIdx ? "border-primary" : "border-transparent opacity-50 hover:opacity-80"
+              }`}
             >
-              <ShoppingCart className="h-5 w-5" />
-              {totalItems > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center leading-none shadow">
-                  {totalItems > 9 ? "9+" : totalItems}
-                </span>
-              )}
-            </Link>
+              <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Content area ── */}
+      <div className="flex-1 bg-background">
+
+        {/* Title + price + rating */}
+        <div className="px-4 pt-4 pb-4">
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-lg font-bold text-foreground leading-snug flex-1">{product.name}</h1>
+            <div className="flex items-center gap-2 shrink-0 mt-0.5">
+              <button onClick={handleShare} className="w-8 h-8 rounded-full border border-border flex items-center justify-center" aria-label="Share">
+                <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+              <button onClick={handleLike} className="w-8 h-8 rounded-full border border-border flex items-center justify-center" aria-label={liked ? "Unlike" : "Like"}>
+                <Heart className={`h-3.5 w-3.5 ${liked ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+              </button>
+            </div>
+          </div>
+
+          {product.category && (
+            <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
+          )}
+
+          {/* Price */}
+          {product.productType === "mix_match" ? (
+            (() => {
+              const sorted = [...(product.pricingTiers ?? [])].sort((a, b) => a.quantity - b.quantity);
+              const min = sorted[0];
+              if (!min) return null;
+              return (
+                <div className="mt-3">
+                  <p className="text-xs text-muted-foreground">Starting from</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-extrabold text-primary">&#8377;{min.price.toLocaleString("en-IN")}</span>
+                    <span className="text-sm text-muted-foreground">/ {min.quantity} pc{min.quantity !== 1 ? "s" : ""}</span>
+                  </div>
+                </div>
+              );
+            })()
+          ) : (
+            (() => {
+              const hasSale = product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
+              const displayPrice = hasSale ? product.salePrice! : product.price;
+              const savings = hasSale ? product.price - product.salePrice! : 0;
+              const discountPct = hasSale ? Math.round((product.price - product.salePrice!) / product.price * 100) : 0;
+              return (
+                <div className="mt-3">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-2xl font-extrabold text-foreground">
+                      &#8377;{displayPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                    </span>
+                    {hasSale ? (
+                      <>
+                        <span className="text-sm text-muted-foreground line-through">
+                          MRP &#8377;{product.price.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        </span>
+                        <span className="text-sm font-bold text-green-500">({discountPct}% OFF)</span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        MRP &#8377;{product.price.toLocaleString("en-IN")}
+                      </span>
+                    )}
+                  </div>
+                  {hasSale && (
+                    <p className="text-xs text-green-500 font-semibold mt-0.5">
+                      Rs. {savings.toLocaleString("en-IN", { maximumFractionDigits: 0 })} OFF on this order
+                    </p>
+                  )}
+                </div>
+              );
+            })()
+          )}
+
+          {/* Rating inline */}
+          {localReviews.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-2">
+              <StarRating value={Math.round(avgRating)} size="sm" />
+              <span className="text-sm text-muted-foreground">
+                {avgRating.toFixed(1)} &middot; {localReviews.length} review{localReviews.length !== 1 ? "s" : ""}
+              </span>
+            </div>
           )}
         </div>
-      </header>
 
-      <main className="flex-1 container max-w-4xl mx-auto px-0 sm:px-6 py-0 sm:py-8 space-y-6">
-        <div className="bg-card sm:border sm:rounded-3xl overflow-hidden shadow-sm flex flex-col md:flex-row">
-          <div className="w-full md:w-1/2 md:min-h-[500px] bg-muted/10 flex flex-col">
-            {/* Image with floating like button */}
-            <div className="relative">
-              <ZoomableImage src={images[activeImageIdx] ?? product.imageUrl} alt={product.name} />
-              {/* Floating Like button — top-right of image */}
-              <button
-                onClick={handleLike}
-                className="absolute top-3 left-3 z-20 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center transition-all active:scale-90"
-                aria-label={liked ? "Unlike" : "Like"}
-              >
-                <Heart className={`h-5 w-5 transition-colors ${liked ? "fill-red-500 text-red-500" : "text-white"}`} />
-              </button>
-            </div>
-            {/* Thumbnail strip — only when multiple images */}
-            {images.length > 1 && (
-              <div className="flex gap-2 px-3 py-2 overflow-x-auto scrollbar-hide">
-                {images.map((url, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveImageIdx(idx)}
-                    className={`w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
-                      idx === activeImageIdx ? "border-primary shadow-md" : "border-transparent opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
+        {/* Description */}
+        {product.description ? (
+          <div className="border-t px-4 py-4">
+            <DescriptionRenderer text={product.description} className="text-sm" />
+          </div>
+        ) : null}
+
+        {/* Mix & Match OR normal variants + CTA */}
+        {product.productType === "mix_match" ? (
+          <div className="border-t">
+            <MixMatchBuyerView
+              product={product}
+              storeWhatsapp={storeWhatsapp}
+              storeSlug={storeSlug}
+              storeId={storeId}
+              hasPayment={hasPayment}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Variant pickers */}
+            {product.variants && product.variants.length > 0 && product.variants.map(variant => (
+              <div key={variant.label} className="border-t px-4 py-4">
+                <p className="text-sm font-semibold text-foreground mb-3">
+                  {variant.label}
+                  {selectedVariants[variant.label] && (
+                    <span className="font-normal text-muted-foreground">: {selectedVariants[variant.label]}</span>
+                  )}
+                </p>
+                <div className="flex flex-wrap gap-2" data-testid="variants-section">
+                  {variant.values.map(value => {
+                    const isSelected = selectedVariants[variant.label] === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => handleSelectVariant(variant.label, value)}
+                        className={`min-w-[52px] h-11 px-3 rounded-xl border text-sm font-semibold transition-all ${
+                          isSelected
+                            ? "bg-foreground text-background border-foreground"
+                            : "bg-background text-foreground border-border hover:border-foreground/50"
+                        }`}
+                      >
+                        {value}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {/* Out of stock */}
+            {product.units === 0 && (
+              <div className="border-t px-4 py-3">
+                <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 rounded-xl px-4 py-3 border border-amber-200 dark:border-amber-800">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>This item is currently out of stock. You can still message the seller.</span>
+                </div>
               </div>
             )}
-            {/* Share + Like action strip — visible on mobile below image */}
-            <div className="flex items-center gap-3 px-4 py-3 border-t border-border/50 md:hidden">
-              <button
-                onClick={handleLike}
-                className="flex items-center gap-2 flex-1 justify-center py-2 rounded-xl bg-muted/60 hover:bg-muted transition-colors text-sm font-medium"
+
+            {/* CTA — Buy Now (WhatsApp) · Add to Cart */}
+            <div className="border-t px-4 py-4 flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 h-12 text-sm rounded-xl border-2 font-bold gap-2"
+                onClick={handleOrder}
               >
-                <Heart className={`h-4 w-4 ${liked ? "fill-red-500 text-red-500" : ""}`} />
-                {liked ? "Saved" : "Save"}
-              </button>
-              <button
-                onClick={handleShare}
-                className="flex items-center gap-2 flex-1 justify-center py-2 rounded-xl bg-muted/60 hover:bg-muted transition-colors text-sm font-medium"
-              >
-                <Share2 className="h-4 w-4" />
-                Share
-              </button>
-            </div>
-          </div>
-          <div className="w-full md:w-1/2 p-6 sm:p-10 flex flex-col gap-5">
-            <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium bg-muted/50 text-muted-foreground w-fit">
-              {product.category}
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
-              {product.productType === "mix_match" ? (
-                /* Mix & Match: show starting price from lowest tier */
-                (() => {
-                  const sorted = [...(product.pricingTiers ?? [])].sort((a, b) => a.quantity - b.quantity);
-                  const min = sorted[0];
-                  if (!min) return null;
-                  return (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Starting from</p>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-extrabold text-primary">
-                          &#8377;{min.price.toLocaleString("en-IN")}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          / {min.quantity} pc{min.quantity !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()
-              ) : (
-                /* Normal product: existing price display */
-                (() => {
-                  const hasSale = product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
-                  const displayPrice = hasSale ? product.salePrice! : product.price;
-                  const savings = hasSale ? product.price - product.salePrice! : 0;
-                  const discountPct = hasSale ? Math.round((product.price - product.salePrice!) / product.price * 100) : 0;
-                  return (
-                    <div className="space-y-1">
-                      <div className="flex items-baseline gap-3 flex-wrap">
-                        <span className="text-3xl font-extrabold text-primary">
-                          &#8377;{displayPrice.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                        </span>
-                        {hasSale && (
-                          <>
-                            <span className="text-lg text-muted-foreground line-through">
-                              MRP &#8377;{product.price.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                            </span>
-                            <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
-                              {discountPct}% OFF
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      {hasSale && (
-                        <p className="text-sm font-semibold text-green-600">
-                          You save &#8377;{savings.toLocaleString("en-IN", { maximumFractionDigits: 0 })} on this order
-                        </p>
-                      )}
-                      {!hasSale && (
-                        <p className="text-xs text-muted-foreground">MRP &#8377;{product.price.toLocaleString("en-IN")}</p>
-                      )}
-                    </div>
-                  );
-                })()
-              )}
-              {localReviews.length > 0 && (
-                <div className="flex items-center gap-1.5 mt-2">
-                  <StarRating value={Math.round(avgRating)} size="sm" />
-                  <span className="text-sm text-muted-foreground">
-                    {avgRating.toFixed(1)} &middot; {localReviews.length} review{localReviews.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
+                <MessageCircle className="h-4 w-4" />
+                {hasPayment ? "Buy Now" : "Order on WhatsApp"}
+              </Button>
+              {hasPayment && (
+                <Button
+                  className="flex-1 h-12 text-sm rounded-xl font-bold gap-2"
+                  onClick={handleAddToCart}
+                  disabled={product.units === 0}
+                  data-testid="btn-add-to-cart"
+                >
+                  <ShoppingBag className={`h-4 w-4 ${addedToCart ? "fill-current" : ""}`} />
+                  {addedToCart ? "Added!" : "Add to Cart"}
+                </Button>
               )}
             </div>
-            <DescriptionRenderer text={product.description} className="text-sm sm:text-base" />
 
-            {product.productType === "mix_match" ? (
-              <MixMatchBuyerView
-                product={product}
-                storeWhatsapp={storeWhatsapp}
-                storeSlug={storeSlug}
-                storeId={storeId}
-                hasPayment={hasPayment}
-              />
-            ) : (
-              <>
-                {product.variants && product.variants.length > 0 && (
-                  <div className="space-y-4" data-testid="variants-section">
-                    {product.variants.map(variant => (
-                      <div key={variant.label}>
-                        <p className="text-sm font-semibold mb-2">
-                          {variant.label}
-                          {selectedVariants[variant.label] && (
-                            <span className="ml-2 font-normal text-muted-foreground">&mdash; {selectedVariants[variant.label]}</span>
-                          )}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {variant.values.map(value => {
-                            const isSelected = selectedVariants[variant.label] === value;
-                            return (
-                              <button key={value} type="button" onClick={() => handleSelectVariant(variant.label, value)}
-                                className={`h-9 px-4 rounded-full border text-sm font-medium transition-all ${isSelected
-                                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                  : "bg-background text-foreground border-border hover:border-primary/60 hover:bg-muted/50"}`}>
-                                {value}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
+            {/* View cart pill */}
+            {hasPayment && storeSlug && totalItems > 0 && (
+              <div className="px-4 pb-2">
+                <Link
+                  href={cartPath}
+                  className="flex items-center justify-between gap-3 bg-primary/10 hover:bg-primary/15 border border-primary/30 rounded-2xl px-4 py-2.5 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-sm font-semibold text-primary">View Cart</span>
+                    <span className="bg-primary text-primary-foreground text-[10px] font-extrabold px-1.5 py-0.5 rounded-full leading-none">
+                      {totalItems}
+                    </span>
                   </div>
-                )}
-
-                {product.units === 0 && (
-                  <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 rounded-xl px-4 py-3 border border-amber-200 dark:border-amber-800">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>This item is currently out of stock. You can still message the seller.</span>
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  {hasPayment && (
-                    <Button
-                      variant="outline"
-                      className="flex-1 h-14 text-base rounded-xl border-2 font-semibold gap-2"
-                      onClick={handleAddToCart}
-                      disabled={product.units === 0}
-                      data-testid="btn-add-to-cart"
-                    >
-                      <ShoppingBag className={`h-5 w-5 ${addedToCart ? "fill-primary" : ""}`} />
-                      {addedToCart ? "Added!" : "Add to Cart"}
-                    </Button>
-                  )}
-                  <Button
-                    className={`${hasPayment ? "flex-1" : "w-full"} h-14 text-base rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent gap-2 font-semibold`}
-                    onClick={handleOrder}
-                    data-testid="btn-order-whatsapp"
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                    {hasPayment ? "WhatsApp" : "Order on WhatsApp"}
-                  </Button>
-                </div>
-
-                {hasPayment && storeSlug && totalItems > 0 && (
-                  <Link
-                    href={cartPath}
-                    className="flex items-center justify-between gap-3 bg-primary/10 hover:bg-primary/15 border border-primary/30 rounded-2xl px-4 py-2.5 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
-                  >
-                    <div className="flex items-center gap-2">
-                      <ShoppingCart className="h-4 w-4 text-primary shrink-0" />
-                      <span className="text-sm font-semibold text-primary">View Cart</span>
-                      <span className="bg-primary text-primary-foreground text-[10px] font-extrabold px-1.5 py-0.5 rounded-full leading-none">
-                        {totalItems}
-                      </span>
-                    </div>
-                    <ArrowLeft className="h-3.5 w-3.5 text-primary rotate-180 shrink-0" />
-                  </Link>
-                )}
-              </>
+                  <ArrowLeft className="h-3.5 w-3.5 text-primary rotate-180 shrink-0" />
+                </Link>
+              </div>
             )}
-          </div>
-        </div>
+          </>
+        )}
 
+        {/* Related products */}
         <RelatedProducts products={relatedProducts} />
 
-        {/* ── Lazy reviews collapsible ── */}
-        <div className="bg-card sm:border sm:rounded-3xl shadow-sm overflow-hidden">
-          {/* Header — always visible, tappable to expand */}
+        {/* Reviews collapsible */}
+        <div className="border-t">
           <button
             onClick={handleToggleReviews}
-            className="w-full flex items-center justify-between px-5 sm:px-10 py-5 text-left"
+            className="w-full flex items-center justify-between px-4 py-4 text-left"
           >
             <div className="flex items-center gap-2.5">
               <Star className={`h-5 w-5 shrink-0 ${reviewsFetched && localReviews.length > 0 ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`} />
-              <span className="text-lg font-bold">Customer Reviews</span>
+              <span className="text-base font-bold">Customer Reviews</span>
               {reviewsFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-1" />}
               {reviewsFetched && localReviews.length > 0 && (
                 <span className="text-sm font-normal text-muted-foreground">
@@ -1157,25 +1181,36 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
           </button>
 
           {reviewsOpen && (
-            <div className="px-5 sm:px-10 pb-8 border-t">
+            <div className="px-4 pb-8 border-t">
               {reviewsFetching ? (
                 <div className="flex justify-center py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
               ) : (
                 <div className="pt-6">
-                  <ReviewsList reviews={localReviews} avgRating={avgRating} ratingCounts={ratingCounts}
-                    showForm={showForm} setShowForm={setShowForm} reviewName={reviewName} setReviewName={setReviewName}
-                    reviewRating={reviewRating} setReviewRating={setReviewRating} reviewComment={reviewComment}
-                    setReviewComment={setReviewComment} submitting={submitting} handleSubmitReview={handleSubmitReview} />
+                  <ReviewsList
+                    reviews={localReviews}
+                    avgRating={avgRating}
+                    ratingCounts={ratingCounts}
+                    showForm={showForm}
+                    setShowForm={setShowForm}
+                    reviewName={reviewName}
+                    setReviewName={setReviewName}
+                    reviewRating={reviewRating}
+                    setReviewRating={setReviewRating}
+                    reviewComment={reviewComment}
+                    setReviewComment={setReviewComment}
+                    submitting={submitting}
+                    handleSubmitReview={handleSubmitReview}
+                  />
                 </div>
               )}
             </div>
           )}
         </div>
 
-        <div className="pb-8" />
-      </main>
+        <div className="pb-10" />
+      </div>
     </div>
   );
 }
