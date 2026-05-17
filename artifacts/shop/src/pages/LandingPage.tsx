@@ -155,9 +155,9 @@ export function LandingPage() {
                 { n: "0₹", label: "To get started" },
                 { n: "WhatsApp", label: "Order channel" },
               ].map(s => (
-                <div key={s.label} className="rounded-2xl border bg-card/50 py-4 px-2">
-                  <div className="text-xl font-extrabold text-primary">{s.n}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
+                <div key={s.label} className="rounded-2xl border bg-card/50 py-4 px-2 min-w-0">
+                  <div className="text-base sm:text-xl font-extrabold text-primary leading-tight break-words">{s.n}</div>
+                  <div className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">{s.label}</div>
                 </div>
               ))}
             </div>
