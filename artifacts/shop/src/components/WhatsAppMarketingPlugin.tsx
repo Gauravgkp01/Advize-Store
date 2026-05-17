@@ -74,6 +74,59 @@ const CAT_LABELS: Record<string, string> = {
   AUTHENTICATION: "Auth",
 };
 
+const STARTER_TEMPLATES: Array<{ name: string; category: string; body: string; hint: string }> = [
+  {
+    name: "Flash Sale 🔥",
+    category: "MARKETING",
+    hint: "Limited-time offer broadcast",
+    body: `Hey {name}! 🔥 Flash sale is LIVE!
+
+Big discounts on select items — today only!
+
+👉 Shop now: {store_link}
+
+Hurry, stocks are limited. Reply STOP to unsubscribe.`,
+  },
+  {
+    name: "New Drop 👗",
+    category: "MARKETING",
+    hint: "New arrivals announcement",
+    body: `Hey {name}! 🛍️ New drop just landed!
+
+Fresh pieces are now live in the store ✨ Each one is unique — no restocks once sold!
+
+📦 Ships in 4–5 days
+💌 Questions? Just reply to this message
+
+👉 Shop now: {store_link}
+
+Reply STOP to unsubscribe.`,
+  },
+  {
+    name: "Back in Stock 📦",
+    category: "MARKETING",
+    hint: "Restock alert for waiting customers",
+    body: `Hey {name}! Great news 🎉
+
+An item you were eyeing is back in stock — but not for long!
+
+👉 Grab it here: {store_link}
+
+Reply STOP to unsubscribe.`,
+  },
+  {
+    name: "Order Shipped ✅",
+    category: "UTILITY",
+    hint: "Shipping confirmation message",
+    body: `Hi {name}! Your order has been shipped 🚚
+
+📦 Expected delivery: 4–5 days
+💬 Reply to this message for any queries
+
+Thank you for shopping with us! 🛍️`,
+  },
+];
+
 function fmt(ts: number) {
   return new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
@@ -752,14 +805,38 @@ export function WhatsAppMarketingPlugin({
                   </div>
                 )}
 
+                {/* Starter template suggestions */}
+                {connected && !showTemplateForm && (
+                  <div className="space-y-2.5">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Quick-start templates</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {STARTER_TEMPLATES.map(tpl => (
+                        <button
+                          key={tpl.name}
+                          onClick={() => {
+                            setTName(tpl.name);
+                            setTBody(tpl.body);
+                            setTCat(tpl.category);
+                            setEditingTpl(null);
+                            setShowTemplateForm(true);
+                          }}
+                          className="text-left p-3 rounded-xl border border-dashed border-border hover:border-[#25D366] hover:bg-[#25D366]/5 transition-colors group"
+                        >
+                          <p className="text-sm font-semibold text-foreground leading-snug group-hover:text-[#25D366] transition-colors">{tpl.name}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{tpl.hint}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Template list */}
                 {loadingTemplates ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
                 ) : templates.length === 0 && connected ? (
-                  <div className="text-center py-10 bg-muted/30 rounded-xl">
-                    <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">No templates yet</p>
-                    <p className="text-xs text-muted-foreground mt-1">Save reusable messages for quick campaign creation</p>
+                  <div className="text-center py-6 bg-muted/30 rounded-xl">
+                    <p className="text-sm text-muted-foreground">No saved templates yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Click a quick-start above or create your own</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
