@@ -774,7 +774,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               </button>
             </div>
           ) : (
-            <div className={store?.storefront_template === "thrift_classic" ? "grid grid-cols-2 gap-2 mb-10" : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6 mb-10"}>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6 mb-10">
               {filteredProducts.map((product, idx) => (
                 <div key={product.id} onClick={() => handleProductClick(product)}>
                   <ProductCard

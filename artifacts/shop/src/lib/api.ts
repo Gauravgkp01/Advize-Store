@@ -116,7 +116,6 @@ export interface Store {
   wa_display_name?: string;
   wa_waba_id?: string;
   wa_connected_at?: number;
-  storefront_template?: string;
 }
 
 export const getStore = (slug: string) =>

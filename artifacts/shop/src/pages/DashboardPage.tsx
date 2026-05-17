@@ -1247,19 +1247,6 @@ function InstagramPlugin({ store, onStoreChange }: {
 }
 
 /* ── Plugins Panel ───────────────────────────────────── */
-const STOREFRONT_TEMPLATES = [
-  {
-    id: "default",
-    name: "Default",
-    desc: "Responsive grid — 2 cols on mobile, up to 4 on desktop.",
-  },
-  {
-    id: "thrift_classic",
-    name: "Thrift Classic",
-    desc: "Compact 2-column grid with tight spacing. Perfect for fashion drops and thrift stores.",
-  },
-];
-
 function PluginsPanel({ store, onStoreChange }: {
   store: StoreType | null;
   onStoreChange: (updated: StoreType) => void;
@@ -1277,24 +1264,6 @@ function PluginsPanel({ store, onStoreChange }: {
   const [rzpSecret, setRzpSecret]         = useState("");
   const [showRzpSecret, setShowRzpSecret] = useState(false);
   const [savingRzp, setSavingRzp]         = useState(false);
-  const [templateOpen, setTemplateOpen]   = useState(false);
-  const [savingTemplate, setSavingTemplate] = useState(false);
-
-  const handleActivateTemplate = async (templateId: string) => {
-    if (!store?.id) return;
-    setSavingTemplate(true);
-    try {
-      const updated = await updateStore(store.id, { storefront_template: templateId });
-      onStoreChange(updated);
-      bustStorefrontCache(store.slug);
-      toast({ title: "Template activated!", description: "Your storefront now uses the new layout." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Failed", description: e.message });
-    } finally {
-      setSavingTemplate(false);
-    }
-  };
-
   const handleToggleAdvize = async () => {
     if (!store?.id) return;
     setSavingAdvize(true);
@@ -1774,95 +1743,6 @@ function PluginsPanel({ store, onStoreChange }: {
           <div className="flex-shrink-0 mt-0.5">
             <Lock className="h-4 w-4 text-muted-foreground/50" />
           </div>
-        </div>
-
-        {/* ── Custom Templates ── */}
-        <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
-          <button
-            onClick={() => setTemplateOpen(o => !o)}
-            className="w-full flex gap-4 items-center p-5 text-left"
-          >
-            <div className="bg-teal-50 dark:bg-teal-950/40 p-3 rounded-xl flex-shrink-0">
-              <Sparkles className="h-6 w-6 text-teal-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h3 className="text-base font-semibold text-foreground leading-tight">Custom Templates</h3>
-                {store?.storefront_template && store.storefront_template !== "default" && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300">
-                    Active
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Choose from storefront layouts to give your shop a unique look.
-              </p>
-            </div>
-            <ChevronDown className={`h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform ${templateOpen ? "rotate-180" : ""}`} />
-          </button>
-
-          {templateOpen && (
-            <div className="border-t px-5 pb-5 pt-4">
-              <div className="grid grid-cols-2 gap-3">
-                {STOREFRONT_TEMPLATES.map(tpl => {
-                  const active = (store?.storefront_template ?? "default") === tpl.id;
-                  return (
-                    <div
-                      key={tpl.id}
-                      className={`rounded-xl border-2 overflow-hidden transition-colors ${active ? "border-teal-500" : "border-border"}`}
-                    >
-                      {/* Mini grid preview */}
-                      <div className="w-full aspect-[4/3] bg-muted/50 p-2">
-                        {tpl.id === "default" ? (
-                          <div className="grid grid-cols-4 gap-1 h-full">
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <div key={i} className="rounded bg-foreground/10 flex flex-col gap-0.5 p-0.5">
-                                <div className="flex-1 rounded-sm bg-foreground/10" />
-                                <div className="h-1 rounded bg-foreground/20 w-3/4" />
-                                <div className="h-0.5 rounded bg-foreground/10 w-1/2" />
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-2 gap-1 h-full">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                              <div key={i} className="rounded-sm bg-foreground/10 flex flex-col gap-0.5 p-0.5">
-                                <div className="flex-1 rounded-sm bg-foreground/10" />
-                                <div className="h-1 rounded bg-foreground/20 w-3/4" />
-                                <div className="h-0.5 rounded bg-foreground/10 w-1/2" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      {/* Name + desc + action */}
-                      <div className="p-3 bg-card">
-                        <div className="flex items-center justify-between gap-2 mb-0.5">
-                          <p className="text-sm font-semibold text-foreground">{tpl.name}</p>
-                          {active && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400">
-                              Active
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-snug mb-2.5">{tpl.desc}</p>
-                        {!active && (
-                          <button
-                            onClick={() => handleActivateTemplate(tpl.id)}
-                            disabled={savingTemplate}
-                            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold bg-foreground text-background hover:opacity-80 py-2 rounded-lg disabled:opacity-50 transition-opacity"
-                          >
-                            {savingTemplate ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                            Activate
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
       </div>
