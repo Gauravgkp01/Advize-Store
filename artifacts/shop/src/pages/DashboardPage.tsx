@@ -29,6 +29,7 @@ import {
   Sheet, SheetContent, SheetTitle,
 } from "@/components/ui/sheet";
 import { getProducts, getAnalytics, updateProduct, updateStore, uploadImage, getOrderStats, updateOrderStatus, requestPayout, getPayoutRequests, getIgRules, createIgRule, updateIgRule, deleteIgRule, disconnectInstagram, testInstagramConnection, type AnalyticsSummary, type OrderStats, type Order, type OrderStatus, type PayoutRequest, type IgRule, type IgTestResult } from "@/lib/api";
+import { WhatsAppMarketingPlugin } from "@/components/WhatsAppMarketingPlugin";
 import type { Store as StoreType } from "@/lib/api";
 import type { Product } from "@/lib/api";
 
@@ -1637,6 +1638,9 @@ function PluginsPanel({ store, onStoreChange }: {
 
         {/* ── Instagram DM Automation ── */}
         <InstagramPlugin store={store} onStoreChange={onStoreChange} />
+
+        {/* ── WhatsApp Marketing ── */}
+        <WhatsAppMarketingPlugin store={store} onStoreChange={onStoreChange} />
 
         {/* ── Custom Domain ── */}
         <div className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm opacity-75">

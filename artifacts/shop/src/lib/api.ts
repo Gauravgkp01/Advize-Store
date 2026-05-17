@@ -111,6 +111,11 @@ export interface Store {
   loyalty_enabled?: boolean;
   loyalty_stamps_required?: number;
   loyalty_reward?: string;
+  wa_phone_number_id?: string;
+  wa_business_phone?: string;
+  wa_display_name?: string;
+  wa_waba_id?: string;
+  wa_connected_at?: number;
 }
 
 export const getStore = (slug: string) =>
@@ -657,6 +662,147 @@ export const validateCoupon = (storeId: string, code: string, subtotalPaise: num
     method: "POST",
     body: JSON.stringify({ store_id: storeId, code, subtotal_paise: subtotalPaise }),
   });
+
+// ── WhatsApp Marketing ────────────────────────────────────────────────────────
+
+export interface WaCampaign {
+  id: string;
+  store_id: string;
+  name: string;
+  message: string;
+  audience_filter: "all" | "buyers" | "new";
+  scheduled_at: number | null;
+  status: "draft" | "scheduled" | "sending" | "sent" | "failed";
+  stats: { total: number; sent: number; delivered: number; failed: number; read: number };
+  created_at: number;
+  updated_at: number;
+  sent_at: number | null;
+}
+
+export interface WaTemplate {
+  id: string;
+  store_id: string;
+  name: string;
+  body: string;
+  category: "MARKETING" | "UTILITY" | "AUTHENTICATION";
+  created_at: number;
+  updated_at: number;
+}
+
+export interface WaContact {
+  id: string;
+  store_id: string;
+  phone: string;
+  name: string;
+  opted_in: boolean;
+  tags: string[];
+  joined_at: number;
+  last_order_at: number | null;
+  total_orders: number;
+}
+
+export interface WaAnalytics {
+  total_contacts: number;
+  total_campaigns: number;
+  total_sent: number;
+  total_failed: number;
+  delivery_rate: number;
+  recent_campaigns: WaCampaign[];
+}
+
+export interface WaTestResult {
+  ok: boolean;
+  display_phone_number?: string;
+  verified_name?: string;
+  quality_rating?: string;
+  error?: string;
+}
+
+export const connectWA = (data: {
+  store_id: string;
+  phone_number_id: string;
+  access_token: string;
+  business_phone: string;
+  display_name?: string;
+  waba_id?: string;
+}) =>
+  request<{ ok: boolean; verified_name: string; display_phone: string }>("/wa/connect", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const disconnectWA = (storeId: string) =>
+  request<{ ok: boolean }>("/wa/disconnect", {
+    method: "POST",
+    body: JSON.stringify({ store_id: storeId }),
+  });
+
+export const testWA = (storeId: string) =>
+  request<WaTestResult>("/wa/test", {
+    method: "POST",
+    body: JSON.stringify({ store_id: storeId }),
+  });
+
+export const getWACampaigns = (storeId: string) =>
+  request<{ campaigns: WaCampaign[] }>(`/wa/campaigns/${storeId}`);
+
+export const createWACampaign = (data: {
+  store_id: string;
+  name: string;
+  message: string;
+  audience_filter?: string;
+  scheduled_at?: number | null;
+}) =>
+  request<WaCampaign>("/wa/campaigns", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const deleteWACampaign = (id: string) =>
+  request<{ ok: boolean }>(`/wa/campaigns/${id}`, { method: "DELETE" });
+
+export const sendWACampaign = (id: string) =>
+  request<{ ok: boolean; total: number; message: string }>(`/wa/campaigns/${id}/send`, {
+    method: "POST",
+  });
+
+export const getWATemplates = (storeId: string) =>
+  request<{ templates: WaTemplate[] }>(`/wa/templates/${storeId}`);
+
+export const createWATemplate = (data: {
+  store_id: string;
+  name: string;
+  body: string;
+  category?: string;
+}) =>
+  request<WaTemplate>("/wa/templates", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const updateWATemplate = (
+  id: string,
+  data: Partial<{ name: string; body: string; category: string }>,
+) =>
+  request<{ ok: boolean }>(`/wa/templates/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
+export const deleteWATemplate = (id: string) =>
+  request<{ ok: boolean }>(`/wa/templates/${id}`, { method: "DELETE" });
+
+export const getWAContacts = (storeId: string) =>
+  request<{ contacts: WaContact[] }>(`/wa/contacts/${storeId}`);
+
+export const waOptin = (storeId: string, phone: string, name: string) =>
+  request<{ ok: boolean; already: boolean }>("/wa/optin", {
+    method: "POST",
+    body: JSON.stringify({ store_id: storeId, phone, name }),
+  });
+
+export const getWAAnalytics = (storeId: string) =>
+  request<WaAnalytics>(`/wa/analytics/${storeId}`);
 
 // ── Loyalty Program ───────────────────────────────────────────────────────────
 

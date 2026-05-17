@@ -4,13 +4,13 @@ import {
   Store, Search, Star, MessageSquare, ArrowUpDown, TrendingUp, MapPin, ShoppingCart, Mail, Phone, FileText, ChevronDown, ChevronUp,
   Shirt, Footprints, UserRound, Gem, UtensilsCrossed, Smartphone, Palette, Sparkles,
   Baby, Home, Package, ShoppingBag, Watch, Dumbbell, BookOpen, Flower2, Scissors,
-  Sofa, Glasses, Dog, Car, Bike,
+  Sofa, Glasses, Dog, Car, Bike, Loader2, X, Bell,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link } from "wouter";
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
-import { getStorefront, trackClick } from "@/lib/api";
+import { getStorefront, trackClick, waOptin } from "@/lib/api";
 import { populatePdCacheFromStorefront } from "@/lib/product-cache";
 import type { Store as StoreType, Product } from "@/lib/api";
 import type { Review } from "@/lib/api";
@@ -225,6 +225,94 @@ function TrendingCard({
         </div>
       </div>
     </Link>
+  );
+}
+
+// ── WhatsApp Opt-in Banner ─────────────────────────────────────────────────────
+function WaOptinBanner({ store }: { store: StoreType | null }) {
+  const storeId = store?.id ?? "";
+  const storageKey = `wa_optin_${storeId}`;
+  const savedPhone = typeof window !== "undefined" ? (localStorage.getItem("advize_customer_phone") ?? "") : "";
+
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(storageKey) === "1"; } catch { return false; }
+  });
+  const [name, setName]         = useState("");
+  const [phone, setPhone]       = useState(savedPhone);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess]   = useState(false);
+
+  if (!store?.wa_phone_number_id || dismissed) return null;
+
+  const handleSubmit = async () => {
+    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return;
+    setSubmitting(true);
+    try {
+      await waOptin(storeId, phone.trim(), name.trim());
+      setSuccess(true);
+      localStorage.setItem(storageKey, "1");
+      setTimeout(() => setDismissed(true), 2500);
+    } catch {
+      setDismissed(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mx-4 sm:mx-auto max-w-xl mb-6 bg-card border rounded-2xl shadow-sm overflow-hidden">
+      <div className="flex items-start gap-3 p-4">
+        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-[#25D366] flex items-center justify-center">
+          <Bell className="h-4 w-4 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          {success ? (
+            <div className="py-1">
+              <p className="text-sm font-semibold text-[#25D366]">You're subscribed!</p>
+              <p className="text-xs text-muted-foreground mt-0.5">We'll send you offers and updates on WhatsApp.</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-foreground">Get offers on WhatsApp</p>
+              <p className="text-xs text-muted-foreground mt-0.5 mb-3">Subscribe to receive exclusive deals and restock alerts.</p>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Your name (optional)"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="w-full h-8 text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    placeholder="WhatsApp number (e.g. 9876543210)"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className="flex-1 h-8 text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40"
+                  />
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitting || phone.replace(/\D/g, "").length < 10}
+                    className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold bg-[#25D366] hover:bg-[#20BA5A] text-white px-3 py-1.5 rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                    Subscribe
+                  </button>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">By subscribing you agree to receive WhatsApp messages from this store. Reply STOP to opt out anytime.</p>
+            </>
+          )}
+        </div>
+        <button
+          onClick={() => { setDismissed(true); localStorage.setItem(storageKey, "1"); }}
+          className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/60 transition-colors"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -734,6 +822,8 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
         </div>
 
       </main>
+
+      <WaOptinBanner store={store} />
 
       <StoreFooter store={store} />
 
