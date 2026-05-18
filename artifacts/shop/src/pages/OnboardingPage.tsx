@@ -15,13 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { StepIndicator } from "@/components/StepIndicator";
 import { useToast } from "@/hooks/use-toast";
 import { createStore } from "@/lib/api";
@@ -29,7 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   businessName: z.string().min(2, { message: "Business name must be at least 2 characters." }),
-  category: z.string().min(1, { message: "Please select a category." }),
+  category: z.string().min(1, { message: "Please enter what you are selling." }),
   whatsapp: z.string().min(10, { message: "Please enter a valid phone number." }),
   shopLocation: z.string().min(3, { message: "Please enter your shop location." }),
 });
@@ -214,21 +207,14 @@ export function OnboardingPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-base font-semibold">What are you selling?</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-12 text-lg rounded-xl" data-testid="select-category">
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="Fashion & Clothing">Fashion & Clothing</SelectItem>
-                          <SelectItem value="Food & Beverages">Food & Beverages</SelectItem>
-                          <SelectItem value="Electronics">Electronics</SelectItem>
-                          <SelectItem value="Handicrafts">Handicrafts</SelectItem>
-                          <SelectItem value="Beauty & Cosmetics">Beauty & Cosmetics</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. Clothes, Food, Handicrafts, Electronics…"
+                          className="h-12 text-lg rounded-xl"
+                          data-testid="input-category"
+                          {...field}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
