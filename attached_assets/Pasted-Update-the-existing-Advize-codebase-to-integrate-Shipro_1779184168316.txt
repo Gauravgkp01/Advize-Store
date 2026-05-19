@@ -1,0 +1,103 @@
+Update the existing Advize codebase to integrate Shiprocket shipping without rebuilding existing pages.
+
+Existing pages already available:
+- Customer Checkout Page
+- Order Tracking Page
+
+Do not create new versions. Extend the current implementation only.
+
+Add backend API structure:
+
+/api/shipping/check
+/api/shipping/create
+/api/shipping/track
+/api/shipping/cancel
+/api/webhooks/shiprocket
+
+Create:
+
+services/
+   shiprocketService.js
+
+Functions:
+- getToken()
+- calculateShipping()
+- createShipment()
+- trackShipment()
+- cancelShipment()
+- generateLabel()
+
+Update existing Product schema:
+
+shipping:{
+   weight:Number,
+   length:Number,
+   width:Number,
+   height:Number
+}
+
+Update existing Order schema:
+
+shipping:{
+   shipmentId:String,
+   awb:String,
+   courier:String,
+   trackingUrl:String,
+   status:String,
+   labelUrl:String
+}
+
+Modify existing checkout flow:
+
+Customer enters address
+↓
+Call /api/shipping/check
+↓
+Calculate shipping cost and estimated delivery
+↓
+Show shipping charges in order summary
+↓
+Payment success
+↓
+Create order
+↓
+Automatically create Shiprocket shipment
+↓
+Save shipment data in database
+
+Modify existing Order Tracking page:
+
+- Pull live shipping status from database
+- Display:
+   Order placed
+   Packed
+   Picked up
+   In transit
+   Out for delivery
+   Delivered
+- Show courier name
+- Show AWB number
+- Show estimated delivery date
+
+Create Seller Dashboard additions only:
+
+- Shipping status column
+- Track shipment button
+- Print shipping label button
+- Cancel shipment button
+
+Create Shiprocket webhook:
+
+POST /api/webhooks/shiprocket
+
+Webhook should:
+- Update shipping status automatically
+- Save tracking updates
+- Trigger notification events
+
+Important:
+- Do not break existing checkout logic
+- Do not rebuild tracking pages
+- Keep Shiprocket API keys in backend env variables only
+- Frontend must never directly call Shiprocket APIs
+- Keep code modular for future shipping providers
