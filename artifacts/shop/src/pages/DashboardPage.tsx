@@ -2629,6 +2629,53 @@ export function DashboardPage() {
     }
   }, [store?.id, loadData]);
 
+  // ── New-order polling ────────────────────────────────────────────────────
+  // After initial load, poll every 30 s. When the order count rises, fire a
+  // toast so the merchant knows without having to refresh.
+  const knownOrderCount = useRef<number | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Seed the baseline once orderStats are available for the first time
+    if (knownOrderCount.current === null && orderStats !== null) {
+      knownOrderCount.current = orderStats.totalOrders;
+    }
+  }, [orderStats]);
+
+  useEffect(() => {
+    if (!store?.id) return;
+    const storeId = store.id;
+
+    const poll = async () => {
+      try {
+        const fresh = await getOrderStats(storeId);
+        setOrderStats(fresh);
+        const incoming = fresh.totalOrders;
+        if (knownOrderCount.current !== null && incoming > knownOrderCount.current) {
+          const diff = incoming - knownOrderCount.current;
+          toast({
+            title: `${diff} new order${diff > 1 ? "s" : ""} received!`,
+            description: "Go to the Earnings tab to review.",
+            action: (
+              <button
+                onClick={() => setActive(4)}
+                className="text-xs font-semibold text-primary underline underline-offset-2"
+              >
+                View
+              </button>
+            ) as any,
+          });
+        }
+        knownOrderCount.current = incoming;
+      } catch {
+        // silent — network blip
+      }
+    };
+
+    const id = setInterval(poll, 30_000);
+    return () => clearInterval(id);
+  }, [store?.id, toast]);
+
   // Show Earnings tab only when a payment gateway is active
   const advizeEnabled  = !!(store?.advize_payment_enabled);
   const razorpayActive = !!(store?.razorpay_key_id);
