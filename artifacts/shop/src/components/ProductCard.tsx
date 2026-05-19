@@ -92,13 +92,8 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
               decoding="async"
               fetchPriority={priority ? "high" : "low"}
             />
-            {/* Sale / affiliate / category badge */}
-            {isAffiliate && (
-              <div className="absolute top-1.5 left-1.5 bg-orange-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-sm leading-tight tracking-wide flex items-center gap-0.5">
-                <ExternalLink className="w-2.5 h-2.5" />Affiliate
-              </div>
-            )}
-            {hasDiscount && !isAffiliate && (
+            {/* Sale badge */}
+            {hasDiscount && (
               <div className="absolute top-1.5 left-1.5 bg-red-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-sm leading-tight tracking-wide">
                 {discountPct}% OFF
               </div>
