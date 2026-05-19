@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Navbar } from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
-import { getApiUrl } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+
+const API_BASE = `${import.meta.env.BASE_URL}api`;
 
 export function DeliveryPage() {
   const [, setLocation] = useLocation();
@@ -30,7 +31,7 @@ export function DeliveryPage() {
       const token = await user?.getIdToken();
       // We ping the track endpoint with a dummy ID — a 4xx from Shiprocket (not a network error)
       // means auth worked. A 502 means our credentials are wrong.
-      const res = await fetch(`${getApiUrl()}/delivery/track?shipmentId=test-ping`, {
+      const res = await fetch(`${API_BASE}/delivery/track?shipmentId=test-ping`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       // Shiprocket returns 200/4xx for bad shipment IDs but still authenticates OK

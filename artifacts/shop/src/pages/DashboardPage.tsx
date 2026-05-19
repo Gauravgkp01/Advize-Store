@@ -1252,6 +1252,7 @@ function PluginsPanel({ store, onStoreChange }: {
   onStoreChange: (updated: StoreType) => void;
 }) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const razorpayActive = !!(store?.razorpay_key_id);
   const advizeEnabled  = !!(store?.advize_payment_enabled);
 
