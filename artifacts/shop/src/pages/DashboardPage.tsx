@@ -1704,6 +1704,27 @@ function PluginsPanel({ store, onStoreChange }: {
           </div>
         </div>
 
+        {/* ── Shipping (Shiprocket) ── */}
+        <div className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm opacity-75">
+          <div className="bg-sky-50 dark:bg-sky-950/40 p-3 rounded-xl flex-shrink-0">
+            <Truck className="h-6 w-6 text-sky-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="text-base font-semibold text-foreground leading-tight">Shipping Dashboard</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300">
+                Coming Soon
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Auto-create Shiprocket shipments, print labels, and track deliveries — all from your dashboard.
+            </p>
+          </div>
+          <div className="flex-shrink-0 mt-0.5">
+            <Lock className="h-4 w-4 text-muted-foreground/50" />
+          </div>
+        </div>
+
         {/* ── Print on Demand ── */}
         <div className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm opacity-75">
           <div className="bg-pink-50 dark:bg-pink-950/40 p-3 rounded-xl flex-shrink-0">
@@ -2538,7 +2559,6 @@ const TABS = [
   { label: "Listings",   icon: ListOrdered     },
   { label: "Plugins",    icon: Puzzle          },
   { label: "Earnings",   icon: IndianRupee     },
-  { label: "Shipping",   icon: Truck           },
 ] as const;
 
 export function DashboardPage() {
@@ -2547,8 +2567,8 @@ export function DashboardPage() {
   const [active, setActive] = useState(initialTab);
   const prevActive = useRef(initialTab);
   const touchStartX = useRef<number | null>(null);
-  const panelScrollTops = useRef<number[]>([0, 0, 0, 0, 0, 0]);
-  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null, null, null]);
+  const panelScrollTops = useRef<number[]>([0, 0, 0, 0, 0]);
+  const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null, null]);
   const [showSettings, setShowSettings] = useState(false);
   const handleLoyaltyClick = () => { setLocation("/loyalty"); };
   const [searchQuery, setSearchQuery] = useState("");
@@ -2609,18 +2629,17 @@ export function DashboardPage() {
     }
   }, [store?.id, loadData]);
 
-  // Show Earnings and Shipping tabs only when a payment gateway is active
+  // Show Earnings tab only when a payment gateway is active
   const advizeEnabled  = !!(store?.advize_payment_enabled);
   const razorpayActive = !!(store?.razorpay_key_id);
   const earningsVisible = advizeEnabled || razorpayActive;
   const visibleTabs = TABS.filter((_, i) => {
     if (i === 4) return earningsVisible;
-    if (i === 5) return earningsVisible;
     return true;
   });
 
   useEffect(() => {
-    if (!earningsVisible && (active === 4 || active === 5)) setActive(0);
+    if (!earningsVisible && active === 4) setActive(0);
   }, [earningsVisible, active]);
 
   // Save old tab scroll → restore new tab scroll
@@ -2736,9 +2755,6 @@ export function DashboardPage() {
                 >
                   <tab.icon className="h-3.5 w-3.5" />
                   <span className="hidden md:inline">{tab.label}</span>
-                  {tab.label === "Shipping" && (
-                    <span className="text-[9px] font-bold bg-amber-400/20 text-amber-600 dark:text-amber-400 px-1 py-0.5 rounded-full leading-none hidden md:inline">Soon</span>
-                  )}
                 </button>
               );
             })}
@@ -2822,9 +2838,6 @@ export function DashboardPage() {
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="flex-1">{tab.label}</span>
-                    {tab.label === "Shipping" && (
-                      <span className="text-[9px] font-bold bg-amber-400/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full leading-none">Soon</span>
-                    )}
                   </button>
                 );
               })}
@@ -2889,19 +2902,6 @@ export function DashboardPage() {
               <div ref={el => { panelRefs.current[4] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
                 <EarningsPanel store={store} orderStats={orderStats} onStatusChange={handleOrderStatusChange} onStoreChange={(updated) => setStore(updated)} />
               </div>
-              <div ref={el => { panelRefs.current[5] = el; }} className="w-full flex-shrink-0 h-full overflow-y-auto">
-                <ShippingPanel
-                  store={store}
-                  orderStats={orderStats}
-                  onOrdersChange={(orderId, updates) => {
-                    setOrderStats(prev => {
-                      if (!prev) return prev;
-                      const update = (o: Order) => o.id === orderId ? { ...o, ...updates } : o;
-                      return { ...prev, orders: prev.orders.map(update), recentOrders: prev.recentOrders.map(update) };
-                    });
-                  }}
-                />
-              </div>
             </div>
           </div>
 
@@ -2934,19 +2934,6 @@ export function DashboardPage() {
               )}
               {active === 3 && <PluginsPanel store={store} onStoreChange={(updated) => setStore(updated)} />}
               {active === 4 && <EarningsPanel store={store} orderStats={orderStats} onStatusChange={handleOrderStatusChange} onStoreChange={(updated) => setStore(updated)} />}
-              {active === 5 && (
-                <ShippingPanel
-                  store={store}
-                  orderStats={orderStats}
-                  onOrdersChange={(orderId, updates) => {
-                    setOrderStats(prev => {
-                      if (!prev) return prev;
-                      const update = (o: Order) => o.id === orderId ? { ...o, ...updates } : o;
-                      return { ...prev, orders: prev.orders.map(update), recentOrders: prev.recentOrders.map(update) };
-                    });
-                  }}
-                />
-              )}
             </div>
           </div>
 
@@ -2970,9 +2957,6 @@ export function DashboardPage() {
               >
                 <div className="relative">
                   <Icon className={`h-5 w-5 transition-transform ${isActive ? "scale-110" : "scale-100"}`} />
-                  {tab.label === "Shipping" && (
-                    <span className="absolute -top-1 -right-2 text-[7px] font-bold bg-amber-400 text-white px-1 rounded-full leading-tight">Soon</span>
-                  )}
                 </div>
                 <span className={`text-[10px] font-semibold ${isActive ? "text-primary" : "text-muted-foreground"}`}>
                   {tab.label}
