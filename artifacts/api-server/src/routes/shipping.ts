@@ -67,32 +67,59 @@ router.post("/shipping/create", verifyToken, async (req, res) => {
 
   const subTotal = Math.round((orderData.amount_paise ?? 0) / 100);
 
+  const phone = (buyer.phone ?? "").replace(/\D/g, "");
+  const pincode = (buyer.pincode ?? "").replace(/\D/g, "");
+
+  const missingFields: string[] = [];
+  if (!buyer.addressLine) missingFields.push("address");
+  if (!buyer.city) missingFields.push("city");
+  if (pincode.length !== 6) missingFields.push("6-digit pincode");
+  if (!buyer.state) missingFields.push("state");
+  if (phone.length < 10) missingFields.push("10-digit phone");
+
+  if (missingFields.length > 0) {
+    return res.status(422).json({
+      error: "Buyer address incomplete — cannot create shipment",
+      missing: missingFields,
+      hint: "The customer must provide complete shipping details (address, city, 6-digit pincode, state, phone) when placing the order.",
+    });
+  }
+
+  const payload = {
+    order_id: orderId,
+    order_date: orderDate,
+    pickup_location: pickupLocation,
+    billing_customer_name: firstName || "Customer",
+    billing_last_name: lastName,
+    billing_address: buyer.addressLine,
+    billing_city: buyer.city,
+    billing_pincode: pincode,
+    billing_state: buyer.state,
+    billing_country: buyer.country ?? "India",
+    billing_email: buyer.email ?? undefined,
+    billing_phone: phone.slice(-10),
+    shipping_is_billing: true,
+    order_items: items,
+    payment_method: "Prepaid" as const,
+    sub_total: subTotal,
+    length: 10,
+    breadth: 10,
+    height: 10,
+    weight: 0.5,
+  };
+
+  console.info("Shiprocket createOrder payload:", JSON.stringify(payload, null, 2));
+
   let srOrder;
   try {
-    srOrder = await createOrder({
-      order_id: orderId,
-      order_date: orderDate,
-      pickup_location: pickupLocation,
-      billing_customer_name: firstName || "Customer",
-      billing_last_name: lastName,
-      billing_address: buyer.addressLine ?? "N/A",
-      billing_city: buyer.city ?? "N/A",
-      billing_pincode: buyer.pincode ?? "000000",
-      billing_state: buyer.state ?? "India",
-      billing_country: buyer.country ?? "India",
-      billing_email: buyer.email,
-      billing_phone: buyer.phone ?? "0000000000",
-      shipping_is_billing: true,
-      order_items: items,
-      payment_method: "Prepaid",
-      sub_total: subTotal,
-      length: 10,
-      breadth: 10,
-      height: 10,
-      weight: 0.5,
-    });
+    srOrder = await createOrder(payload);
   } catch (err: any) {
-    return res.status(502).json({ error: "Failed to create Shiprocket order", detail: err.message });
+    console.error("Shiprocket createOrder error:", err.message);
+    return res.status(502).json({
+      error: "Failed to create Shiprocket order",
+      detail: err.message,
+      hint: "Check that the pickup_location name exactly matches your Shiprocket panel, and that the buyer address fields are complete.",
+    });
   }
 
   const shiprocketOrderId: number = srOrder.order_id;
