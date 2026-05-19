@@ -25,6 +25,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import LoyaltyPage from "@/pages/LoyaltyPage";
 import { MyOffersSheet } from "@/components/MyOffersSheet";
 import { PricingPage } from "@/pages/PricingPage";
+import { DeliveryPage } from "@/pages/DeliveryPage";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,9 @@ function Router() {
         </Route>
         <Route path="/loyalty">
           <ProtectedRoute><LoyaltyPage /></ProtectedRoute>
+        </Route>
+        <Route path="/delivery">
+          <ProtectedRoute><DeliveryPage /></ProtectedRoute>
         </Route>
         <Route path="/add-product">
           <ProtectedRoute><AddProductPage /></ProtectedRoute>

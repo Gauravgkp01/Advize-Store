@@ -1725,7 +1725,10 @@ function PluginsPanel({ store, onStoreChange }: {
         </div>
 
         {/* ── Delivery Partners ── */}
-        <div className="bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm opacity-75">
+        <button
+          type="button"
+          onClick={() => setLocation("/delivery")}
+          className="w-full bg-card border rounded-2xl p-5 flex gap-4 items-start shadow-sm hover:border-primary/50 hover:shadow-md transition-all text-left">
           <div className="bg-green-50 dark:bg-green-950/40 p-3 rounded-xl flex-shrink-0">
             <Bike className="h-6 w-6 text-green-600" />
           </div>
@@ -1733,17 +1736,17 @@ function PluginsPanel({ store, onStoreChange }: {
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <h3 className="text-base font-semibold text-foreground leading-tight">Delivery Partners</h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
-                Coming Soon
+                New
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Connect with Dunzo, Porter, Shiprocket & more to offer fast local and national delivery to your customers.
+              Connect Shiprocket to offer fast local and national delivery to your customers.
             </p>
           </div>
           <div className="flex-shrink-0 mt-0.5">
-            <Lock className="h-4 w-4 text-muted-foreground/50" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
-        </div>
+        </button>
 
       </div>
 
