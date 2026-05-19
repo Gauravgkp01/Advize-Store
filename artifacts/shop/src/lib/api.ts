@@ -456,6 +456,7 @@ export interface OrderBuyer {
   phone: string;
   addressLine: string;
   city: string;
+  state: string;
   pincode: string;
 }
 

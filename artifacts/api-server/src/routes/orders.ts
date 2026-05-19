@@ -22,7 +22,7 @@ router.post("/orders", async (req, res) => {
       productId: string; name: string; quantity: number; price: number; variant?: string;
       mixData?: { selectedTier: { quantity: number; price: number }; composition: { option: string; qty: number }[] };
     }[];
-    buyer: { name: string; phone: string; addressLine: string; city: string; pincode: string };
+    buyer: { name: string; phone: string; addressLine: string; city: string; state: string; pincode: string };
   };
 
   if (!store_id || !amount_paise || !items) {

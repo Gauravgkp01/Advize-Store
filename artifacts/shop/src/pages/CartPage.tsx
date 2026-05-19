@@ -21,6 +21,7 @@ interface BuyerInfo {
   phone: string;
   addressLine: string;
   city: string;
+  state: string;
   pincode: string;
 }
 
@@ -49,7 +50,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [screen, setScreen] = useState<Screen>("cart");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [buyer, setBuyer] = useState<BuyerInfo>({
-    name: "", phone: "", addressLine: "", city: "", pincode: "",
+    name: "", phone: "", addressLine: "", city: "", state: "", pincode: "",
   });
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
   const [loyaltyRedeeming, setLoyaltyRedeeming] = useState(false);
@@ -138,6 +139,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     }
     if (!buyer.addressLine.trim()) { toast({ variant: "destructive", title: "Please enter your address." }); return false; }
     if (!buyer.city.trim()) { toast({ variant: "destructive", title: "Please enter your city." }); return false; }
+    if (!buyer.state.trim()) { toast({ variant: "destructive", title: "Please enter your state." }); return false; }
     if (!/^\d{6}$/.test(buyer.pincode.trim())) {
       toast({ variant: "destructive", title: "Please enter a valid 6-digit pincode." }); return false;
     }
@@ -209,7 +211,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           },
         },
         notes: {
-          delivery_address: `${buyer.addressLine}, ${buyer.city} - ${buyer.pincode}`,
+          delivery_address: `${buyer.addressLine}, ${buyer.city}, ${buyer.state} - ${buyer.pincode}`,
           items: linesSummary,
         },
         theme: { color: "#16a34a" },
@@ -289,7 +291,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           },
         },
         notes: {
-          delivery_address: `${buyer.addressLine}, ${buyer.city} - ${buyer.pincode}`,
+          delivery_address: `${buyer.addressLine}, ${buyer.city}, ${buyer.state} - ${buyer.pincode}`,
           items: linesSummary,
         },
         theme: { color: "#16a34a" },
@@ -635,17 +637,28 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="pincode">Pincode</Label>
+                <Label htmlFor="state">State</Label>
                 <Input
-                  id="pincode"
-                  placeholder="400001"
-                  value={buyer.pincode}
-                  onChange={e => setBuyer(b => ({ ...b, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                  id="state"
+                  placeholder="Maharashtra"
+                  value={buyer.state}
+                  onChange={e => setBuyer(b => ({ ...b, state: e.target.value }))}
                   className="h-11 rounded-xl"
-                  inputMode="numeric"
-                  autoComplete="postal-code"
+                  autoComplete="address-level1"
                 />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pincode">Pincode</Label>
+              <Input
+                id="pincode"
+                placeholder="400001"
+                value={buyer.pincode}
+                onChange={e => setBuyer(b => ({ ...b, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                className="h-11 rounded-xl"
+                inputMode="numeric"
+                autoComplete="postal-code"
+              />
             </div>
           </div>
 

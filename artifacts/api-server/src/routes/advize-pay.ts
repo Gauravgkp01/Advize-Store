@@ -28,7 +28,7 @@ router.post("/advize-pay/create-order", async (req, res) => {
       store_id: string;
       amount_paise: number;
       items: { productId: string; name: string; quantity: number; price: number }[];
-      buyer: { name: string; phone: string; addressLine: string; city: string; pincode: string };
+      buyer: { name: string; phone: string; addressLine: string; city: string; state: string; pincode: string };
       slug: string;
     };
 
@@ -80,7 +80,7 @@ router.post("/advize-pay/verify", async (req, res) => {
       store_id: string;
       amount_paise: number;
       items: { productId: string; name: string; quantity: number; price: number }[];
-      buyer: { name: string; phone: string; addressLine: string; city: string; pincode: string };
+      buyer: { name: string; phone: string; addressLine: string; city: string; state: string; pincode: string };
     };
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !store_id) {
