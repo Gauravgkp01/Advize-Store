@@ -108,7 +108,7 @@ router.post("/shipping/create", verifyToken, async (req, res) => {
     weight: 0.5,
   };
 
-  console.info("Shiprocket createOrder payload:", JSON.stringify(payload, null, 2));
+  console.info("Shiprocket createOrder payload: order_id=%s channel_id=%s", payload.order_id, payload.channel_id);
 
   let srOrder;
   try {
