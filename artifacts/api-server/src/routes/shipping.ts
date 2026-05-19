@@ -70,18 +70,18 @@ router.post("/shipping/create", verifyToken, async (req, res) => {
   const phone = (buyer.phone ?? "").replace(/\D/g, "");
   const pincode = (buyer.pincode ?? "").replace(/\D/g, "");
 
+  // Hard-require only the fields Shiprocket truly needs; state falls back to "India"
   const missingFields: string[] = [];
-  if (!buyer.addressLine) missingFields.push("address");
-  if (!buyer.city) missingFields.push("city");
+  if (!buyer.addressLine?.trim()) missingFields.push("address");
+  if (!buyer.city?.trim()) missingFields.push("city");
   if (pincode.length !== 6) missingFields.push("6-digit pincode");
-  if (!buyer.state) missingFields.push("state");
   if (phone.length < 10) missingFields.push("10-digit phone");
 
   if (missingFields.length > 0) {
     return res.status(422).json({
       error: "Buyer address incomplete — cannot create shipment",
       missing: missingFields,
-      hint: "The customer must provide complete shipping details (address, city, 6-digit pincode, state, phone) when placing the order.",
+      hint: "The customer must provide complete shipping details: address, city, 6-digit pincode, and phone number.",
     });
   }
 
@@ -91,11 +91,11 @@ router.post("/shipping/create", verifyToken, async (req, res) => {
     pickup_location: pickupLocation,
     billing_customer_name: firstName || "Customer",
     billing_last_name: lastName,
-    billing_address: buyer.addressLine,
-    billing_city: buyer.city,
+    billing_address: buyer.addressLine.trim(),
+    billing_city: buyer.city.trim(),
     billing_pincode: pincode,
-    billing_state: buyer.state,
-    billing_country: buyer.country ?? "India",
+    billing_state: (buyer.state ?? "").trim() || "India",
+    billing_country: (buyer.country ?? "").trim() || "India",
     billing_email: buyer.email ?? undefined,
     billing_phone: phone.slice(-10),
     shipping_is_billing: true,
