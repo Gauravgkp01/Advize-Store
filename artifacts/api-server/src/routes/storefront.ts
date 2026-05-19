@@ -5,7 +5,7 @@ import { cacheGet, cacheSet, cacheDeleteByPrefix } from "../lib/cache.js";
 
 const router = Router();
 
-const STOREFRONT_TTL = 30_000; // 30 seconds
+const STOREFRONT_TTL = 5 * 60_000; // 5 minutes
 
 function sanitizeStore(id: string, data: FirebaseFirestore.DocumentData) {
   const { razorpay_key_secret: _secret, owner_id: _owner, ...safe } = data;
@@ -85,7 +85,11 @@ router.get("/storefront/:slug", async (req, res) => {
     });
     products.sort((a, b) => b.created_at - a.created_at);
     productIds = productsSnap.docs.map(d => d.id);
-    cacheSet(`products:list:${storeId}`, products, 30_000);
+    cacheSet(`products:list:${storeId}`, products, STOREFRONT_TTL);
+  }
+  // Warm per-product meta so /product-related can skip Firestore entirely
+  for (const p of products) {
+    cacheSet(`product:meta:${p.id}`, { storeId, category: p.category ?? "" }, STOREFRONT_TTL);
   }
 
   // — Fetch reviews (check individual cache first) —
@@ -114,6 +118,7 @@ router.get("/storefront/:slug", async (req, res) => {
   const result = { store, products, reviews };
   cacheSet(cacheKey, result, STOREFRONT_TTL);
 
+  res.set("Cache-Control", "public, max-age=30, stale-while-revalidate=270");
   return res.json(result);
 });
 

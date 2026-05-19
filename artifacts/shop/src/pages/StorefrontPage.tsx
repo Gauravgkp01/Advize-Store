@@ -19,7 +19,8 @@ import { setSEO, resetSEO, injectStoreJsonLd, removeStoreJsonLd } from "@/lib/se
 type PriceSort = "none" | "asc" | "desc";
 
 // ── Module-level session cache (stale-while-revalidate) ───────────────────────
-// Survives re-renders and back-navigation; cleared when the browser tab closes.
+// Survives re-renders and back-navigation.
+// Also persisted to sessionStorage so hard-refreshes stay instant.
 interface SFCacheEntry {
   store: StoreType;
   products: Product[];
@@ -28,10 +29,33 @@ interface SFCacheEntry {
 }
 const sfCache = new Map<string, SFCacheEntry>();
 const SF_CACHE_TTL = 5 * 60_000; // 5 minutes
+const SF_SS_KEY = (slug: string) => `sf:${slug}`;
+
+function sfCacheSet(slug: string, entry: SFCacheEntry) {
+  sfCache.set(slug, entry);
+  try { sessionStorage.setItem(SF_SS_KEY(slug), JSON.stringify(entry)); } catch {}
+}
+
+function sfCacheGet(slug: string): SFCacheEntry | null {
+  const mem = sfCache.get(slug);
+  if (mem) return mem;
+  try {
+    const raw = sessionStorage.getItem(SF_SS_KEY(slug));
+    if (!raw) return null;
+    const entry = JSON.parse(raw) as SFCacheEntry;
+    if (Date.now() - entry.ts < SF_CACHE_TTL) {
+      sfCache.set(slug, entry); // seed in-memory cache
+      return entry;
+    }
+    sessionStorage.removeItem(SF_SS_KEY(slug));
+  } catch {}
+  return null;
+}
 
 /** Call after any store update so the next visit fetches fresh data. */
 export function bustStorefrontCache(slug: string) {
   sfCache.delete(slug);
+  try { sessionStorage.removeItem(SF_SS_KEY(slug)); } catch {}
 }
 
 /* ── Store Footer ─────────────────────────────────────────── */
@@ -360,8 +384,8 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
       try {
         const payload = await getStorefront(slug);
         if (cancelled) return;
-        // Update session cache
-        sfCache.set(slug, { store: payload.store, products: payload.products, reviews: payload.reviews, ts: Date.now() });
+        // Update session cache (also persists to sessionStorage)
+        sfCacheSet(slug, { store: payload.store, products: payload.products, reviews: payload.reviews, ts: Date.now() });
         // Pre-populate product detail cache — navigating to any product is now instant
         populatePdCacheFromStorefront(payload.store, payload.products, payload.reviews);
         setStore(payload.store);
@@ -374,8 +398,8 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
       }
     }
 
-    // Serve stale session cache instantly while revalidating in the background
-    const hit = sfCache.get(slug);
+    // Serve stale session cache (memory or sessionStorage) while revalidating
+    const hit = sfCacheGet(slug);
     if (hit && Date.now() - hit.ts < SF_CACHE_TTL) {
       setStore(hit.store);
       setProducts(hit.products);

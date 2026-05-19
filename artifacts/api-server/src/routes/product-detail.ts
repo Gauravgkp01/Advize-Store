@@ -76,6 +76,8 @@ router.get("/product-detail/:id", async (req, res) => {
     created_at: serializeTs(productData["created_at"]),
     variants,
   };
+  // Warm the meta cache so /product-related can skip Firestore on the next call
+  cacheSet(`product:meta:${id}`, { storeId, category }, TTL);
 
   // ── Build store ──
   let store: any;

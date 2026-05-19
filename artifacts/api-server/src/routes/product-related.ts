@@ -24,12 +24,22 @@ function serializeTs(ts: unknown): number {
 router.get("/product-related/:id", async (req, res) => {
   const { id } = req.params;
 
-  const productDoc = await db.collection("products").doc(id).get();
-  if (!productDoc.exists) return res.status(404).json({ error: "Product not found" });
-
-  const productData = productDoc.data()!;
-  const storeId: string = productData["store_id"];
-  const category: string = productData["category"] ?? "";
+  // Try the lightweight meta cache first (populated by storefront + product-detail).
+  // This lets us skip the individual product Firestore read on warm cache.
+  let storeId: string;
+  let category: string;
+  const meta = cacheGet<{ storeId: string; category: string }>(`product:meta:${id}`);
+  if (meta) {
+    storeId = meta.storeId;
+    category = meta.category;
+  } else {
+    const productDoc = await db.collection("products").doc(id).get();
+    if (!productDoc.exists) return res.status(404).json({ error: "Product not found" });
+    const productData = productDoc.data()!;
+    storeId = productData["store_id"];
+    category = productData["category"] ?? "";
+    cacheSet(`product:meta:${id}`, { storeId, category }, TTL);
+  }
 
   let allProducts: any[] = cacheGet<any[]>(`products:list:${storeId}`) ?? [];
 
@@ -43,13 +53,14 @@ router.get("/product-related/:id", async (req, res) => {
       created_at: serializeTs((d.data() as any)["created_at"]),
     }));
     allProducts.sort((a, b) => b.created_at - a.created_at);
-    cacheSet(`products:list:${storeId}`, allProducts, 30_000);
+    cacheSet(`products:list:${storeId}`, allProducts, TTL);
   }
 
   const related = allProducts
     .filter((p: any) => p.id !== id && p.category === category)
     .slice(0, 6);
 
+  res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
   return res.json({ relatedProducts: related });
 });
 
