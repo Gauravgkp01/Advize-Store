@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Copy, Star, Flame, Pencil, Trash2 } from "lucide-react";
+import { Copy, Star, Flame, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { deleteProduct } from "@/lib/api";
@@ -20,7 +20,8 @@ interface ProductCardProps {
 export function ProductCard({ product, showActions = true, productHref, onDelete, onToggleTrending, reviewSummary, priority = false }: ProductCardProps) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const inStock = product.units > 0;
+  const isAffiliateProd = product.productType === "affiliate";
+  const inStock = isAffiliateProd || product.units > 0;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -67,11 +68,12 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
 
   /* ── STOREFRONT (buyer view) – compact Flipkart-style ── */
   if (!showActions) {
+    const isAffiliate = product.productType === "affiliate";
     const isMixMatch = product.productType === "mix_match";
     const minTierPrice = isMixMatch && product.pricingTiers && product.pricingTiers.length > 0
       ? Math.min(...product.pricingTiers.map(t => t.price))
       : null;
-    const hasSale = !isMixMatch && product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
+    const hasSale = !isMixMatch && !isAffiliate && product.salePrice != null && product.salePrice > 0 && product.salePrice < product.price;
     const displayPrice = isMixMatch ? (minTierPrice ?? 0) : (hasSale ? product.salePrice! : product.price);
     const savings = hasSale ? product.price - product.salePrice! : 0;
     const discountPct = hasSale ? Math.round((product.price - product.salePrice!) / product.price * 100) : 0;
@@ -90,8 +92,13 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
               decoding="async"
               fetchPriority={priority ? "high" : "low"}
             />
-            {/* Sale / category badge */}
-            {hasDiscount && (
+            {/* Sale / affiliate / category badge */}
+            {isAffiliate && (
+              <div className="absolute top-1.5 left-1.5 bg-orange-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-sm leading-tight tracking-wide flex items-center gap-0.5">
+                <ExternalLink className="w-2.5 h-2.5" />Affiliate
+              </div>
+            )}
+            {hasDiscount && !isAffiliate && (
               <div className="absolute top-1.5 left-1.5 bg-red-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-sm leading-tight tracking-wide">
                 {discountPct}% OFF
               </div>
@@ -205,7 +212,10 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
             ₹{sellerDisplayPrice.toLocaleString("en-IN")}
           </p>
           <p className="text-[10px] sm:text-xs text-muted-foreground" data-testid={`text-units-${product.id}`}>
-            {inStock ? `${product.units} unit${product.units !== 1 ? "s" : ""} left` : "No stock"}
+            {isAffiliateProd
+              ? <span className="inline-flex items-center gap-0.5 text-orange-500 font-semibold"><ExternalLink className="w-3 h-3" />Affiliate</span>
+              : inStock ? `${product.units} unit${product.units !== 1 ? "s" : ""} left` : "No stock"
+            }
           </p>
         </div>
 

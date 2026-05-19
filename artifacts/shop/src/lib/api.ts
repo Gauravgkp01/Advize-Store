@@ -33,7 +33,8 @@ export type Product = {
   units: number;
   trending?: boolean;
   variants?: ProductVariant[];
-  productType?: "normal" | "mix_match";
+  productType?: "normal" | "mix_match" | "affiliate";
+  affiliateUrl?: string;
   pricingTiers?: PricingTier[];
   mixOptions?: string[];
   mixInventory?: Record<string, number>;
@@ -169,7 +170,8 @@ export interface ApiProduct {
   units: number;
   trending?: boolean;
   variants: { id: string; label: string; values: string[] }[];
-  product_type?: "normal" | "mix_match";
+  product_type?: "normal" | "mix_match" | "affiliate";
+  affiliate_url?: string;
   pricing_tiers?: PricingTier[];
   mix_options?: string[];
   mix_inventory?: Record<string, number>;
@@ -197,6 +199,7 @@ function toProduct(p: ApiProduct): Product {
     trending: p.trending ?? false,
     variants: (p.variants ?? []).map(v => ({ label: v.label, values: v.values })),
     productType: p.product_type ?? "normal",
+    affiliateUrl: p.affiliate_url ?? undefined,
     pricingTiers: p.pricing_tiers ?? [],
     mixOptions: p.mix_options ?? [],
     mixInventory: p.mix_inventory ?? {},
@@ -246,7 +249,8 @@ export const createProduct = (body: {
   category?: string;
   units?: number;
   variants?: ProductVariant[];
-  product_type?: "normal" | "mix_match";
+  product_type?: "normal" | "mix_match" | "affiliate";
+  affiliate_url?: string;
   pricing_tiers?: PricingTier[];
   mix_options?: string[];
   mix_inventory?: Record<string, number>;
@@ -264,7 +268,8 @@ export const updateProduct = (id: string, body: Partial<{
   units: number;
   trending: boolean;
   variants: ProductVariant[];
-  product_type: "normal" | "mix_match";
+  product_type: "normal" | "mix_match" | "affiliate";
+  affiliate_url: string;
   pricing_tiers: PricingTier[];
   mix_options: string[];
   mix_inventory: Record<string, number>;

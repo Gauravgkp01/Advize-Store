@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "wouter";
 import {
-  ArrowLeft, MessageCircle,
+  ArrowLeft, MessageCircle, ExternalLink,
   AlertCircle, Star, Loader2, MousePointerClick,
   Package, BarChart2, TrendingUp, ZoomIn, ZoomOut, X, RotateCcw,
   ShoppingCart, ShoppingBag, ChevronDown, Heart, Share2,
@@ -961,7 +961,18 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
       ))
     : null;
 
-  const ctaJsx = (
+  const ctaJsx = product?.productType === "affiliate" ? (
+    <div className="flex gap-3">
+      <Button
+        className="w-full h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
+        onClick={() => product.affiliateUrl && window.open(product.affiliateUrl, "_blank")}
+        data-testid="btn-buy-now-affiliate"
+      >
+        <ExternalLink className="h-4 w-4" />
+        Buy Now
+      </Button>
+    </div>
+  ) : (
     <div className="flex gap-3">
       <Button
         className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
@@ -1372,26 +1383,39 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
             )}
 
             {/* CTA — Buy Now (WhatsApp) · Add to Cart */}
-            <div className="border-t px-4 py-4 flex gap-3">
-              <Button
-                className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
-                onClick={handleOrder}
-              >
-                <MessageCircle className="h-4 w-4" />
-                {hasPayment ? "Buy Now" : "Order on WhatsApp"}
-              </Button>
-              {hasPayment && (
+            {product?.productType === "affiliate" ? (
+              <div className="border-t px-4 py-4">
                 <Button
-                  className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-orange-500 hover:bg-orange-600 text-white border-transparent"
-                  onClick={handleAddToCart}
-                  disabled={product.units === 0}
-                  data-testid="btn-add-to-cart"
+                  className="w-full h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
+                  onClick={() => product.affiliateUrl && window.open(product.affiliateUrl, "_blank")}
+                  data-testid="btn-buy-now-affiliate"
                 >
-                  <ShoppingBag className={`h-4 w-4 ${addedToCart ? "fill-white" : ""}`} />
-                  {addedToCart ? "Added!" : "Add to Cart"}
+                  <ExternalLink className="h-4 w-4" />
+                  Buy Now
                 </Button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="border-t px-4 py-4 flex gap-3">
+                <Button
+                  className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
+                  onClick={handleOrder}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {hasPayment ? "Buy Now" : "Order on WhatsApp"}
+                </Button>
+                {hasPayment && (
+                  <Button
+                    className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-orange-500 hover:bg-orange-600 text-white border-transparent"
+                    onClick={handleAddToCart}
+                    disabled={product.units === 0}
+                    data-testid="btn-add-to-cart"
+                  >
+                    <ShoppingBag className={`h-4 w-4 ${addedToCart ? "fill-white" : ""}`} />
+                    {addedToCart ? "Added!" : "Add to Cart"}
+                  </Button>
+                )}
+              </div>
+            )}
 
             {/* View cart pill */}
             {hasPayment && storeSlug && totalItems > 0 && (

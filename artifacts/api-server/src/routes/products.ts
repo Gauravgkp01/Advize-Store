@@ -59,7 +59,7 @@ router.get("/products/:id", async (req, res) => {
 router.post("/products", async (req, res) => {
   const {
     store_id, name, price, description, image_url, image_urls, category, units, sale_price, variants,
-    product_type, pricing_tiers, mix_options, mix_inventory, mix_attribute_label,
+    product_type, pricing_tiers, mix_options, mix_inventory, mix_attribute_label, affiliate_url,
   } = req.body;
   if (!store_id || !name) {
     return res.status(400).json({ error: "store_id and name are required" });
@@ -80,6 +80,9 @@ router.post("/products", async (req, res) => {
     if (Array.isArray(mix_options)) productData.mix_options = mix_options;
     if (mix_inventory && typeof mix_inventory === "object") productData.mix_inventory = mix_inventory;
     if (mix_attribute_label) productData.mix_attribute_label = mix_attribute_label;
+  }
+  if (product_type === "affiliate" && affiliate_url) {
+    productData.affiliate_url = affiliate_url;
   }
   const ref = await db.collection("products").add(productData);
 

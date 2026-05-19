@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { ArrowLeft, ImagePlus, Loader2, Plus, X, Package, Layers } from "lucide-react";
+import { ArrowLeft, ImagePlus, Loader2, Plus, X, Package, Layers, ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -56,7 +56,8 @@ export function AddProductPage() {
 
   const [customVariants, setCustomVariants] = useState<CustomVariant[]>([]);
 
-  const [productType, setProductType] = useState<"normal" | "mix_match">("normal");
+  const [productType, setProductType] = useState<"normal" | "mix_match" | "affiliate">("normal");
+  const [affiliateUrl, setAffiliateUrl] = useState("");
   const [pricingTiers, setPricingTiers] = useState<PricingTierInput[]>([
     { id: crypto.randomUUID(), quantity: "", price: "" },
   ]);
@@ -163,6 +164,11 @@ export function AddProductPage() {
         toast({ variant: "destructive", title: "Add at least one pricing tier", description: "Fill in a quantity and price." });
         return;
       }
+    } else if (productType === "affiliate") {
+      if (!affiliateUrl.trim()) {
+        toast({ variant: "destructive", title: "Affiliate link is required", description: "Paste the product link buyers should be sent to." });
+        return;
+      }
     } else {
       if (!values.price || values.price <= 0) {
         toast({ variant: "destructive", title: "Price is required", description: "Enter the product MRP." });
@@ -211,6 +217,19 @@ export function AddProductPage() {
           mix_options,
           mix_inventory,
           mix_attribute_label: mixAttributeLabel,
+        });
+      } else if (productType === "affiliate") {
+        await createProduct({
+          store_id: storeId,
+          name: values.name,
+          price: values.price || 0,
+          description: values.description,
+          category: values.category ?? "",
+          units: 0,
+          image_url: imageUrls[0],
+          image_urls: imageUrls,
+          product_type: "affiliate",
+          affiliate_url: affiliateUrl.trim(),
         });
       } else {
         await createProduct({
@@ -316,6 +335,12 @@ export function AddProductPage() {
                     <span className={`text-sm font-semibold ${productType === "mix_match" ? "text-primary" : "text-foreground"}`}>Mix &amp; Match Pack</span>
                     <span className="text-xs text-muted-foreground leading-snug">Tiered pricing, buyer picks a combination</span>
                   </button>
+                  <button type="button" onClick={() => setProductType("affiliate")}
+                    className={`col-span-2 flex flex-col items-start gap-1.5 p-4 rounded-2xl border-2 text-left transition-all ${productType === "affiliate" ? "border-orange-500 bg-orange-50" : "border-border hover:border-orange-300"}`}>
+                    <ExternalLink className={`h-5 w-5 ${productType === "affiliate" ? "text-orange-500" : "text-muted-foreground"}`} />
+                    <span className={`text-sm font-semibold ${productType === "affiliate" ? "text-orange-600" : "text-foreground"}`}>Affiliate Listing</span>
+                    <span className="text-xs text-muted-foreground leading-snug">Paste an external link (Amazon, Flipkart…). Buyers are redirected to buy there.</span>
+                  </button>
                 </div>
               </div>
 
@@ -367,6 +392,37 @@ export function AddProductPage() {
                       <FormLabel className="text-base font-semibold">Units Available</FormLabel>
                       <FormControl>
                         <Input type="number" min={0} placeholder="e.g. 50" className="h-12 rounded-xl" {...field} data-testid="input-product-units" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </>
+              )}
+
+              {/* Affiliate fields */}
+              {productType === "affiliate" && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-base font-semibold">
+                      Affiliate Link <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={affiliateUrl}
+                      onChange={e => setAffiliateUrl(e.target.value)}
+                      placeholder="https://www.amazon.in/dp/..."
+                      className="w-full h-12 px-4 rounded-xl border border-border text-sm outline-none bg-background focus:border-orange-400 transition-colors"
+                    />
+                    <p className="text-[11px] text-muted-foreground">Buyers will be sent to this link when they click "Buy Now".</p>
+                  </div>
+                  <FormField control={form.control} name="price" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-semibold">Display Price (&#8377;) <span className="text-muted-foreground font-normal text-sm">(optional &#8212; for reference only)</span></FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-4 top-3 text-muted-foreground">&#8377;</span>
+                          <Input type="number" placeholder="0" className="pl-8 h-12 rounded-xl" {...field} />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
