@@ -110,6 +110,15 @@ router.get("/orders/store/:store_id", verifyToken, async (req, res) => {
     buyer: o.buyer ?? null,
     status: o.status ?? "pending",
     created_at: o.created_at,
+    updated_at: o.updated_at ?? null,
+    // Shipping fields
+    shiprocket_order_id: o.shiprocket_order_id ?? null,
+    shiprocket_shipment_id: o.shiprocket_shipment_id ?? null,
+    shiprocket_awb_code: o.shiprocket_awb_code ?? null,
+    shiprocket_courier_name: o.shiprocket_courier_name ?? null,
+    shiprocket_pickup_location: o.shiprocket_pickup_location ?? null,
+    shipping_status: o.shipping_status ?? null,
+    shipping_etd: o.shipping_etd ?? null,
   }));
 
   const totalOrders = orders.length;

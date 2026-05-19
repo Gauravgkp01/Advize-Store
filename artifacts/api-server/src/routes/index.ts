@@ -20,6 +20,7 @@ import loyaltyRouter from "./loyalty";
 import couponsRouter from "./coupons";
 import waMarketingRouter from "./whatsapp-marketing";
 import deliveryRouter from "./delivery";
+import shippingRouter from "./shipping";
 
 const router: IRouter = Router();
 
@@ -46,5 +47,6 @@ router.use(loyaltyRouter);
 router.use(couponsRouter);
 router.use(waMarketingRouter);
 router.use(deliveryRouter);
+router.use(shippingRouter);
 
 export default router;

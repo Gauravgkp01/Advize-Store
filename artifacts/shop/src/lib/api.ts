@@ -476,6 +476,15 @@ export interface Order {
   buyer: OrderBuyer;
   status: OrderStatus;
   created_at: any;
+  updated_at?: any;
+  // Shipping fields
+  shiprocket_order_id?: number | null;
+  shiprocket_shipment_id?: number | null;
+  shiprocket_awb_code?: string | null;
+  shiprocket_courier_name?: string | null;
+  shiprocket_pickup_location?: string | null;
+  shipping_status?: string | null;
+  shipping_etd?: string | null;
 }
 
 export interface OrderStats {
@@ -832,4 +841,60 @@ export const redeemLoyalty = (storeId: string, phone: string) =>
   request<{ success: boolean }>("/loyalty/redeem", {
     method: "POST",
     body: JSON.stringify({ store_id: storeId, phone }),
+  });
+
+// ── Shipping (Shiprocket) ─────────────────────────────────────────────────────
+
+export interface ShippingCreateResult {
+  shiprocketOrderId: number;
+  shipmentId: number;
+  awbCode: string | null;
+  courierName: string | null;
+}
+
+export interface ShippingTrackResult {
+  tracking_data?: {
+    track_status?: number;
+    shipment_track?: {
+      awb_code?: string;
+      courier_name?: string;
+      current_status?: string;
+      etd?: string;
+      [key: string]: unknown;
+    }[];
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+export interface ShippingLabelResult {
+  label_url: string | null;
+  raw?: unknown;
+}
+
+export const createShipment = (orderId: string, shopId: string, pickupLocation: string) =>
+  request<ShippingCreateResult>("/shipping/create", {
+    method: "POST",
+    body: JSON.stringify({ orderId, shopId, pickupLocation }),
+  });
+
+export const trackShipmentById = (shipmentId: number | string) =>
+  request<ShippingTrackResult>(`/shipping/track?shipmentId=${encodeURIComponent(String(shipmentId))}`);
+
+export const trackShipmentByAwb = (awb: string) =>
+  request<ShippingTrackResult>(`/shipping/track?awb=${encodeURIComponent(awb)}`);
+
+export const cancelShipment = (orderId: string) =>
+  request<{ ok: boolean }>("/shipping/cancel", {
+    method: "POST",
+    body: JSON.stringify({ orderId }),
+  });
+
+export const getShippingLabel = (orderId: string) =>
+  request<ShippingLabelResult>(`/shipping/label?orderId=${encodeURIComponent(orderId)}`);
+
+export const scheduleShipmentPickup = (orderId: string) =>
+  request<{ ok: boolean }>("/shipping/pickup", {
+    method: "POST",
+    body: JSON.stringify({ orderId }),
   });

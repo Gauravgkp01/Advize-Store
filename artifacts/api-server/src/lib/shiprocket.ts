@@ -146,3 +146,33 @@ export async function cancelOrder(orderIds: number[]): Promise<unknown> {
     body: JSON.stringify({ ids: orderIds }),
   });
 }
+
+export interface ShiprocketLabelResponse {
+  label_url?: string;
+  [key: string]: unknown;
+}
+
+export async function generateLabel(shipmentIds: number[]): Promise<ShiprocketLabelResponse> {
+  return srFetch("/courier/generate/label", {
+    method: "POST",
+    body: JSON.stringify({ shipment_id: shipmentIds }),
+  }) as Promise<ShiprocketLabelResponse>;
+}
+
+export async function generateInvoice(orderIds: number[]): Promise<unknown> {
+  return srFetch("/orders/print/invoice", {
+    method: "POST",
+    body: JSON.stringify({ ids: orderIds }),
+  });
+}
+
+export async function schedulePickup(shipmentIds: number[]): Promise<unknown> {
+  return srFetch("/courier/generate/pickup", {
+    method: "POST",
+    body: JSON.stringify({ shipment_id: shipmentIds }),
+  });
+}
+
+export async function trackByAwb(awbCode: string): Promise<unknown> {
+  return srFetch(`/courier/track/awb/${awbCode}`);
+}
