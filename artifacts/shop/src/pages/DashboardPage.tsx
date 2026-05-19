@@ -2120,6 +2120,8 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
     .filter(o => o.payment_status === "paid")
     .reduce((s, o) => s + (o.amount_paise ?? 0), 0) / 100;
 
+  const availableBalance = Math.max(0, advizeRevenue - (store?.total_withdrawn ?? 0));
+
   const razorpayRevenue = razorpayOrders
     .filter(o => o.payment_status === "paid")
     .reduce((s, o) => s + (o.amount_paise ?? 0), 0) / 100;
@@ -2153,13 +2155,13 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
     if (!store) return;
     const trimmed = upiId.trim();
     if (!trimmed) { toast({ variant: "destructive", title: "Please enter your UPI ID" }); return; }
-    if (advizeRevenue <= 0) { toast({ variant: "destructive", title: "No Advize earnings to withdraw" }); return; }
+    if (availableBalance <= 0) { toast({ variant: "destructive", title: "No earnings available to withdraw" }); return; }
     setPayoutLoading(true);
     try {
-      await requestPayout({ store_id: store.id, upi_id: trimmed, amount_requested: advizeRevenue });
-      const updated = await updateStore(store.id, { upi_id: trimmed });
+      await requestPayout({ store_id: store.id, upi_id: trimmed, amount_requested: availableBalance });
+      const updated = await getStoreById(store.id);
       onStoreChange(updated);
-      toast({ title: "Payout request submitted!", description: `₹${advizeRevenue.toLocaleString("en-IN")} will be sent to ${trimmed}` });
+      toast({ title: "Payout request submitted!", description: `₹${availableBalance.toLocaleString("en-IN")} will be sent to ${trimmed}` });
       const data = await getPayoutRequests(store.id);
       setPayoutHistory(data.requests);
       setShowPayout(false);
@@ -2459,9 +2461,13 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
 
           {/* Amount available */}
           <div className="bg-primary/10 rounded-2xl p-4 mb-5 text-center">
-            <p className="text-xs font-semibold text-primary/70 uppercase tracking-wide mb-1">Amount to Withdraw</p>
-            <p className="text-4xl font-extrabold text-primary">₹{advizeRevenue.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-muted-foreground mt-1">Total collected via Advize Payment</p>
+            <p className="text-xs font-semibold text-primary/70 uppercase tracking-wide mb-1">Available to Withdraw</p>
+            <p className="text-4xl font-extrabold text-primary">₹{availableBalance.toLocaleString("en-IN")}</p>
+            {(store?.total_withdrawn ?? 0) > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                ₹{advizeRevenue.toLocaleString("en-IN")} earned &minus; ₹{(store?.total_withdrawn ?? 0).toLocaleString("en-IN")} withdrawn
+              </p>
+            )}
           </div>
 
           {/* UPI ID input */}
@@ -2481,13 +2487,13 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
           <Button
             className="w-full h-12 rounded-2xl text-base font-bold gap-2"
             onClick={handlePayoutSubmit}
-            disabled={payoutLoading || advizeRevenue <= 0}
+            disabled={payoutLoading || availableBalance <= 0}
           >
             {payoutLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <IndianRupee className="h-5 w-5" />}
-            {payoutLoading ? "Submitting..." : `Withdraw ₹${advizeRevenue.toLocaleString("en-IN")}`}
+            {payoutLoading ? "Submitting..." : `Withdraw ₹${availableBalance.toLocaleString("en-IN")}`}
           </Button>
 
-          {advizeRevenue <= 0 && (
+          {availableBalance <= 0 && (
             <p className="text-center text-xs text-muted-foreground mt-2">No earnings available to withdraw yet.</p>
           )}
 

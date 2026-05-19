@@ -35,6 +35,11 @@ router.post("/payouts/request", verifyToken, async (req, res) => {
       created_at: FieldValue.serverTimestamp(),
     });
 
+    // Deduct from available balance on the store document
+    await db.collection("stores").doc(store_id).update({
+      total_withdrawn: FieldValue.increment(amount_requested),
+    });
+
     return res.status(201).json({ id: ref.id, status: "pending" });
   } catch (err: any) {
     console.error("payout request error:", err);

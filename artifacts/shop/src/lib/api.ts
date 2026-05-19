@@ -117,6 +117,7 @@ export interface Store {
   wa_display_name?: string;
   wa_waba_id?: string;
   wa_connected_at?: number;
+  total_withdrawn?: number;
 }
 
 export const getStore = (slug: string) =>
