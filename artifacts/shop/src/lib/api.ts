@@ -454,6 +454,10 @@ export interface OrderItem {
   quantity: number;
   price: number;
   variant?: string;
+  mixData?: {
+    selectedTier: { quantity: number; price: number };
+    composition: { option: string; qty: number }[];
+  };
 }
 
 export interface OrderBuyer {

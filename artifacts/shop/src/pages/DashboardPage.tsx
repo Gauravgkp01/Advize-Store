@@ -2386,11 +2386,26 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
                   </div>
 
                   {/* Items */}
-                  <div className="bg-muted/40 rounded-xl px-3 py-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Items</p>
-                    <p className="text-sm text-foreground leading-relaxed">
-                      {order.items?.map(i => `${i.name} \u00d7${i.quantity}`).join(" \u00b7 ") ?? "–"}
-                    </p>
+                  <div className="bg-muted/40 rounded-xl px-3 py-2 space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Items</p>
+                    {order.items?.length ? order.items.map((item, idx) => (
+                      <div key={idx} className="space-y-0.5">
+                        <p className="text-sm font-medium text-foreground">
+                          {item.name}
+                          {item.mixData
+                            ? ` \u00d7 ${item.quantity} pack${item.quantity !== 1 ? "s" : ""} of ${item.mixData.selectedTier.quantity}`
+                            : ` \u00d7${item.quantity}`}
+                        </p>
+                        {item.mixData?.composition?.length ? (
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {item.mixData.composition
+                              .filter(c => c.qty > 0)
+                              .map(c => `${c.option} \u00d7${c.qty}`)
+                              .join(", ")}
+                          </p>
+                        ) : null}
+                      </div>
+                    )) : <p className="text-sm text-foreground">–</p>}
                   </div>
 
                   {/* Delivery address */}
