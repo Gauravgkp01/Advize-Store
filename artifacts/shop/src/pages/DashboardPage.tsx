@@ -2501,359 +2501,33 @@ function ShippingPanel({ store, orderStats, onOrdersChange }: {
   orderStats: OrderStats | null;
   onOrdersChange?: (orderId: string, updates: Partial<Order>) => void;
 }) {
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
-  const [shippingFilter, setShippingFilter] = useState<"all" | "unshipped" | "shipped" | "cancelled">("all");
-  const [creatingId, setCreatingId] = useState<string | null>(null);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const [trackingId, setTrackingId] = useState<string | null>(null);
-  const [trackData, setTrackData] = useState<Record<string, string>>({});
-  const [labelLoadingId, setLabelLoadingId] = useState<string | null>(null);
-
-  const pickupLocation = localStorage.getItem("shiprocket_pickup_location") ?? "";
-
-  const allOrders = orderStats?.orders ?? [];
-  const shippableOrders = allOrders.filter(o => o.payment_status === "paid" && o.status !== "cancelled");
-
-  const filtered = shippingFilter === "all"
-    ? shippableOrders
-    : shippingFilter === "unshipped"
-    ? shippableOrders.filter(o => !o.shiprocket_shipment_id)
-    : shippingFilter === "shipped"
-    ? shippableOrders.filter(o => !!o.shiprocket_shipment_id && o.shipping_status !== "cancelled")
-    : shippableOrders.filter(o => o.shipping_status === "cancelled");
-
-  const unshippedCount = shippableOrders.filter(o => !o.shiprocket_shipment_id).length;
-  const shippedCount   = shippableOrders.filter(o => !!o.shiprocket_shipment_id && o.shipping_status !== "cancelled").length;
-  const cancelledCount = shippableOrders.filter(o => o.shipping_status === "cancelled").length;
-
-  const handleCreate = async (order: Order) => {
-    if (!store?.id) return;
-    if (!pickupLocation) {
-      toast({ variant: "destructive", title: "No pickup location set", description: "Go to Delivery Settings to set a pickup location first." });
-      return;
-    }
-    setCreatingId(order.id);
-    try {
-      const result = await createShipment(order.id, store.id, pickupLocation);
-      onOrdersChange?.(order.id, {
-        shiprocket_shipment_id: result.shipmentId,
-        shiprocket_order_id: result.shiprocketOrderId,
-        shiprocket_awb_code: result.awbCode,
-        shiprocket_courier_name: result.courierName,
-        shipping_status: "processing",
-      });
-      toast({
-        title: "Shipment created!",
-        description: result.awbCode
-          ? `AWB: ${result.awbCode} · ${result.courierName ?? "Courier assigned"}`
-          : "Courier will be assigned shortly.",
-      });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Failed to create shipment", description: err.message });
-    } finally {
-      setCreatingId(null);
-    }
-  };
-
-  const handleCancel = async (order: Order) => {
-    setCancellingId(order.id);
-    try {
-      await cancelShipment(order.id);
-      onOrdersChange?.(order.id, { shipping_status: "cancelled" });
-      toast({ title: "Shipment cancelled" });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Failed to cancel", description: err.message });
-    } finally {
-      setCancellingId(null);
-    }
-  };
-
-  const handleTrack = async (order: Order) => {
-    setTrackingId(order.id);
-    try {
-      let result: any;
-      if (order.shiprocket_awb_code) {
-        result = await trackShipmentByAwb(order.shiprocket_awb_code);
-      } else if (order.shiprocket_shipment_id) {
-        result = await trackShipmentById(order.shiprocket_shipment_id);
-      } else return;
-
-      const track = result?.tracking_data?.shipment_track?.[0];
-      const status = track?.current_status ?? result?.tracking_data?.current_status ?? "Unknown";
-      const etd    = track?.etd ?? "–";
-      setTrackData(prev => ({
-        ...prev,
-        [order.id]: `${status}${etd !== "–" ? " · ETA: " + etd : ""}`,
-      }));
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Tracking failed", description: err.message });
-    } finally {
-      setTrackingId(null);
-    }
-  };
-
-  const handleLabel = async (order: Order) => {
-    setLabelLoadingId(order.id);
-    try {
-      const result = await getShippingLabel(order.id);
-      if (result.label_url) {
-        window.open(result.label_url, "_blank");
-      } else {
-        toast({ variant: "destructive", title: "Label not ready yet", description: "Try again in a minute — Shiprocket may still be processing it." });
-      }
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Failed to get label", description: err.message });
-    } finally {
-      setLabelLoadingId(null);
-    }
-  };
-
-  const SHIPPING_STATUS_COLORS: Record<string, string> = {
-    processing:  "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    out_for_delivery: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    delivered:   "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    cancelled:   "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  };
-
-  const formatDate = (ts: any): string => {
-    if (!ts) return "–";
-    const d = ts?.toDate ? ts.toDate() : new Date(ts?.seconds ? ts.seconds * 1000 : ts);
-    if (isNaN(d.getTime())) return "–";
-    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-  };
-
   return (
-    <div className="p-3 sm:p-6 space-y-4 pb-28">
-      {/* Header */}
-      <div className="flex items-center justify-between pt-1">
-        <div>
-          <h1 className="text-lg sm:text-2xl font-bold">Shipping</h1>
-          <p className="text-muted-foreground text-xs mt-0.5">Manage Shiprocket shipments for paid orders</p>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="rounded-xl gap-1.5 text-xs h-8"
-          onClick={() => setLocation("/delivery")}
-        >
-          <Truck className="h-3.5 w-3.5" />
-          Settings
-        </Button>
+    <div className="px-4 py-6 sm:px-6 flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
+      <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+        <Truck className="h-9 w-9 text-primary" />
       </div>
-
-      {/* Pickup location warning */}
-      {!pickupLocation && (
-        <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3">
-          <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">No pickup location set</p>
-            <p className="text-xs text-amber-600/80 dark:text-amber-500/80 mt-0.5">
-              Set your Shiprocket pickup location in Delivery Settings before creating shipments.
-            </p>
+      <div className="space-y-2 max-w-xs">
+        <div className="inline-flex items-center gap-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold px-3 py-1 rounded-full">
+          <span>🚧</span> Coming Soon
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Shipping Dashboard</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Automatic Shiprocket integration for creating shipments, printing labels, and tracking deliveries — all from your dashboard.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-3 w-full max-w-xs text-left">
+        {[
+          { icon: "📦", text: "Auto-create shipments after payment" },
+          { icon: "🏷️", text: "Print shipping labels instantly" },
+          { icon: "📍", text: "Live tracking for every order" },
+          { icon: "🔔", text: "Automatic delivery status updates" },
+        ].map(({ icon, text }) => (
+          <div key={text} className="flex items-center gap-3 bg-muted/40 rounded-xl px-4 py-3">
+            <span className="text-lg">{icon}</span>
+            <span className="text-sm text-foreground font-medium">{text}</span>
           </div>
-          <Button size="sm" variant="outline" className="shrink-0 text-xs h-7 rounded-lg border-amber-300 text-amber-700"
-            onClick={() => setLocation("/delivery")}>
-            Set up
-          </Button>
-        </div>
-      )}
-
-      {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="bg-card border rounded-2xl p-3 text-center shadow-sm">
-          <p className="text-2xl font-extrabold text-amber-500">{unshippedCount}</p>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">To Ship</p>
-        </div>
-        <div className="bg-card border rounded-2xl p-3 text-center shadow-sm">
-          <p className="text-2xl font-extrabold text-blue-500">{shippedCount}</p>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">Shipped</p>
-        </div>
-        <div className="bg-card border rounded-2xl p-3 text-center shadow-sm">
-          <p className="text-2xl font-extrabold text-foreground">{shippableOrders.length}</p>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">Total</p>
-        </div>
-      </div>
-
-      {/* Filter tabs */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-        {([
-          { key: "all",       label: "All",        count: shippableOrders.length },
-          { key: "unshipped", label: "To Ship",    count: unshippedCount },
-          { key: "shipped",   label: "Shipped",    count: shippedCount },
-          { key: "cancelled", label: "Cancelled",  count: cancelledCount },
-        ] as const).map(f => (
-          <button
-            key={f.key}
-            onClick={() => setShippingFilter(f.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-              shippingFilter === f.key
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            {f.label}
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-              shippingFilter === f.key ? "bg-white/20 text-white" : "bg-background text-foreground"
-            }`}>
-              {f.count}
-            </span>
-          </button>
         ))}
       </div>
-
-      {/* Orders list */}
-      {shippableOrders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-          <Truck className="h-10 w-10 opacity-20" />
-          <p className="text-sm font-medium">No paid orders yet</p>
-          <p className="text-xs opacity-60">Shipping management will appear here once customers place paid orders.</p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
-          <PackageCheck className="h-8 w-8 opacity-20" />
-          <p className="text-sm font-medium">No orders in this category</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map(order => {
-            const hasShipment = !!order.shiprocket_shipment_id;
-            const isCancelled = order.shipping_status === "cancelled";
-            const isCreating  = creatingId === order.id;
-            const isCancelling = cancellingId === order.id;
-            const isTracking   = trackingId === order.id;
-            const isLabelLoading = labelLoadingId === order.id;
-            const liveTrack    = trackData[order.id];
-            const shippingColor = order.shipping_status
-              ? (SHIPPING_STATUS_COLORS[order.shipping_status] ?? "bg-muted text-muted-foreground")
-              : null;
-
-            return (
-              <div key={order.id} className="bg-card border rounded-2xl overflow-hidden shadow-sm">
-                {/* Order header */}
-                <div className="px-4 pt-4 pb-3 border-b">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-mono font-semibold text-primary/80 bg-primary/10 px-2 py-0.5 rounded-md">
-                      #{order.id.slice(0, 10).toUpperCase()}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{formatDate(order.created_at)}</span>
-                    <span className="text-sm font-extrabold text-foreground ml-auto">
-                      ₹{Math.round((order.amount_paise ?? 0) / 100).toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                  <div className="mt-2 space-y-0.5">
-                    <p className="text-sm font-semibold text-foreground">{order.buyer?.name ?? "–"}</p>
-                    {order.buyer?.phone && (
-                      <p className="text-xs text-muted-foreground">{order.buyer.phone}</p>
-                    )}
-                    {order.buyer?.addressLine && (
-                      <p className="text-xs text-muted-foreground">
-                        {order.buyer.addressLine}, {order.buyer.city}{order.buyer.pincode ? ` – ${order.buyer.pincode}` : ""}
-                      </p>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    {order.items?.map(i => `${i.name} ×${i.quantity}`).join(" · ") ?? "–"}
-                  </p>
-                </div>
-
-                {/* Shipping info */}
-                <div className="px-4 py-3 space-y-3">
-                  {hasShipment && !isCancelled ? (
-                    <>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {order.shipping_status && shippingColor && (
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${shippingColor}`}>
-                            {order.shipping_status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
-                          </span>
-                        )}
-                        {order.shiprocket_courier_name && (
-                          <span className="text-xs text-muted-foreground">
-                            {order.shiprocket_courier_name}
-                          </span>
-                        )}
-                      </div>
-                      {order.shiprocket_awb_code && (
-                        <div className="bg-muted/40 rounded-xl px-3 py-2 flex items-center gap-2">
-                          <Truck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <div className="min-w-0">
-                            <p className="text-[10px] text-muted-foreground font-medium">AWB Code</p>
-                            <p className="text-sm font-mono font-bold text-foreground">{order.shiprocket_awb_code}</p>
-                          </div>
-                        </div>
-                      )}
-                      {liveTrack && (
-                        <div className="bg-blue-50 dark:bg-blue-950/20 rounded-xl px-3 py-2">
-                          <p className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 mb-0.5">Live Status</p>
-                          <p className="text-xs text-foreground">{liveTrack}</p>
-                        </div>
-                      )}
-                      {/* Action buttons */}
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-xl text-xs h-8 flex-1"
-                          onClick={() => handleTrack(order)}
-                          disabled={isTracking}
-                        >
-                          {isTracking
-                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            : <Search className="h-3.5 w-3.5 mr-1" />}
-                          {isTracking ? "Tracking…" : "Track"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-xl text-xs h-8 flex-1"
-                          onClick={() => handleLabel(order)}
-                          disabled={isLabelLoading}
-                        >
-                          {isLabelLoading
-                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            : <Printer className="h-3.5 w-3.5 mr-1" />}
-                          {isLabelLoading ? "Loading…" : "Label"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-xl text-xs h-8 text-destructive hover:text-destructive border-destructive/30"
-                          onClick={() => handleCancel(order)}
-                          disabled={isCancelling}
-                        >
-                          {isCancelling
-                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            : <X className="h-3.5 w-3.5 mr-1" />}
-                          {isCancelling ? "…" : "Cancel"}
-                        </Button>
-                      </div>
-                    </>
-                  ) : isCancelled ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                        Shipment Cancelled
-                      </span>
-                    </div>
-                  ) : (
-                    /* No shipment yet */
-                    <Button
-                      size="sm"
-                      className="w-full rounded-xl gap-2 h-9"
-                      onClick={() => handleCreate(order)}
-                      disabled={isCreating || !pickupLocation}
-                    >
-                      {isCreating
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : <Truck className="h-4 w-4" />}
-                      {isCreating ? "Creating shipment…" : "Create Shipment"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -3062,6 +2736,9 @@ export function DashboardPage() {
                 >
                   <tab.icon className="h-3.5 w-3.5" />
                   <span className="hidden md:inline">{tab.label}</span>
+                  {tab.label === "Shipping" && (
+                    <span className="text-[9px] font-bold bg-amber-400/20 text-amber-600 dark:text-amber-400 px-1 py-0.5 rounded-full leading-none hidden md:inline">Soon</span>
+                  )}
                 </button>
               );
             })}
@@ -3144,7 +2821,10 @@ export function DashboardPage() {
                     }`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
-                    {tab.label}
+                    <span className="flex-1">{tab.label}</span>
+                    {tab.label === "Shipping" && (
+                      <span className="text-[9px] font-bold bg-amber-400/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full leading-none">Soon</span>
+                    )}
                   </button>
                 );
               })}
@@ -3288,7 +2968,12 @@ export function DashboardPage() {
                 }`}
                 data-testid={`tab-${tab.label.toLowerCase().replace(" ", "-")}`}
               >
-                <Icon className={`h-5 w-5 transition-transform ${isActive ? "scale-110" : "scale-100"}`} />
+                <div className="relative">
+                  <Icon className={`h-5 w-5 transition-transform ${isActive ? "scale-110" : "scale-100"}`} />
+                  {tab.label === "Shipping" && (
+                    <span className="absolute -top-1 -right-2 text-[7px] font-bold bg-amber-400 text-white px-1 rounded-full leading-tight">Soon</span>
+                  )}
+                </div>
                 <span className={`text-[10px] font-semibold ${isActive ? "text-primary" : "text-muted-foreground"}`}>
                   {tab.label}
                 </span>
