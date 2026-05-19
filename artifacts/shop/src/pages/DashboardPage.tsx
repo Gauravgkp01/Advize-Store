@@ -2518,13 +2518,6 @@ function EarningsPanel({ store, orderStats, onStatusChange, onStoreChange }: {
                         <p className="text-xs text-muted-foreground truncate">{p.upi_id}</p>
                         <p className="text-xs text-muted-foreground">{dateStr}</p>
                       </div>
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${
-                        p.status === "processed" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : p.status === "rejected"  ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}>
-                        {p.status === "processed" ? "✓ Paid" : p.status === "rejected" ? "✗ Rejected" : "⏳ Pending"}
-                      </span>
                     </div>
                   );
                 })}
