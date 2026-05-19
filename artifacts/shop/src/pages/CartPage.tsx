@@ -8,11 +8,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCart } from "@/contexts/CartContext";
 import type { CartItem } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, verifyAdvizePayment, getLoyaltyCard, redeemLoyalty, validateCoupon, getCoupons } from "@/lib/api";
 import type { Store as StoreType, LoyaltyCard, CouponValidation, Coupon } from "@/lib/api";
+
+const INDIAN_STATES = [
+  "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh",
+  "Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka",
+  "Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram",
+  "Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana",
+  "Tripura","Uttar Pradesh","Uttarakhand","West Bengal",
+  "Andaman and Nicobar Islands","Chandigarh","Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi","Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry",
+];
 
 type Screen = "cart" | "checkout" | "success";
 
@@ -608,28 +619,35 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           </div>
 
           {/* Delivery address */}
-          <div className="bg-card border rounded-2xl p-4 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="bg-card border rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-primary" />
               <p className="text-sm font-semibold">Delivery Address</p>
+              <span className="text-[10px] text-muted-foreground ml-auto">Required for shipping</span>
             </div>
+
             <div className="space-y-1.5">
-              <Label htmlFor="address-line">Address</Label>
+              <Label htmlFor="address-line">
+                House / Flat No., Street, Area <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="address-line"
-                placeholder="House/Flat no., Street, Area"
+                placeholder="e.g. Flat 4B, Rose Apartments, MG Road"
                 value={buyer.addressLine}
                 onChange={e => setBuyer(b => ({ ...b, addressLine: e.target.value }))}
                 className="h-11 rounded-xl"
                 autoComplete="street-address"
               />
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="city">
+                  City <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="city"
-                  placeholder="Mumbai"
+                  placeholder="e.g. Mumbai"
                   value={buyer.city}
                   onChange={e => setBuyer(b => ({ ...b, city: e.target.value }))}
                   className="h-11 rounded-xl"
@@ -637,28 +655,39 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="state">State</Label>
+                <Label htmlFor="pincode">
+                  Pincode <span className="text-red-500">*</span>
+                </Label>
                 <Input
-                  id="state"
-                  placeholder="Maharashtra"
-                  value={buyer.state}
-                  onChange={e => setBuyer(b => ({ ...b, state: e.target.value }))}
-                  className="h-11 rounded-xl"
-                  autoComplete="address-level1"
+                  id="pincode"
+                  placeholder="6-digit pincode"
+                  value={buyer.pincode}
+                  onChange={e => setBuyer(b => ({ ...b, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                  className={`h-11 rounded-xl ${buyer.pincode.length > 0 && buyer.pincode.length !== 6 ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  maxLength={6}
                 />
+                {buyer.pincode.length > 0 && buyer.pincode.length !== 6 && (
+                  <p className="text-[10px] text-red-500">Must be 6 digits</p>
+                )}
               </div>
             </div>
+
             <div className="space-y-1.5">
-              <Label htmlFor="pincode">Pincode</Label>
-              <Input
-                id="pincode"
-                placeholder="400001"
-                value={buyer.pincode}
-                onChange={e => setBuyer(b => ({ ...b, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
-                className="h-11 rounded-xl"
-                inputMode="numeric"
-                autoComplete="postal-code"
-              />
+              <Label htmlFor="state">
+                State <span className="text-red-500">*</span>
+              </Label>
+              <Select value={buyer.state} onValueChange={v => setBuyer(b => ({ ...b, state: v }))}>
+                <SelectTrigger id="state" className="h-11 rounded-xl">
+                  <SelectValue placeholder="Select your state" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INDIAN_STATES.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
