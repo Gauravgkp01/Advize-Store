@@ -698,12 +698,12 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
       {/* CTA buttons */}
       <div className="flex gap-3">
         {hasPayment && (
-          <Button variant="outline"
-            className="flex-1 h-14 text-base rounded-xl border-2 font-semibold gap-2"
+          <Button
+            className="flex-1 h-14 text-base rounded-xl shadow-lg bg-orange-500 hover:bg-orange-600 text-white border-transparent font-semibold gap-2"
             onClick={handleAddToCart}
             disabled={!canAddToCart}
             data-testid="btn-add-to-cart">
-            <ShoppingBag className={`h-5 w-5 ${addedToCart ? "fill-primary" : ""}`} />
+            <ShoppingBag className={`h-5 w-5 ${addedToCart ? "fill-white" : ""}`} />
             {addedToCart ? "Added!" : "Add to Cart"}
           </Button>
         )}
@@ -964,8 +964,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
   const ctaJsx = (
     <div className="flex gap-3">
       <Button
-        variant="outline"
-        className="flex-1 h-12 text-sm rounded-xl border-2 font-bold gap-2"
+        className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
         onClick={handleOrder}
       >
         <MessageCircle className="h-4 w-4" />
@@ -973,12 +972,12 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
       </Button>
       {hasPayment && (
         <Button
-          className="flex-1 h-12 text-sm rounded-xl font-bold gap-2"
+          className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-orange-500 hover:bg-orange-600 text-white border-transparent"
           onClick={handleAddToCart}
           disabled={product.units === 0}
           data-testid="btn-add-to-cart"
         >
-          <ShoppingBag className={`h-4 w-4 ${addedToCart ? "fill-current" : ""}`} />
+          <ShoppingBag className={`h-4 w-4 ${addedToCart ? "fill-white" : ""}`} />
           {addedToCart ? "Added!" : "Add to Cart"}
         </Button>
       )}
@@ -1375,8 +1374,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
             {/* CTA — Buy Now (WhatsApp) · Add to Cart */}
             <div className="border-t px-4 py-4 flex gap-3">
               <Button
-                variant="outline"
-                className="flex-1 h-12 text-sm rounded-xl border-2 font-bold gap-2"
+                className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
                 onClick={handleOrder}
               >
                 <MessageCircle className="h-4 w-4" />
@@ -1384,12 +1382,12 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
               </Button>
               {hasPayment && (
                 <Button
-                  className="flex-1 h-12 text-sm rounded-xl font-bold gap-2"
+                  className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-orange-500 hover:bg-orange-600 text-white border-transparent"
                   onClick={handleAddToCart}
                   disabled={product.units === 0}
                   data-testid="btn-add-to-cart"
                 >
-                  <ShoppingBag className={`h-4 w-4 ${addedToCart ? "fill-current" : ""}`} />
+                  <ShoppingBag className={`h-4 w-4 ${addedToCart ? "fill-white" : ""}`} />
                   {addedToCart ? "Added!" : "Add to Cart"}
                 </Button>
               )}
