@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCart } from "@/contexts/CartContext";
 import type { CartItem } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, verifyAdvizePayment, getLoyaltyCard, redeemLoyalty, validateCoupon, getCoupons } from "@/lib/api";
+import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, getLoyaltyCard, redeemLoyalty, validateCoupon, getCoupons } from "@/lib/api";
 import type { Store as StoreType, LoyaltyCard, CouponValidation, Coupon } from "@/lib/api";
 
 const INDIAN_STATES = [
@@ -177,12 +177,12 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
 
   const handleRemoveCoupon = () => { setCouponCode(""); setCouponData(null); };
 
-  /* ── Advize checkout (platform Razorpay) ── */
+  /* ── Advize checkout — saves request to DB, no gateway call ── */
   const handleAdvizeCheckout = async () => {
     if (!validateBuyer() || !store) return;
     setPaymentLoading(true);
     try {
-      const orderData = await createAdvizeOrder({
+      await createAdvizeOrder({
         store_id: store.id,
         amount_paise: Math.round(grandTotal * 100),
         items: items.map(i => ({
@@ -195,72 +195,12 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
         buyer,
         slug,
       });
-
-      const Razorpay = (window as any).Razorpay;
-      if (!Razorpay) {
-        toast({ variant: "destructive", title: "Payment not ready", description: "Please refresh and try again." });
-        setPaymentLoading(false);
-        return;
-      }
-
-      const linesSummary = items.map(i => `${i.product.name} ×${i.quantity}`).join(", ");
-
-      const options: any = {
-        key: orderData.key_id,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: store.name,
-        description: linesSummary.slice(0, 80),
-        order_id: orderData.order_id,
-        prefill: {
-          name: buyer.name,
-          contact: `+91${buyer.phone.replace(/\D/g, "").slice(-10)}`,
-        },
-        config: {
-          display: {
-            preferences: { show_default_blocks: true },
-          },
-        },
-        notes: {
-          delivery_address: `${buyer.addressLine}, ${buyer.city}, ${buyer.state} - ${buyer.pincode}`,
-          items: linesSummary,
-        },
-        theme: { color: "#16a34a" },
-        handler: async (response: any) => {
-          try {
-            const result = await verifyAdvizePayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              store_id: store.id,
-              amount_paise: Math.round(grandTotal * 100),
-              items: items.map(i => ({
-                productId: i.product.id,
-                name: i.product.name,
-                quantity: i.quantity,
-                price: unitPrice(i),
-                ...(i.mixData ? { mixData: i.mixData } : {}),
-              })),
-              buyer,
-            });
-            if (result.verified) {
-              localStorage.setItem("advize_customer_phone", buyer.phone.trim());
-              clearCart();
-              setScreen("success");
-            } else {
-              toast({ variant: "destructive", title: "Payment verification failed", description: "Contact the seller." });
-            }
-          } catch {
-            toast({ variant: "destructive", title: "Could not verify payment", description: "Contact the seller with your payment ID." });
-          }
-          setPaymentLoading(false);
-        },
-        modal: { ondismiss: () => setPaymentLoading(false) },
-      };
-
-      new Razorpay(options).open();
+      localStorage.setItem("advize_customer_phone", buyer.phone.trim());
+      clearCart();
+      setScreen("success");
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Could not initiate payment", description: err.message ?? "Please try again." });
+      toast({ variant: "destructive", title: "Could not place order", description: err.message ?? "Please try again." });
+    } finally {
       setPaymentLoading(false);
     }
   };

@@ -528,22 +528,8 @@ export const createAdvizeOrder = (payload: {
   buyer: OrderBuyer;
   slug: string;
 }) =>
-  request<{ order_id: string; key_id: string; amount: number; currency: string }>(
+  request<{ request_id: string; order_id: string }>(
     "/advize-pay/create-order",
-    { method: "POST", body: JSON.stringify(payload) }
-  );
-
-export const verifyAdvizePayment = (payload: {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-  store_id: string;
-  amount_paise: number;
-  items: OrderItem[];
-  buyer: OrderBuyer;
-}) =>
-  request<{ verified: boolean; order_id?: string }>(
-    "/advize-pay/verify",
     { method: "POST", body: JSON.stringify(payload) }
   );
 
