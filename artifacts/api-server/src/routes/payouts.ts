@@ -57,11 +57,16 @@ router.get("/payouts/requests/:store_id", verifyToken, async (req, res) => {
 
     const snap = await db.collection("payout_requests")
       .where("store_id", "==", store_id)
-      .orderBy("created_at", "desc")
       .limit(20)
       .get();
 
-    const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const requests = snap.docs
+      .map(d => ({ id: d.id, ...d.data() } as any))
+      .sort((a, b) => {
+        const aMs = a.created_at?.toMillis?.() ?? 0;
+        const bMs = b.created_at?.toMillis?.() ?? 0;
+        return bMs - aMs;
+      });
     return res.json({ requests });
   } catch (err: any) {
     console.error("payout requests fetch error:", err);
