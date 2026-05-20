@@ -1833,15 +1833,18 @@ function SettingsPanel({
   store,
   onTabChange,
   onEditStore,
+  onStoreChange,
 }: {
   store: StoreType | null;
   onTabChange: (index: number) => void;
   onEditStore: () => void;
+  onStoreChange: (s: StoreType) => void;
 }) {
   const { dark, toggle: toggleDark } = useTheme();
   const { user, signOut } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [sfThemeSaving, setSfThemeSaving] = useState(false);
 
   const [whatsappNotif, setWhatsappNotif] = useState<boolean>(() => {
     try { return localStorage.getItem("notif_whatsapp") !== "false"; } catch { return true; }
@@ -1943,12 +1946,41 @@ function SettingsPanel({
         />
         <SettingsRow
           icon={<Sparkles className="h-4 w-4" />}
-          label="Theme Color"
-          description="Custom accent colors — coming soon"
+          label="Visitor Store Theme"
+          description={store?.storefront_theme === "light" ? "Currently: Baby pink & white" : "Currently: Dark"}
           right={
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-              Soon
-            </span>
+            sfThemeSaving
+              ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              : (
+                <div className="flex items-center gap-1 bg-muted rounded-full p-0.5">
+                  <button
+                    className={`text-[11px] font-bold px-3 py-1 rounded-full transition-all ${(store?.storefront_theme ?? "dark") === "dark" ? "bg-background shadow text-foreground" : "text-muted-foreground"}`}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!store || (store.storefront_theme ?? "dark") === "dark") return;
+                      setSfThemeSaving(true);
+                      try {
+                        const updated = await updateStore(store.id, { storefront_theme: "dark" });
+                        onStoreChange(updated);
+                      } catch { toast({ variant: "destructive", title: "Failed to save theme" }); }
+                      finally { setSfThemeSaving(false); }
+                    }}
+                  >Dark</button>
+                  <button
+                    className={`text-[11px] font-bold px-3 py-1 rounded-full transition-all ${store?.storefront_theme === "light" ? "bg-background shadow text-foreground" : "text-muted-foreground"}`}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!store || store.storefront_theme === "light") return;
+                      setSfThemeSaving(true);
+                      try {
+                        const updated = await updateStore(store.id, { storefront_theme: "light" });
+                        onStoreChange(updated);
+                      } catch { toast({ variant: "destructive", title: "Failed to save theme" }); }
+                      finally { setSfThemeSaving(false); }
+                    }}
+                  >Pink</button>
+                </div>
+              )
           }
         />
       </SettingsSection>
@@ -2745,6 +2777,7 @@ export function DashboardPage() {
             store={store}
             onTabChange={(i) => { setShowSettings(false); setActive(i); }}
             onEditStore={() => { setShowSettings(false); setActive(1); setStoreEditTrigger(t => t + 1); }}
+            onStoreChange={setStore}
           />
         </SheetContent>
       </Sheet>

@@ -353,9 +353,18 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
 
   useEffect(() => {
     const html = document.documentElement;
-    html.classList.add("dark");
-    return () => {};
-  }, []);
+    const theme = store?.storefront_theme ?? "dark";
+    if (theme === "light") {
+      html.classList.remove("dark");
+      html.classList.add("sf-light");
+    } else {
+      html.classList.remove("sf-light");
+      html.classList.add("dark");
+    }
+    return () => {
+      html.classList.remove("dark", "sf-light");
+    };
+  }, [store?.storefront_theme]);
 
   const [store, setStore] = useState<StoreType | null>(null);
   const [products, setProducts] = useState<Product[]>([]);

@@ -118,6 +118,7 @@ export interface Store {
   wa_waba_id?: string;
   wa_connected_at?: number;
   total_withdrawn?: number;
+  storefront_theme?: "dark" | "light";
 }
 
 export const getStore = (slug: string) =>
