@@ -592,7 +592,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     <div className="min-h-[100dvh] flex flex-col bg-background">
 
       {/* ── Store Navbar ─────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-muted/95 backdrop-blur text-foreground border-b px-4 sm:px-6">
+      <header className="sticky top-0 z-50 sf-header bg-muted/95 backdrop-blur text-foreground border-b px-4 sm:px-6">
         <div className="container max-w-5xl mx-auto">
           {/* Main nav row */}
           <div className="h-14 flex items-center">

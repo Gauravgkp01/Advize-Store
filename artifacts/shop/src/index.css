@@ -279,6 +279,15 @@
   --chart-5: 0 70% 60%;
 }
 
+/* Storefront header — solid primary pink in light theme */
+.sf-light .sf-header {
+  background: hsl(334 72% 70%);
+  border-bottom-color: hsl(334 60% 62%);
+  --foreground: 0 0% 100%;
+  --muted-foreground: 0 0% 100%;
+  color: white;
+}
+
 @layer base {
   * {
     @apply border-border;
