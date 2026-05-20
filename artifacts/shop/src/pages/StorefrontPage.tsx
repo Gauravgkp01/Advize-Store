@@ -12,6 +12,7 @@ import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
 import { getStorefront, trackClick, waOptin, updateStore } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStorefrontTheme } from "@/hooks/use-storefront-theme";
 import { populatePdCacheFromStorefront } from "@/lib/product-cache";
 import type { Store as StoreType, Product } from "@/lib/api";
 import type { Review } from "@/lib/api";
@@ -374,20 +375,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const { user } = useAuth();
   const isOwner = !!user && !!store?.owner_id && user.uid === store.owner_id;
 
-  useEffect(() => {
-    const html = document.documentElement;
-    const theme = store?.storefront_theme ?? "dark";
-    if (theme === "light") {
-      html.classList.remove("dark");
-      html.classList.add("sf-light");
-    } else {
-      html.classList.remove("sf-light");
-      html.classList.add("dark");
-    }
-    return () => {
-      html.classList.remove("dark", "sf-light");
-    };
-  }, [store?.storefront_theme]);
+  useStorefrontTheme(store?.storefront_theme);
 
   useEffect(() => {
     if (!slug) return;

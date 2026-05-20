@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getStore, getOrdersByPhone, getLoyaltyCard, redeemLoyalty } from "@/lib/api";
+import { useStorefrontTheme } from "@/hooks/use-storefront-theme";
 import type { Store as StoreType, Order, OrderStatus, LoyaltyCard } from "@/lib/api";
 
 /* ── Status config ──────────────────────────────────────────── */
@@ -233,6 +234,8 @@ export function OrderHistoryPage({ forcedSlug }: { forcedSlug?: string }) {
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
   const [loyaltyRedeeming, setLoyaltyRedeeming] = useState(false);
   const { toast } = useToast();
+
+  useStorefrontTheme(store?.storefront_theme);
 
   useEffect(() => {
     if (!slug) return;

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCart } from "@/contexts/CartContext";
 import type { CartItem } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import { useStorefrontTheme } from "@/hooks/use-storefront-theme";
 import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, getLoyaltyCard, redeemLoyalty, validateCoupon, getCoupons } from "@/lib/api";
 import type { Store as StoreType, LoyaltyCard, CouponValidation, Coupon } from "@/lib/api";
 
@@ -70,12 +71,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [couponApplying, setCouponApplying] = useState(false);
   const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
 
-  /* Always dark on storefront pages */
-  useEffect(() => {
-    const html = document.documentElement;
-    html.classList.add("dark");
-    return () => {};
-  }, []);
+  useStorefrontTheme(store?.storefront_theme);
 
   /* Load store info + available coupons */
   useEffect(() => {

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DescriptionRenderer } from "@/components/DescriptionRenderer";
 import { useToast } from "@/hooks/use-toast";
+import { useStorefrontTheme } from "@/hooks/use-storefront-theme";
 import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, getSubdomainSlug, getProductDetail, getRelatedProducts } from "@/lib/api";
 import type { Product, Review, MixCartData } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
@@ -735,7 +736,7 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
 }
 
 /* ── Buyer (public) view ──────────────────────────────── */
-function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relatedProducts, hasPayment }: {
+function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relatedProducts, hasPayment, storefrontTheme }: {
   product: Product;
   reviews: Review[];
   storeWhatsapp: string;
@@ -743,16 +744,12 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
   storeId: string;
   relatedProducts: Product[];
   hasPayment: boolean;
+  storefrontTheme?: string;
 }) {
   const onSubdomain = !!getSubdomainSlug();
   const storePath = onSubdomain ? "/" : `/store/${storeSlug}`;
   const cartPath  = onSubdomain ? "/cart" : `/store/${storeSlug}/cart`;
-  // Always show the product/store page in dark mode
-  useEffect(() => {
-    const html = document.documentElement;
-    html.classList.add("dark");
-    return () => {};
-  }, []);
+  useStorefrontTheme(storefrontTheme);
 
   // ── Dynamic SEO ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1515,6 +1512,7 @@ export function ProductDetailPage() {
   const [storeWhatsapp, setStoreWhatsapp] = useState("");
   const [storeSlug, setStoreSlug] = useState("");
   const [storeId, setStoreId] = useState("");
+  const [storefrontTheme, setStorefrontTheme] = useState<string | undefined>(undefined);
   const [storeHasPayment, setStoreHasPayment] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null);
@@ -1537,6 +1535,7 @@ export function ProductDetailPage() {
         setStoreWhatsapp(payload.store.whatsapp ?? "");
         setStoreSlug(payload.store.slug ?? "");
         setStoreId(payload.store.id ?? "");
+        setStorefrontTheme(payload.store.storefront_theme);
         setStoreHasPayment(!!(
           payload.store.razorpay_account_id ||
           payload.store.razorpay_key_id ||
@@ -1635,6 +1634,6 @@ export function ProductDetailPage() {
   }
 
   return (
-    <BuyerView product={product} reviews={reviews} storeWhatsapp={storeWhatsapp} storeSlug={storeSlug} storeId={storeId} relatedProducts={relatedProducts} hasPayment={storeHasPayment} />
+    <BuyerView product={product} reviews={reviews} storeWhatsapp={storeWhatsapp} storeSlug={storeSlug} storeId={storeId} relatedProducts={relatedProducts} hasPayment={storeHasPayment} storefrontTheme={storefrontTheme} />
   );
 }
