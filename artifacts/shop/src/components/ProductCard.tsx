@@ -110,7 +110,7 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
 
           {/* Info */}
           <div className="p-3 sm:p-4 flex-1 flex flex-col gap-1.5">
-            <h3 className="text-sm sm:text-base font-semibold text-foreground line-clamp-2 leading-snug">
+            <h3 className="text-sm sm:text-base font-semibold text-foreground truncate leading-snug">
               {product.name}
             </h3>
 
@@ -200,7 +200,7 @@ export function ProductCard({ product, showActions = true, productHref, onDelete
 
         {/* Info */}
         <div className="p-2 sm:p-3 flex-1 flex flex-col gap-0.5 sm:gap-1">
-          <h3 className="text-xs sm:text-sm font-semibold text-foreground line-clamp-2 leading-snug">
+          <h3 className="text-xs sm:text-sm font-semibold text-foreground truncate leading-snug">
             {product.name}
           </h3>
           <p className="text-sm sm:text-base font-extrabold text-primary leading-tight">
