@@ -2613,6 +2613,7 @@ export function DashboardPage() {
   const [active, setActive] = useState(initialTab);
   const prevActive = useRef(initialTab);
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
   const panelScrollTops = useRef<number[]>([0, 0, 0, 0, 0]);
   const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null, null]);
   const [showSettings, setShowSettings] = useState(false);
@@ -2753,15 +2754,20 @@ export function DashboardPage() {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const delta = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(delta) < 50) return;
-    if (delta > 0) setActive(p => Math.min(p + 1, visibleTabs.length > 0 ? TABS.indexOf(visibleTabs[visibleTabs.length - 1]) : TABS.length - 1));
-    else           setActive(p => Math.max(p - 1, 0));
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = touchStartX.current - e.changedTouches[0].clientX;
+    const deltaY = touchStartY.current - e.changedTouches[0].clientY;
     touchStartX.current = null;
+    touchStartY.current = null;
+    // Only switch tabs when the gesture is clearly horizontal (more sideways than vertical)
+    if (Math.abs(deltaX) < 60) return;
+    if (Math.abs(deltaY) > Math.abs(deltaX) * 0.6) return;
+    if (deltaX > 0) setActive(p => Math.min(p + 1, visibleTabs.length > 0 ? TABS.indexOf(visibleTabs[visibleTabs.length - 1]) : TABS.length - 1));
+    else            setActive(p => Math.max(p - 1, 0));
   };
 
   const isLoading = storeLoading && !store;
