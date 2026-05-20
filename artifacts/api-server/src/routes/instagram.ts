@@ -1,4 +1,67 @@
-led rules");
+import { Router } from "express";
+import { db } from "../lib/firebase.js";
+import { verifyToken } from "../middlewares/verifyToken.js";
+import { logger } from "../lib/logger.js";
+import { cacheDeleteByPrefix } from "../lib/cache.js";
+
+const router = Router();
+const igLog = logger.child({ module: "instagram" });
+
+const META_APP_ID: string = process.env.META_APP_ID ?? "";
+const META_APP_SECRET: string = process.env.META_APP_SECRET ?? "";
+const META_VERIFY_TOKEN: string = process.env.META_VERIFY_TOKEN ?? "";
+const IG_GRAPH = "https://graph.instagram.com/v21.0";
+const BASE_URL = process.env.BASE_URL ?? "https://store.advize.in";
+const CALLBACK_URL = `${BASE_URL}/api/instagram/callback`;
+
+// ── Webhook verification ──────────────────────────────────────────────────────
+router.get("/instagram/webhook", (req, res) => {
+  const mode = req.query["hub.mode"] as string;
+  const token = req.query["hub.verify_token"] as string;
+  const challenge = req.query["hub.challenge"] as string;
+  if (mode === "subscribe" && token === META_VERIFY_TOKEN) {
+    igLog.info("webhook: verified");
+    return res.status(200).send(challenge);
+  }
+  return res.sendStatus(403);
+});
+
+// ── Incoming messages ─────────────────────────────────────────────────────────
+router.post("/instagram/webhook", async (req, res) => {
+  res.sendStatus(200); // ack immediately
+
+  const body = req.body as any;
+  if (body.object !== "instagram") return;
+
+  try {
+    for (const entry of body.entry ?? []) {
+      const messaging: any[] = entry.messaging ?? [];
+      for (const event of messaging) {
+        const senderIgsid: string = event.sender?.id ?? "";
+        const text: string = event.message?.text ?? "";
+        if (!text || !senderIgsid || event.message?.is_echo) continue;
+
+        // Find store by ig_user_id
+        const storeSnap = await db
+          .collection("stores")
+          .where("ig_user_id", "==", entry.id)
+          .limit(1)
+          .get();
+        if (storeSnap.empty) continue;
+        const storeDoc = storeSnap.docs[0];
+
+        const accessToken: string = storeDoc.data().ig_access_token ?? "";
+        if (!accessToken) continue;
+
+        // Load enabled keyword rules for this store
+        const rulesSnap = await db
+          .collection("instagram_rules")
+          .where("store_id", "==", storeDoc.id)
+          .where("enabled", "==", true)
+          .get();
+
+        if (rulesSnap.empty) {
+          igLog.info({ storeId: storeDoc.id }, "webhook: store has no enabled rules");
           continue;
         }
 

@@ -10,7 +10,8 @@ import type { LucideIcon } from "lucide-react";
 import { Link } from "wouter";
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
-import { getStorefront, trackClick, waOptin } from "@/lib/api";
+import { getStorefront, trackClick, waOptin, updateStore } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { populatePdCacheFromStorefront } from "@/lib/product-cache";
 import type { Store as StoreType, Product } from "@/lib/api";
 import type { Review } from "@/lib/api";
@@ -351,21 +352,6 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const slug = forcedSlug ?? params.slug ?? "";
   const onSubdomain = !!forcedSlug;
 
-  useEffect(() => {
-    const html = document.documentElement;
-    const theme = store?.storefront_theme ?? "dark";
-    if (theme === "light") {
-      html.classList.remove("dark");
-      html.classList.add("sf-light");
-    } else {
-      html.classList.remove("sf-light");
-      html.classList.add("dark");
-    }
-    return () => {
-      html.classList.remove("dark", "sf-light");
-    };
-  }, [store?.storefront_theme]);
-
   const [store, setStore] = useState<StoreType | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -380,10 +366,28 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
 
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [priceSort, setPriceSort] = useState<PriceSort>("none");
+  const [themeSaving, setThemeSaving] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
   const { totalItems } = useCart();
+  const { user } = useAuth();
+  const isOwner = !!user && !!store?.owner_id && user.uid === store.owner_id;
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const theme = store?.storefront_theme ?? "dark";
+    if (theme === "light") {
+      html.classList.remove("dark");
+      html.classList.add("sf-light");
+    } else {
+      html.classList.remove("sf-light");
+      html.classList.add("dark");
+    }
+    return () => {
+      html.classList.remove("dark", "sf-light");
+    };
+  }, [store?.storefront_theme]);
 
   useEffect(() => {
     if (!slug) return;
@@ -864,6 +868,39 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
       <WaOptinBanner store={store} />
 
       <StoreFooter store={store} />
+
+      {/* ── Owner-only floating theme toggle ─────────────────── */}
+      {isOwner && (
+        <div className="fixed bottom-6 right-4 z-50">
+          <button
+            disabled={themeSaving}
+            onClick={async () => {
+              if (!store) return;
+              setThemeSaving(true);
+              const next = store.storefront_theme === "light" ? "dark" : "light";
+              try {
+                const updated = await updateStore(store.id, { storefront_theme: next });
+                setStore(prev => prev ? { ...prev, storefront_theme: updated.storefront_theme } : prev);
+              } finally {
+                setThemeSaving(false);
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg border font-semibold text-sm transition-all active:scale-95"
+            style={{
+              background: store.storefront_theme === "light" ? "#1a1a1a" : "#fff0f5",
+              color: store.storefront_theme === "light" ? "#fff" : "#1a1a1a",
+              borderColor: store.storefront_theme === "light" ? "#333" : "#f9a8c9",
+            }}
+          >
+            {themeSaving
+              ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              : store.storefront_theme === "light"
+                ? <span>🌙 Switch to Dark</span>
+                : <span>🌸 Switch to Pink</span>
+            }
+          </button>
+        </div>
+      )}
 
     </div>
   );

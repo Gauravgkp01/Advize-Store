@@ -119,6 +119,7 @@ export interface Store {
   wa_connected_at?: number;
   total_withdrawn?: number;
   storefront_theme?: "dark" | "light";
+  owner_id?: string;
 }
 
 export const getStore = (slug: string) =>
