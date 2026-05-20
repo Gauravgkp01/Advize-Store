@@ -2632,9 +2632,15 @@ export function DashboardPage() {
 
   const handleToggleStorefrontTheme = async () => {
     if (!store?.id) return;
-    const next = store.storefront_theme === "dark" ? "light" : "dark";
-    const updated = await updateStore(store.id, { storefront_theme: next });
-    setStore(updated);
+    const current = store.storefront_theme ?? "dark";
+    const next = current === "dark" ? "light" : "dark";
+    try {
+      const updated = await updateStore(store.id, { storefront_theme: next });
+      setStore(updated);
+      toast({ title: `Store theme changed to ${next === "light" ? "Pink" : "Dark"}` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Couldn't update theme", description: e?.message });
+    }
   };
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -2824,8 +2830,8 @@ export function DashboardPage() {
                 {dark ? "Light mode" : "Dark mode"}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleToggleStorefrontTheme} className="gap-2.5">
-                <Palette className="h-4 w-4" style={{ color: store?.storefront_theme === "dark" ? "#94a3b8" : "#E97AAA" }} />
-                Store theme: {store?.storefront_theme === "dark" ? "Dark" : "Pink"}
+                <Palette className="h-4 w-4" style={{ color: (store?.storefront_theme ?? "dark") === "dark" ? "#94a3b8" : "#E97AAA" }} />
+                Store theme: {(store?.storefront_theme ?? "dark") === "dark" ? "Dark" : "Pink"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="gap-2.5 text-destructive focus:text-destructive">
