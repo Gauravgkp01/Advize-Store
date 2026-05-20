@@ -1130,7 +1130,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
                 <div className="flex flex-col gap-5">
                   {variantsJsx}
 
-                  {product.units === 0 && (
+                  {product.units === 0 && product.productType !== "affiliate" && (
                     <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 rounded-xl px-4 py-3 border border-amber-200 dark:border-amber-800">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       <span>This item is currently out of stock. You can still message the seller.</span>
@@ -1370,7 +1370,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
             ))}
 
             {/* Out of stock */}
-            {product.units === 0 && (
+            {product.units === 0 && product.productType !== "affiliate" && (
               <div className="border-t px-4 py-3">
                 <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 rounded-xl px-4 py-3 border border-amber-200 dark:border-amber-800">
                   <AlertCircle className="h-4 w-4 shrink-0" />
