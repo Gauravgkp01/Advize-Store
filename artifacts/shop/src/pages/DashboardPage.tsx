@@ -7,7 +7,7 @@ import {
   Pencil, Phone, MapPin, Tag, Mail, FileText, Download,
   Puzzle, CreditCard, Globe, Truck, Lock, Sparkles, ExternalLink, Bike, Printer, Zap, ChevronDown, MessageCircle, Gift,
   ShoppingCart, IndianRupee, PackageCheck, Clock, AlertCircle,
-  Settings, Bell, Shield, User, ChevronRight, HelpCircle, Trash2,
+  Settings, Bell, Shield, User, ChevronRight, HelpCircle, Trash2, Palette,
   Search, X, SlidersHorizontal,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
@@ -2629,6 +2629,14 @@ export function DashboardPage() {
     await signOut();
     setLocation("/");
   };
+
+  const handleToggleStorefrontTheme = async () => {
+    if (!store?.id) return;
+    const next = store.storefront_theme === "dark" ? "light" : "dark";
+    const updated = await updateStore(store.id, { storefront_theme: next });
+    setStore(updated);
+  };
+
   const [products, setProducts] = useState<Product[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
@@ -2814,6 +2822,10 @@ export function DashboardPage() {
                   ? <Sun className="h-4 w-4 text-amber-400" />
                   : <Moon className="h-4 w-4 text-muted-foreground" />}
                 {dark ? "Light mode" : "Dark mode"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleToggleStorefrontTheme} className="gap-2.5">
+                <Palette className="h-4 w-4" style={{ color: store?.storefront_theme === "dark" ? "#94a3b8" : "#E97AAA" }} />
+                Store theme: {store?.storefront_theme === "dark" ? "Dark" : "Pink"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="gap-2.5 text-destructive focus:text-destructive">
