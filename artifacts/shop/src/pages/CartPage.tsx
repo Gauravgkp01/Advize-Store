@@ -8,7 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCart } from "@/contexts/CartContext";
 import type { CartItem } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
@@ -16,15 +15,6 @@ import { useStorefrontTheme } from "@/hooks/use-storefront-theme";
 import { getStore, createRazorpayOrder, verifyRazorpayPayment, createOrder, createAdvizeOrder, getLoyaltyCard, redeemLoyalty, validateCoupon, getCoupons } from "@/lib/api";
 import type { Store as StoreType, LoyaltyCard, CouponValidation, Coupon } from "@/lib/api";
 
-const INDIAN_STATES = [
-  "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh",
-  "Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka",
-  "Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram",
-  "Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana",
-  "Tripura","Uttar Pradesh","Uttarakhand","West Bengal",
-  "Andaman and Nicobar Islands","Chandigarh","Dadra and Nagar Haveli and Daman and Diu",
-  "Delhi","Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry",
-];
 
 type Screen = "cart" | "checkout" | "success";
 
@@ -614,16 +604,13 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               <Label htmlFor="state">
                 State <span className="text-red-500">*</span>
               </Label>
-              <Select value={buyer.state} onValueChange={v => setBuyer(b => ({ ...b, state: v }))}>
-                <SelectTrigger id="state" className="h-11 rounded-xl">
-                  <SelectValue placeholder="Select your state" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INDIAN_STATES.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="state"
+                placeholder="e.g. Maharashtra"
+                value={buyer.state}
+                onChange={e => setBuyer(b => ({ ...b, state: e.target.value }))}
+                className="h-11 rounded-xl"
+              />
             </div>
           </div>
 
