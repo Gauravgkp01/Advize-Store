@@ -976,7 +976,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
         onClick={handleOrder}
       >
         <MessageCircle className="h-4 w-4" />
-        {hasPayment ? "Buy Now" : "Order on WhatsApp"}
+        Buy on WhatsApp
       </Button>
       {hasPayment && (
         <Button
@@ -1398,7 +1398,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
                   onClick={handleOrder}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  {hasPayment ? "Buy Now" : "Order on WhatsApp"}
+                  Buy on WhatsApp
                 </Button>
                 {hasPayment && (
                   <Button
