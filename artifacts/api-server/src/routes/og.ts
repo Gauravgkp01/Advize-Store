@@ -161,4 +161,46 @@ router.get("/og/product/:id", async (req, res) => {
   }
 });
 
+/* ── Store logo proxy ────────────────────────────────────────────────────
+   Fetches the store logo server-side and re-serves it with clean headers.
+   Bypasses Firebase Storage CORS/token issues for social crawlers.
+   GET /api/og/store/:slug/image
+───────────────────────────────────────────────────────────────────────── */
+router.get("/og/store/:slug/image", async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const storeSnap = await db.collection("stores")
+      .where("slug", "==", slug)
+      .limit(1)
+      .get();
+
+    let logoUrl = "";
+    if (!storeSnap.empty) {
+      logoUrl = storeSnap.docs[0].data()["logo_url"] ?? "";
+    } else {
+      const byId = await db.collection("stores").doc(slug).get();
+      if (byId.exists) logoUrl = byId.data()?.["logo_url"] ?? "";
+    }
+
+    if (!logoUrl) return res.status(404).send("No logo");
+
+    const upstream = await fetch(logoUrl, {
+      headers: { "User-Agent": "Advize-OG-Bot/1.0" },
+    });
+
+    if (!upstream.ok) return res.status(502).send("Could not fetch logo");
+
+    const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=3600, immutable");
+    res.setHeader("Content-Length", buffer.length);
+    return res.send(buffer);
+  } catch (err) {
+    console.error("OG store image proxy error:", err);
+    return res.status(500).send("Error");
+  }
+});
+
 export default router;
