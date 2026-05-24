@@ -120,6 +120,7 @@ export interface Store {
   wa_connected_at?: number;
   total_withdrawn?: number;
   storefront_theme?: "dark" | "light";
+  whatsapp_ordering_enabled?: boolean;
   owner_id?: string;
 }
 

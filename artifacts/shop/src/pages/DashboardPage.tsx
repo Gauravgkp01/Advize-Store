@@ -1853,6 +1853,23 @@ function SettingsPanel({
     try { return localStorage.getItem("notif_order_email") === "true"; } catch { return false; }
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [savingWaOrdering, setSavingWaOrdering] = useState(false);
+
+  const waOrderEnabled = store?.whatsapp_ordering_enabled !== false;
+
+  const handleToggleWaOrdering = async () => {
+    if (!store?.id) return;
+    setSavingWaOrdering(true);
+    try {
+      const updated = await updateStore(store.id, { whatsapp_ordering_enabled: !waOrderEnabled });
+      onStoreChange(updated);
+      toast({ title: waOrderEnabled ? "WhatsApp ordering disabled" : "WhatsApp ordering enabled" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Failed", description: err.message ?? "Please try again." });
+    } finally {
+      setSavingWaOrdering(false);
+    }
+  };
 
   const handleWhatsappNotif = (val: boolean) => {
     setWhatsappNotif(val);
@@ -1927,6 +1944,18 @@ function SettingsPanel({
           label="Plugins & Integrations"
           description="Payments, delivery, print on demand"
           onClick={() => onTabChange(3)}
+        />
+        <SettingsRow
+          icon={<MessageCircle className="h-4 w-4" />}
+          label="Buy on WhatsApp Button"
+          description="Show WhatsApp ordering button on product pages"
+          right={
+            <Switch
+              checked={waOrderEnabled}
+              disabled={savingWaOrdering}
+              onCheckedChange={handleToggleWaOrdering}
+            />
+          }
         />
       </SettingsSection>
 

@@ -536,12 +536,13 @@ function ZoomableImage({ src, alt, imgClassName }: { src: string; alt: string; i
 }
 
 /* ── Mix & Match buyer UI ─────────────────────────────── */
-function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPayment }: {
+function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPayment, waOrderEnabled = true }: {
   product: Product;
   storeWhatsapp: string;
   storeSlug: string;
   storeId: string;
   hasPayment: boolean;
+  waOrderEnabled?: boolean;
 }) {
   const onSubdomain = !!getSubdomainSlug();
   const cartPath = onSubdomain ? "/cart" : `/store/${storeSlug}/cart`;
@@ -708,13 +709,15 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
             {addedToCart ? "Added!" : "Add to Cart"}
           </Button>
         )}
-        <Button
-          className={`${hasPayment ? "flex-1" : "w-full"} h-14 text-base rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent gap-2 font-semibold`}
-          onClick={handleWhatsApp}
-          data-testid="btn-order-whatsapp">
-          <MessageCircle className="h-5 w-5" />
-          {hasPayment ? "WhatsApp" : "Order on WhatsApp"}
-        </Button>
+        {waOrderEnabled && (
+          <Button
+            className={`${hasPayment ? "flex-1" : "w-full"} h-14 text-base rounded-xl shadow-lg bg-green-600 hover:bg-green-700 text-white border-transparent gap-2 font-semibold`}
+            onClick={handleWhatsApp}
+            data-testid="btn-order-whatsapp">
+            <MessageCircle className="h-5 w-5" />
+            {hasPayment ? "WhatsApp" : "Order on WhatsApp"}
+          </Button>
+        )}
       </div>
 
       {/* View Cart pill */}
@@ -736,7 +739,7 @@ function MixMatchBuyerView({ product, storeWhatsapp, storeSlug, storeId, hasPaym
 }
 
 /* ── Buyer (public) view ──────────────────────────────── */
-function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relatedProducts, hasPayment, storefrontTheme }: {
+function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relatedProducts, hasPayment, storefrontTheme, waOrderEnabled = true }: {
   product: Product;
   reviews: Review[];
   storeWhatsapp: string;
@@ -745,6 +748,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
   relatedProducts: Product[];
   hasPayment: boolean;
   storefrontTheme?: string;
+  waOrderEnabled?: boolean;
 }) {
   const onSubdomain = !!getSubdomainSlug();
   const storePath = onSubdomain ? "/" : `/store/${storeSlug}`;
@@ -971,13 +975,15 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
     </div>
   ) : (
     <div className="flex gap-3">
-      <Button
-        className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
-        onClick={handleOrder}
-      >
-        <MessageCircle className="h-4 w-4" />
-        Buy on WhatsApp
-      </Button>
+      {waOrderEnabled && (
+        <Button
+          className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
+          onClick={handleOrder}
+        >
+          <MessageCircle className="h-4 w-4" />
+          Buy on WhatsApp
+        </Button>
+      )}
       {hasPayment && (
         <Button
           className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-orange-500 hover:bg-orange-600 text-white border-transparent"
@@ -1125,6 +1131,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
                   storeSlug={storeSlug}
                   storeId={storeId}
                   hasPayment={hasPayment}
+                  waOrderEnabled={waOrderEnabled}
                 />
               ) : (
                 <div className="flex flex-col gap-5">
@@ -1393,13 +1400,15 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
               </div>
             ) : (
               <div className="border-t px-4 py-4 flex gap-3">
-                <Button
-                  className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
-                  onClick={handleOrder}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Buy on WhatsApp
-                </Button>
+                {waOrderEnabled && (
+                  <Button
+                    className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700 text-white border-transparent"
+                    onClick={handleOrder}
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Buy on WhatsApp
+                  </Button>
+                )}
                 {hasPayment && (
                   <Button
                     className="flex-1 h-12 text-sm rounded-xl font-bold gap-2 bg-orange-500 hover:bg-orange-600 text-white border-transparent"
@@ -1514,6 +1523,7 @@ export function ProductDetailPage() {
   const [storeId, setStoreId] = useState("");
   const [storefrontTheme, setStorefrontTheme] = useState<string | undefined>(undefined);
   const [storeHasPayment, setStoreHasPayment] = useState(false);
+  const [waOrderEnabled, setWaOrderEnabled] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1541,6 +1551,7 @@ export function ProductDetailPage() {
           payload.store.razorpay_key_id ||
           payload.store.advize_payment_enabled
         ));
+        setWaOrderEnabled(payload.store.whatsapp_ordering_enabled !== false);
         setRelatedProducts(payload.relatedProducts);
       }
     }
@@ -1634,6 +1645,6 @@ export function ProductDetailPage() {
   }
 
   return (
-    <BuyerView product={product} reviews={reviews} storeWhatsapp={storeWhatsapp} storeSlug={storeSlug} storeId={storeId} relatedProducts={relatedProducts} hasPayment={storeHasPayment} storefrontTheme={storefrontTheme} />
+    <BuyerView product={product} reviews={reviews} storeWhatsapp={storeWhatsapp} storeSlug={storeSlug} storeId={storeId} relatedProducts={relatedProducts} hasPayment={storeHasPayment} storefrontTheme={storefrontTheme} waOrderEnabled={waOrderEnabled} />
   );
 }
