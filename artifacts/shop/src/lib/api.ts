@@ -103,6 +103,7 @@ export interface Store {
   razorpay_enabled?: boolean;
   razorpay_account_id?: string;
   razorpay_account_status?: string;
+  platform_razorpay_enabled?: boolean;
   advize_payment_enabled?: boolean;
   upi_id?: string;
   delivery_charge?: number;

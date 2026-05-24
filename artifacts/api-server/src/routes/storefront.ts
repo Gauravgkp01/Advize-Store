@@ -9,7 +9,11 @@ const STOREFRONT_TTL = 5 * 60_000; // 5 minutes
 
 function sanitizeStore(id: string, data: FirebaseFirestore.DocumentData) {
   const { razorpay_key_secret: _secret, ig_access_token: _igTok, wa_access_token: _waTok, ...safe } = data;
-  return { id, ...safe };
+  return {
+    id,
+    ...safe,
+    platform_razorpay_enabled: !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET),
+  };
 }
 
 function serializeTs(ts: any): number {

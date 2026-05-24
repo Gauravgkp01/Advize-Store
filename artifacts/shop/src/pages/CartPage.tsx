@@ -112,7 +112,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   }, []);
 
 
-  const hasRazorpay = !!(store?.razorpay_account_id || store?.razorpay_key_id);
+  const hasRazorpay = !!(store?.razorpay_account_id || store?.razorpay_key_id || store?.platform_razorpay_enabled);
   const hasAdvize   = !!(store?.advize_payment_enabled);
   const hasPayment  = hasAdvize || hasRazorpay;
   const deliveryCharge = store?.delivery_charge ?? 0;

@@ -102,14 +102,22 @@ router.post("/payments/razorpay/create-order", async (req, res) => {
     let razorpay: Razorpay;
     let returnKeyId: string;
 
+    const platformKeyId     = process.env.RAZORPAY_KEY_ID;
+    const platformKeySecret = process.env.RAZORPAY_KEY_SECRET;
+
     if (accountId) {
       const rzp = getPartnerInstance();
       if (!rzp) return res.status(500).json({ error: "Platform payment gateway not configured" });
       razorpay = rzp;
       returnKeyId = process.env.RAZORPAY_PARTNER_KEY_ID!;
     } else if (keyId && keySecret) {
+      // Store has its own Razorpay keys
       razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
       returnKeyId = keyId;
+    } else if (platformKeyId && platformKeySecret) {
+      // Fall back to platform-level Razorpay keys
+      razorpay = new Razorpay({ key_id: platformKeyId, key_secret: platformKeySecret });
+      returnKeyId = platformKeyId;
     } else {
       return res.status(400).json({ error: "Payment gateway not configured for this store" });
     }
@@ -151,7 +159,7 @@ router.post("/payments/razorpay/verify", async (req, res) => {
 
     const keySecret: string | undefined = storeData.razorpay_account_id
       ? process.env.RAZORPAY_PARTNER_KEY_SECRET
-      : storeData.razorpay_key_secret;
+      : (storeData.razorpay_key_secret || process.env.RAZORPAY_KEY_SECRET);
 
     if (!keySecret) return res.status(400).json({ error: "Payment gateway not configured" });
 
