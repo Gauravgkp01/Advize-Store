@@ -46,9 +46,104 @@ router.get("/loyalty/card", async (req, res) => {
 });
 
 /**
+ * POST /loyalty/claim-request
+ * Body: { store_id, phone }
+ * Customer-facing: saves a pending claim to Firestore.
+ * No auth required. Returns the store's WhatsApp number so the client
+ * can open a pre-filled WA message to the merchant.
+ */
+router.post("/loyalty/claim-request", async (req, res) => {
+  const { store_id, phone } = req.body as { store_id?: string; phone?: string };
+  if (!store_id || !phone) {
+    return res.status(400).json({ error: "store_id and phone are required" });
+  }
+
+  try {
+    const storeSnap = await db.collection("stores").doc(store_id).get();
+    if (!storeSnap.exists) return res.status(404).json({ error: "Store not found" });
+    const storeData = storeSnap.data()!;
+
+    if (!storeData.loyalty_enabled) {
+      return res.status(400).json({ error: "Loyalty program is not active for this store" });
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    const cardId = `${store_id}_${normalizedPhone}`;
+    const cardSnap = await db.collection("loyalty_cards").doc(cardId).get();
+
+    if (!cardSnap.exists) {
+      return res.status(400).json({ error: "No loyalty card found for this number" });
+    }
+
+    const stampsRequired: number = storeData.loyalty_stamps_required ?? 10;
+    const stamps: number = cardSnap.data()!.stamps ?? 0;
+
+    if (stamps < stampsRequired) {
+      return res.status(400).json({
+        error: `Not enough stamps. You have ${stamps}, need ${stampsRequired}.`,
+      });
+    }
+
+    await db.collection("loyalty_claim_requests")
+      .doc(`${store_id}_${normalizedPhone}`)
+      .set({
+        store_id,
+        phone: normalizedPhone,
+        stamps,
+        reward: storeData.loyalty_reward ?? "",
+        created_at: FieldValue.serverTimestamp(),
+        status: "pending",
+      }, { merge: true });
+
+    return res.json({ success: true, whatsapp: storeData.whatsapp ?? null });
+  } catch (err: any) {
+    console.error("loyalty claim-request error:", err);
+    return res.status(500).json({ error: err.message ?? "Internal error" });
+  }
+});
+
+/**
+ * GET /loyalty/claim-requests?store_id=xxx
+ * Merchant-only: returns pending reward claim requests for the store.
+ */
+router.get("/loyalty/claim-requests", verifyToken, async (req, res) => {
+  const uid = (req as any).uid as string;
+  const { store_id } = req.query as { store_id?: string };
+  if (!store_id) return res.status(400).json({ error: "store_id is required" });
+
+  try {
+    const storeSnap = await db.collection("stores").doc(store_id).get();
+    if (!storeSnap.exists) return res.status(404).json({ error: "Store not found" });
+    const storeData = storeSnap.data()!;
+
+    if (storeData.owner_id && storeData.owner_id !== uid) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const snap = await db.collection("loyalty_claim_requests")
+      .where("store_id", "==", store_id)
+      .where("status", "==", "pending")
+      .orderBy("created_at", "desc")
+      .limit(50)
+      .get();
+
+    const claims = snap.docs.map(d => ({
+      id: d.id,
+      ...d.data(),
+      created_at: d.data().created_at?.toMillis?.() ?? null,
+    }));
+
+    res.setHeader("Cache-Control", "no-store");
+    return res.json(claims);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message ?? "Internal error" });
+  }
+});
+
+/**
  * POST /loyalty/redeem
  * Body: { store_id, phone }
- * Deducts stamps_required stamps and increments redeemed_count.
+ * Merchant-only: deducts stamps_required stamps and marks the claim request as confirmed.
  */
 router.post("/loyalty/redeem", verifyToken, async (req, res) => {
   const uid = (req as any).uid as string;
@@ -66,7 +161,8 @@ router.post("/loyalty/redeem", verifyToken, async (req, res) => {
     }
     const stampsRequired: number = storeData.loyalty_stamps_required ?? 10;
 
-    const cardId = `${store_id}_${normalizePhone(phone)}`;
+    const normalizedPhone = normalizePhone(phone);
+    const cardId = `${store_id}_${normalizedPhone}`;
     const cardRef = db.collection("loyalty_cards").doc(cardId);
 
     await db.runTransaction(async (tx) => {
@@ -82,6 +178,12 @@ router.post("/loyalty/redeem", verifyToken, async (req, res) => {
         updated_at: FieldValue.serverTimestamp(),
       });
     });
+
+    // Mark the claim request as confirmed (best-effort)
+    db.collection("loyalty_claim_requests")
+      .doc(`${store_id}_${normalizedPhone}`)
+      .update({ status: "confirmed" })
+      .catch(() => {});
 
     return res.json({ success: true });
   } catch (err: any) {

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Gift, Tag, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Gift, Tag, Loader2, Plus, Trash2, Bell, CheckCheck, Phone } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/hooks/use-store";
 import {
   updateStore, getCoupons, createCoupon, deleteCoupon, redeemLoyalty,
-  type Coupon,
+  getLoyaltyClaimRequests,
+  type Coupon, type LoyaltyClaimRequest,
 } from "@/lib/api";
 
 export default function LoyaltyPage() {
@@ -27,12 +28,47 @@ export default function LoyaltyPage() {
   const [redeemPhone, setRedeemPhone] = useState("");
   const [redeemLoading, setRedeemLoading] = useState(false);
 
+  /* ── Pending claim requests ───────────────────────────────── */
+  const [claimRequests, setClaimRequests] = useState<LoyaltyClaimRequest[]>([]);
+  const [claimsLoading, setClaimsLoading] = useState(false);
+  const [confirmingPhone, setConfirmingPhone] = useState<string | null>(null);
+
+  const fetchClaimRequests = useCallback(async () => {
+    if (!store?.id || !loyaltyEnabled) return;
+    setClaimsLoading(true);
+    try {
+      const reqs = await getLoyaltyClaimRequests(store.id);
+      setClaimRequests(reqs);
+    } catch {
+      // silently ignore — merchant may not have claims
+    } finally {
+      setClaimsLoading(false);
+    }
+  }, [store?.id, loyaltyEnabled]);
+
   useEffect(() => {
     if (store) {
       setLoyaltyStamps(store.loyalty_stamps_required?.toString() ?? "10");
       setLoyaltyReward(store.loyalty_reward ?? "");
     }
   }, [store?.id]);
+
+  // Fetch pending claims whenever loyalty is enabled
+  useEffect(() => { fetchClaimRequests(); }, [fetchClaimRequests]);
+
+  const handleConfirmClaim = async (phone: string) => {
+    if (!store?.id) return;
+    setConfirmingPhone(phone);
+    try {
+      await redeemLoyalty(store.id, phone);
+      toast({ title: "Reward confirmed!", description: `Stamps deducted for ${phone}. Reward given!` });
+      setClaimRequests(prev => prev.filter(c => c.phone !== phone));
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Could not confirm", description: err.message });
+    } finally {
+      setConfirmingPhone(null);
+    }
+  };
 
   const handleToggleLoyalty = async () => {
     if (!store?.id) return;
@@ -290,6 +326,96 @@ export default function LoyaltyPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Pending Reward Claims ─────────────────────── */}
+          {loyaltyEnabled && (
+            <div className="bg-card border rounded-3xl overflow-hidden shadow-sm">
+              <div className="p-5 sm:p-6">
+                <div className="flex gap-4 items-start">
+                  <div className="bg-orange-50 dark:bg-orange-950/40 p-3 rounded-xl flex-shrink-0 relative">
+                    <Bell className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                    {claimRequests.length > 0 && (
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                        {claimRequests.length}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h2 className="text-base font-semibold text-foreground">Pending Reward Claims</h2>
+                      {claimRequests.length > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
+                          {claimRequests.length} waiting
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                      Customers who tapped "Notify Store" appear here. Confirm to deduct their stamps and hand over the reward.
+                    </p>
+                    <button
+                      onClick={fetchClaimRequests}
+                      disabled={claimsLoading}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors disabled:opacity-60"
+                    >
+                      {claimsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bell className="h-3.5 w-3.5" />}
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+
+                {/* Claims list */}
+                {claimsLoading && (
+                  <div className="mt-4 flex justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+
+                {!claimsLoading && claimRequests.length === 0 && (
+                  <div className="mt-4 bg-muted/30 rounded-2xl px-4 py-4 text-center">
+                    <p className="text-sm text-muted-foreground">No pending claims right now.</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">When a customer notifies you, they'll appear here.</p>
+                  </div>
+                )}
+
+                {!claimsLoading && claimRequests.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {claimRequests.map(req => (
+                      <div
+                        key={req.id}
+                        className="flex items-center gap-3 bg-orange-50/60 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/40 rounded-2xl px-4 py-3"
+                      >
+                        <div className="bg-orange-100 dark:bg-orange-900/40 p-2 rounded-xl flex-shrink-0">
+                          <Phone className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-foreground">+91 {req.phone}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {req.stamps} stamps · Reward: <span className="font-medium text-foreground">{req.reward || "—"}</span>
+                          </p>
+                          {req.created_at && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {new Date(req.created_at).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleConfirmClaim(req.phone)}
+                          disabled={confirmingPhone === req.phone}
+                          className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white border-transparent shrink-0 h-9 px-4 gap-1.5"
+                        >
+                          {confirmingPhone === req.phone
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <><CheckCheck className="h-3.5 w-3.5" /> Confirm</>
+                          }
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

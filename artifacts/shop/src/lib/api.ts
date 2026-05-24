@@ -831,11 +831,34 @@ export type LoyaltyCard = {
   redeemed_count?: number;
 };
 
+export type LoyaltyClaimRequest = {
+  id: string;
+  phone: string;
+  stamps: number;
+  reward: string;
+  created_at: number | null;
+  status: string;
+};
+
 export const getLoyaltyCard = (storeId: string, phone: string) =>
   request<LoyaltyCard>(
     `/loyalty/card?store_id=${encodeURIComponent(storeId)}&phone=${encodeURIComponent(phone)}`
   );
 
+/** Customer-facing: saves a pending claim request. Returns the store's WhatsApp number. */
+export const submitLoyaltyClaimRequest = (storeId: string, phone: string) =>
+  request<{ success: boolean; whatsapp: string | null }>("/loyalty/claim-request", {
+    method: "POST",
+    body: JSON.stringify({ store_id: storeId, phone }),
+  });
+
+/** Merchant-facing: fetches pending reward claim requests for this store. */
+export const getLoyaltyClaimRequests = (storeId: string) =>
+  request<LoyaltyClaimRequest[]>(
+    `/loyalty/claim-requests?store_id=${encodeURIComponent(storeId)}`
+  );
+
+/** Merchant-facing: deducts stamps to confirm a customer's reward. */
 export const redeemLoyalty = (storeId: string, phone: string) =>
   request<{ success: boolean }>("/loyalty/redeem", {
     method: "POST",

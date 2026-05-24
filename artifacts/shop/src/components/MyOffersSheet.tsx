@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
-import { Gift, Star, Loader2, Phone, Store, Search } from "lucide-react";
+import { Gift, Star, Loader2, Phone, Store, Search, CheckCircle2 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
-import { getStore, getLoyaltyCard, redeemLoyalty } from "@/lib/api";
+import { getStore, getLoyaltyCard, submitLoyaltyClaimRequest } from "@/lib/api";
 import type { Store as StoreType, LoyaltyCard } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,24 +28,19 @@ function useVisitorStore() {
   // Show button on store pages or on product pages when cart has a store
   const isVisitorPage = !!urlSlug || !!cartStoreId;
 
-  // Fetch store when URL has a slug we don't already have
+  // Always fetch the full store when there's a URL slug so we have whatsapp etc.
   useEffect(() => {
     if (!urlSlug) return;
-    if (urlSlug === cartSlug && cartStoreId) return; // cart already has it
-    if (fetchedStore?.slug === urlSlug) return;      // already fetched
+    if (fetchedStore?.slug === urlSlug) return; // already fetched
     getStore(urlSlug).then(setFetchedStore).catch(() => {});
-  }, [urlSlug, cartSlug, cartStoreId]);
+  }, [urlSlug]);
 
-  // Resolve storeId: cart fast-path → fetched store → null
+  // Resolve storeId: fetched store → cart fast-path → null
   const storeId: string | null = urlSlug
-    ? (urlSlug === cartSlug && cartStoreId
-        ? cartStoreId
-        : fetchedStore?.slug === urlSlug ? fetchedStore.id : null)
+    ? (fetchedStore?.slug === urlSlug ? fetchedStore.id : cartStoreId)
     : cartStoreId;
 
-  const store: StoreType | null = fetchedStore ?? null;
-
-  return { storeId, store, isVisitorPage };
+  return { storeId, store: fetchedStore, isVisitorPage };
 }
 
 /* ── Main component ─────────────────────────────────────────────────────── */
@@ -58,13 +53,22 @@ export function MyOffersSheet() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
-  const [redeeming, setRedeeming] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+  const [notified, setNotified] = useState(false);
 
   const autoSearchedRef = useRef(false);
 
+  // Reset notified state when sheet closes or phone changes
+  useEffect(() => {
+    if (!open) {
+      autoSearchedRef.current = false;
+      setNotified(false);
+    }
+  }, [open]);
+
   // Auto-search when sheet opens, or when storeId resolves after opening
   useEffect(() => {
-    if (!open) { autoSearchedRef.current = false; return; }
+    if (!open) return;
     if (!storeId) return;
     if (autoSearchedRef.current) return;
     const saved = localStorage.getItem(PHONE_KEY) ?? "";
@@ -80,6 +84,7 @@ export function MyOffersSheet() {
     localStorage.setItem(PHONE_KEY, (phoneOverride ?? phone).trim());
     setLoading(true);
     setSearched(true);
+    setNotified(false);
     try {
       const card = await getLoyaltyCard(resolvedStoreId, raw);
       setLoyaltyCard(card);
@@ -96,19 +101,32 @@ export function MyOffersSheet() {
     doSearch(storeId);
   };
 
-  const handleRedeem = async () => {
+  /** Customer clicks "Notify Store" — saves a claim request + opens WA to merchant */
+  const handleNotifyStore = async () => {
     if (!storeId) return;
     const raw = phone.trim().replace(/\D/g, "").slice(-10);
-    setRedeeming(true);
+    setNotifying(true);
     try {
-      await redeemLoyalty(storeId, raw);
-      toast({ title: "🎁 Reward redeemed!", description: "Show this to the store to claim your reward." });
-      const updated = await getLoyaltyCard(storeId, raw);
-      setLoyaltyCard(updated);
-    } catch {
-      toast({ title: "Could not redeem", description: "Please try again.", variant: "destructive" });
+      const result = await submitLoyaltyClaimRequest(storeId, raw);
+      setNotified(true);
+      toast({ title: "Store notified!", description: "Show this screen to the store owner to claim your reward." });
+
+      // Open WhatsApp to the merchant's number with a pre-filled message
+      if (result.whatsapp) {
+        const waNumber = result.whatsapp.replace(/\D/g, "");
+        const msg = encodeURIComponent(
+          `Hi! I'd like to claim my loyalty reward. My phone number is +91 ${raw}. 🎁`
+        );
+        window.open(`https://wa.me/${waNumber}?text=${msg}`, "_blank");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Could not notify store",
+        description: err?.message ?? "Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      setRedeeming(false);
+      setNotifying(false);
     }
   };
 
@@ -161,6 +179,7 @@ export function MyOffersSheet() {
                     setPhone(e.target.value);
                     setSearched(false);
                     setLoyaltyCard(null);
+                    setNotified(false);
                     autoSearchedRef.current = false;
                   }}
                   onKeyDown={e => e.key === "Enter" && handleSearchClick()}
@@ -208,7 +227,7 @@ export function MyOffersSheet() {
                     <span className="text-2xl">🎉</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-amber-900 font-bold text-sm leading-tight">Your reward is ready!</p>
-                      <p className="text-amber-800 text-xs mt-0.5 truncate">Tap below to claim: <strong>{loyaltyCard.reward}</strong></p>
+                      <p className="text-amber-800 text-xs mt-0.5 truncate">Tap below to notify the store: <strong>{loyaltyCard.reward}</strong></p>
                     </div>
                     <span className="text-2xl">🎁</span>
                   </div>
@@ -324,14 +343,36 @@ export function MyOffersSheet() {
                   </div>
                 </div>
 
-                {/* Reward notice — shown when stamp card is complete */}
+                {/* ── Claim action ─────────────────────────────────────── */}
                 {canRedeem && (
-                  <div className="flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-3">
-                    <Gift className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
-                      🎉 Reward unlocked! Show this screen to the store owner — they will confirm your reward.
-                    </p>
-                  </div>
+                  notified ? (
+                    <div className="flex items-center gap-3 rounded-2xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 px-4 py-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-green-800 dark:text-green-300">Store has been notified!</p>
+                        <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
+                          Show this screen to the store owner — they'll confirm and hand you your reward.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Button
+                        onClick={handleNotifyStore}
+                        disabled={notifying}
+                        className="w-full h-12 rounded-2xl text-sm font-bold gap-2"
+                        style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)", color: "#451a03" }}
+                      >
+                        {notifying
+                          ? <><Loader2 className="h-4 w-4 animate-spin" /> Notifying store…</>
+                          : <><Gift className="h-4 w-4" /> Notify Store & Claim Reward</>
+                        }
+                      </Button>
+                      <p className="text-center text-[11px] text-muted-foreground">
+                        This will alert the store owner on WhatsApp that your reward is ready.
+                      </p>
+                    </div>
+                  )
                 )}
               </div>
             )}
