@@ -630,7 +630,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           {/* Pay button */}
           <Button
             className="w-full h-12 rounded-2xl text-base font-bold gap-2 shadow-md"
-            onClick={hasAdvize ? handleAdvizeCheckout : handleRazorpayCheckout}
+            onClick={hasRazorpay ? handleRazorpayCheckout : handleAdvizeCheckout}
             disabled={paymentLoading}
           >
             {paymentLoading
