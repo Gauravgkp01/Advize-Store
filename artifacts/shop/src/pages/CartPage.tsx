@@ -54,6 +54,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [buyer, setBuyer] = useState<BuyerInfo>({
     name: "", phone: "", addressLine: "", city: "", state: "", pincode: "",
   });
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
   const [loyaltyRedeeming, setLoyaltyRedeeming] = useState(false);
   const [couponCode, setCouponCode] = useState("");
@@ -91,20 +92,26 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     } finally { setLoyaltyRedeeming(false); }
   };
 
-  /* Inject Razorpay script once */
+  /* Inject Razorpay script once and track when it's ready */
   useEffect(() => {
-    if (document.getElementById("rzp-script")) return;
+    if ((window as any).Razorpay) { setRazorpayLoaded(true); return; }
+    const existing = document.getElementById("rzp-script");
+    if (existing) {
+      existing.addEventListener("load", () => setRazorpayLoaded(true));
+      return;
+    }
     const s = document.createElement("script");
     s.id = "rzp-script";
     s.src = "https://checkout.razorpay.com/v1/checkout.js";
     s.async = true;
+    s.onload = () => setRazorpayLoaded(true);
+    s.onerror = () => console.error("Razorpay script failed to load");
     document.body.appendChild(s);
   }, []);
 
 
-  const hasRazorpay = !!(store?.razorpay_account_id || store?.razorpay_key_id || store?.platform_razorpay_enabled);
   const hasAdvize   = !!(store?.advize_payment_enabled);
-  const hasPayment  = hasAdvize || hasRazorpay;
+  const hasPayment  = true; // Platform Razorpay is always available
   const deliveryCharge = store?.delivery_charge ?? 0;
   const couponDiscount = couponData?.valid ? (couponData.discount_rupees ?? 0) : 0;
   const grandTotal = Math.floor(Math.max(0, totalPrice + deliveryCharge - couponDiscount));
@@ -203,8 +210,8 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
       );
 
       const Razorpay = (window as any).Razorpay;
-      if (!Razorpay) {
-        toast({ variant: "destructive", title: "Payment not available", description: "Please refresh and try again." });
+      if (!Razorpay || !razorpayLoaded) {
+        toast({ variant: "destructive", title: "Payment gateway is still loading", description: "Please wait a moment and try again." });
         setPaymentLoading(false);
         return;
       }
@@ -614,17 +621,21 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
             </div>
           </div>
 
-          {/* Pay button */}
+          {/* Pay button — always Razorpay, no silent fallback */}
           <Button
             className="w-full h-12 rounded-2xl text-base font-bold gap-2 shadow-md"
-            onClick={hasRazorpay ? handleRazorpayCheckout : handleAdvizeCheckout}
-            disabled={paymentLoading}
+            onClick={handleRazorpayCheckout}
+            disabled={paymentLoading || !razorpayLoaded}
           >
             {paymentLoading
               ? <Loader2 className="h-5 w-5 animate-spin" />
               : <CreditCard className="h-5 w-5" />
             }
-            {paymentLoading ? "Redirecting to payment..." : `Pay ₹${grandTotal.toLocaleString("en-IN")} Securely`}
+            {paymentLoading
+              ? "Opening payment..."
+              : !razorpayLoaded
+              ? "Loading payment gateway..."
+              : `Pay ₹${grandTotal.toLocaleString("en-IN")} Securely`}
           </Button>
 
           <p className="text-center text-[11px] text-muted-foreground">
