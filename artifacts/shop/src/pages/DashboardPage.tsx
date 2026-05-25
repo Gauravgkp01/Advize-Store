@@ -505,14 +505,9 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
                 </span>
               )}
             </div>
-            {store?.whatsapp && (
+            {(store?.contact_phone || store?.whatsapp) && (
               <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
-                <Phone className="h-3 w-3" />{store.whatsapp}
-              </p>
-            )}
-            {store?.contact_phone && (
-              <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                <Phone className="h-3 w-3" />{store.contact_phone}
+                <Phone className="h-3 w-3" />{store.contact_phone || store.whatsapp}
               </p>
             )}
           </div>
