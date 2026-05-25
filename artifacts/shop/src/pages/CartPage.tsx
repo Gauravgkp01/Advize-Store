@@ -740,18 +740,20 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 <CreditCard className="h-5 w-5" />
                 Proceed to Checkout
               </Button>
-              <Button
-                variant="outline"
-                className="w-full h-11 rounded-2xl text-sm font-semibold gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10"
-                onClick={() => handleWhatsAppOrder()}
-                disabled={!store?.whatsapp}
-              >
-                <MessageCircle className="h-4 w-4" />
-                Order via WhatsApp instead
-              </Button>
+              {store?.whatsapp_ordering_enabled !== false && (
+                <Button
+                  variant="outline"
+                  className="w-full h-11 rounded-2xl text-sm font-semibold gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10"
+                  onClick={() => handleWhatsAppOrder()}
+                  disabled={!store?.whatsapp}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Order via WhatsApp instead
+                </Button>
+              )}
             </>
-          ) : (
-            /* No payment: WhatsApp only */
+          ) : store?.whatsapp_ordering_enabled !== false ? (
+            /* No payment, WA enabled: WhatsApp only */
             <Button
               className="w-full h-12 rounded-2xl bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold text-base gap-2 shadow-md"
               onClick={() => handleWhatsAppOrder()}
@@ -760,7 +762,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               <MessageCircle className="h-5 w-5 fill-white" />
               Order via WhatsApp
             </Button>
-          )}
+          ) : null}
 
           <button
             className="w-full text-xs text-muted-foreground/50 text-center py-1 hover:text-red-400 transition-colors"
