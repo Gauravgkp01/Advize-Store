@@ -1788,10 +1788,11 @@ function SettingsRow({
   danger?: boolean;
 }) {
   return (
-    <button
-      type="button"
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
-      disabled={!onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
       className={`w-full flex items-center gap-3.5 px-4 py-3.5 transition-colors text-left
         ${onClick ? "hover:bg-muted/60 active:bg-muted cursor-pointer" : "cursor-default"}
         ${danger ? "text-destructive" : ""}`}
@@ -1812,7 +1813,7 @@ function SettingsRow({
       ) : onClick ? (
         <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
       ) : null}
-    </button>
+    </div>
   );
 }
 
