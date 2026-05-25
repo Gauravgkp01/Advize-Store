@@ -226,7 +226,7 @@ function TrendingCard({
             </div>
           )}
         </div>
-        <div className="p-2 space-y-0.5">
+        <div className="p-2 flex flex-col justify-between" style={{ height: "64px" }}>
           <p className="text-xs font-semibold text-foreground line-clamp-2 leading-snug">{product.name}</p>
           {(() => {
             const isMix = product.productType === "mix_match";
@@ -801,7 +801,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6 mb-10">
               {filteredProducts.map((product, idx) => (
-                <div key={product.id} onClick={() => handleProductClick(product)}>
+                <div key={product.id} onClick={() => handleProductClick(product)} className="h-full">
                   <ProductCard
                     product={product}
                     showActions={false}
