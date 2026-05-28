@@ -387,10 +387,13 @@ const convertToJpeg = (file: File, quality = 0.88): Promise<File> =>
   });
 
 export const uploadImage = async (file: File): Promise<string> => {
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error("Image is too large. Please choose an image under 15 MB.");
+  }
   const jpeg = await convertToJpeg(file);
   const formData = new FormData();
   formData.append("image", jpeg);
-  const res = await fetch("/api/upload", { method: "POST", body: formData });
+  const res = await fetch(`${BASE}/upload`, { method: "POST", body: formData });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error ?? "Image upload failed");

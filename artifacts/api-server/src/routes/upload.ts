@@ -11,6 +11,7 @@ router.post("/upload", (req: Request, res: Response, next: NextFunction) => {
       if (err.code === "LIMIT_FILE_SIZE") {
         return res.status(413).json({ error: "Image is too large. Please use an image under 15 MB." });
       }
+      console.error("[upload] multer error:", err);
       return res.status(400).json({ error: err.message ?? "Upload error" });
     }
     next();
@@ -33,6 +34,7 @@ router.post("/upload", (req: Request, res: Response, next: NextFunction) => {
     const url = `https://storage.googleapis.com/${bucket.name}/${filename}`;
     return res.status(201).json({ url });
   } catch (err: any) {
+    console.error("[upload] Firebase Storage error:", err?.message ?? err);
     return res.status(500).json({ error: err.message ?? "Upload failed" });
   }
 });
