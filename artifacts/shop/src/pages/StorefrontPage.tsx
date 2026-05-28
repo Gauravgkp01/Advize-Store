@@ -735,7 +735,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
       <main className="flex-1 container max-w-6xl mx-auto px-0 sm:px-6 pt-4 pb-10">
 
         {/* ── Store Hero: Banner · Offers · About ───────────────── */}
-        {store && ((store.banner_images && store.banner_images.length > 0) || store.about || activeCoupons.length > 0) && (
+        {store && ((store.banner_images && store.banner_images.length > 0) || activeCoupons.length > 0 || (avgRating && reviews.length > 0)) && (
           <section className="mb-6" aria-label={`About ${store.name}`}>
 
             {/* Full-width banner carousel */}
@@ -773,64 +773,17 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               </div>
             )}
 
-            {/* About text + mini reviews */}
-            {store.about && (
-              <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-sm mx-2.5 sm:mx-0">
-                <div className="flex items-center gap-3 mb-4">
-                  {store.logo_url ? (
-                    <img
-                      src={store.logo_url}
-                      alt={store.name}
-                      className="w-10 h-10 rounded-xl object-cover shrink-0 border"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Store className="h-5 w-5 text-primary" />
-                    </div>
-                  )}
-                  <div>
-                    <h2 className="text-base font-bold text-foreground leading-tight">
-                      About {store.name}
-                    </h2>
-                    {store.location && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-3 w-3" />
-                        {store.location}
-                      </p>
-                    )}
-                  </div>
-                  {avgRating && (
-                    <div className="ml-auto flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-full px-2.5 py-1 shrink-0">
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                      <span className="text-xs font-bold text-amber-700 dark:text-amber-400">{avgRating}</span>
-                      <span className="text-[11px] text-muted-foreground">({reviews.length})</span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {store.about}
-                </p>
-                {reviews.length > 0 && (
-                  <div className="mt-5 pt-4 border-t">
-                    <div className="flex items-center gap-2 mb-3">
-                      <MessageSquare className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-bold text-foreground">Customer Reviews</span>
-                    </div>
-                    <div className="space-y-3">
-                      {reviews.slice(0, 3).map(review => (
-                        <ReviewCard key={review.id} review={review} />
-                      ))}
-                    </div>
-                    {reviews.length > 3 && (
-                      <button
-                        onClick={() => setReviewsOpen(true)}
-                        className="mt-3 text-xs text-primary font-medium hover:underline"
-                      >
-                        See all {reviews.length} reviews ↓
-                      </button>
-                    )}
-                  </div>
-                )}
+            {/* Clickable rating pill */}
+            {avgRating && reviews.length > 0 && (
+              <div className="px-2.5 sm:px-0">
+                <button
+                  onClick={() => setReviewsOpen(true)}
+                  className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-full px-3 py-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors active:scale-95"
+                >
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  <span className="text-sm font-bold text-amber-700 dark:text-amber-400">{avgRating}</span>
+                  <span className="text-xs text-muted-foreground">({reviews.length} reviews)</span>
+                </button>
               </div>
             )}
           </section>
