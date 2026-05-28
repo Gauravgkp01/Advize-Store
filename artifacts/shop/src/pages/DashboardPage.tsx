@@ -385,6 +385,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
   const [editContactPhone, setEditContactPhone] = useState("");
   const [editTerms, setEditTerms] = useState("");
   const [editDeliveryCharge, setEditDeliveryCharge] = useState("");
+  const [editAbout, setEditAbout] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -399,6 +400,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
     setEditContactPhone(store?.contact_phone ?? "");
     setEditTerms(store?.terms_and_conditions ?? "");
     setEditDeliveryCharge(store?.delivery_charge != null ? String(store.delivery_charge) : "");
+    setEditAbout(store?.about ?? "");
     setShowSecret(false);
     setEditing(true);
   };
@@ -421,6 +423,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
         email: editEmail.trim(),
         contact_phone: editContactPhone.trim(),
         terms_and_conditions: editTerms.trim(),
+        about: editAbout.trim(),
         delivery_charge: (!isNaN(deliveryChargeParsed) && deliveryChargeParsed >= 0)
           ? deliveryChargeParsed
           : 0,
@@ -578,6 +581,27 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
               />
             </div>
             <p className="text-[11px] text-muted-foreground">Set to 0 for free delivery. Shown to customers at checkout.</p>
+          </div>
+
+          {/* ── About Your Store ── */}
+          <div className="pt-2 border-t">
+            <div className="flex items-center gap-2 mb-3">
+              <Globe className="h-4 w-4 text-emerald-500" />
+              <p className="text-sm font-semibold">About Your Store</p>
+              <span className="ml-auto text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 px-2 py-0.5 rounded-full">SEO</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Shown prominently on your storefront. A good description helps customers understand what you sell and improves search engine visibility.
+            </p>
+            <textarea
+              value={editAbout}
+              onChange={e => setEditAbout(e.target.value)}
+              placeholder="e.g. Welcome to Priya's Boutique! We offer handcrafted sarees and ethnic wear sourced directly from weavers in Varanasi. Every piece is unique, made with love and tradition..."
+              rows={5}
+              maxLength={2000}
+              className="w-full rounded-xl border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1 text-right">{editAbout.length}/2000</p>
           </div>
 
           {/* ── Contact & Legal section ── */}

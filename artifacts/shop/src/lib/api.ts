@@ -110,6 +110,7 @@ export interface Store {
   ig_user_id?: string;
   ig_username?: string;
   description?: string;
+  about?: string;
   loyalty_enabled?: boolean;
   loyalty_stamps_required?: number;
   loyalty_reward?: string;

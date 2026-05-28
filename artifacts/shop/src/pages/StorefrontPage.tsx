@@ -678,6 +678,41 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
 
       <main className="flex-1 container max-w-6xl mx-auto px-0 sm:px-6 pt-4 pb-10">
 
+        {/* ── About This Store ──────────────────────────────────── */}
+        {store?.about && (
+          <section className="mb-8 px-2.5 sm:px-0" aria-label={`About ${store.name}`}>
+            <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                {store.logo_url ? (
+                  <img
+                    src={store.logo_url}
+                    alt={store.name}
+                    className="w-10 h-10 rounded-xl object-cover shrink-0 border"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Store className="h-5 w-5 text-primary" />
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-base font-bold text-foreground leading-tight">
+                    About {store.name}
+                  </h2>
+                  {store.location && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <MapPin className="h-3 w-3" />
+                      {store.location}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {store.about}
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* ── Trending Products ─────────────────────────────────── */}
         {showTrending && (
           <div className="mb-8">
