@@ -25,6 +25,7 @@ interface BuyerInfo {
   city: string;
   state: string;
   pincode: string;
+  instagram?: string;
 }
 
 function itemPrice(item: CartItem) {
@@ -52,7 +53,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [screen, setScreen] = useState<Screen>("cart");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [buyer, setBuyer] = useState<BuyerInfo>({
-    name: "", phone: "", addressLine: "", city: "", state: "", pincode: "",
+    name: "", phone: "", addressLine: "", city: "", state: "", pincode: "", instagram: "",
   });
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
@@ -565,7 +566,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               </Label>
               <Input
                 id="address-line"
-                placeholder="e.g. Flat 4B, Rose Apartments, MG Road"
+                placeholder=""
                 value={buyer.addressLine}
                 onChange={e => setBuyer(b => ({ ...b, addressLine: e.target.value }))}
                 className="h-11 rounded-xl"
@@ -580,7 +581,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 </Label>
                 <Input
                   id="city"
-                  placeholder="e.g. Mumbai"
+                  placeholder=""
                   value={buyer.city}
                   onChange={e => setBuyer(b => ({ ...b, city: e.target.value }))}
                   className="h-11 rounded-xl"
@@ -613,11 +614,30 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               </Label>
               <Input
                 id="state"
-                placeholder="e.g. Maharashtra"
+                placeholder=""
                 value={buyer.state}
                 onChange={e => setBuyer(b => ({ ...b, state: e.target.value }))}
                 className="h-11 rounded-xl"
               />
+            </div>
+
+            {/* Instagram username (optional) */}
+            <div className="space-y-1.5">
+              <Label htmlFor="instagram">
+                Instagram Username <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">@</span>
+                <Input
+                  id="instagram"
+                  placeholder=""
+                  value={buyer.instagram ?? ""}
+                  onChange={e => setBuyer(b => ({ ...b, instagram: e.target.value.replace(/^@/, "") }))}
+                  className="h-11 rounded-xl pl-7"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                />
+              </div>
             </div>
           </div>
 
