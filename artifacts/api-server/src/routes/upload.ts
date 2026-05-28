@@ -1,11 +1,21 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import multer from "multer";
 import { bucket } from "../lib/firebase.js";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
 
-router.post("/upload", upload.single("image"), async (req: Request, res: Response) => {
+router.post("/upload", (req: Request, res: Response, next: NextFunction) => {
+  upload.single("image")(req, res, (err: any) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ error: "Image is too large. Please use an image under 15 MB." });
+      }
+      return res.status(400).json({ error: err.message ?? "Upload error" });
+    }
+    next();
+  });
+}, async (req: Request, res: Response) => {
   const file = req.file;
   if (!file) return res.status(400).json({ error: "No image file provided" });
 
