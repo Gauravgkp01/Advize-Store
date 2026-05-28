@@ -3,7 +3,7 @@ import { useParams, useSearch, Link } from "wouter";
 import {
   ArrowLeft, ShoppingCart, Trash2, Plus, Minus,
   MessageCircle, Store, CreditCard, MapPin,
-  User, Phone, CheckCircle2, Loader2, Truck, Gift, Tag, X as XIcon,
+  User, Phone, Mail, CheckCircle2, Loader2, Truck, Gift, Tag, X as XIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ type Screen = "cart" | "checkout" | "success";
 interface BuyerInfo {
   name: string;
   phone: string;
+  email?: string;
   addressLine: string;
   city: string;
   state: string;
@@ -53,7 +54,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [screen, setScreen] = useState<Screen>("cart");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [buyer, setBuyer] = useState<BuyerInfo>({
-    name: "", phone: "", addressLine: "", city: "", state: "", pincode: "", instagram: "",
+    name: "", phone: "", email: "", addressLine: "", city: "", state: "", pincode: "", instagram: "",
   });
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
@@ -547,6 +548,24 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                   className="h-11 rounded-xl pl-12"
                   inputMode="numeric"
                   autoComplete="tel"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="buyer-email">
+                Email <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="buyer-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={buyer.email ?? ""}
+                  onChange={e => setBuyer(b => ({ ...b, email: e.target.value }))}
+                  className="h-11 rounded-xl pl-9"
+                  autoComplete="email"
+                  inputMode="email"
                 />
               </div>
             </div>
