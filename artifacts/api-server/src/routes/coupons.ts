@@ -143,4 +143,27 @@ router.post("/coupons/validate", async (req, res) => {
   }
 });
 
+/** GET /coupons/public/:storeId — active coupons shown on public storefront (no auth) */
+router.get("/coupons/public/:storeId", async (req, res) => {
+  const { storeId } = req.params;
+  try {
+    const snap = await db.collection("coupon_codes")
+      .where("store_id", "==", storeId)
+      .where("active", "==", true)
+      .get();
+    const coupons = snap.docs.map(d => {
+      const data = d.data();
+      return {
+        code: data.code as string,
+        type: data.type as "percent" | "fixed",
+        value: data.value as number,
+        description: (data.description as string) ?? "",
+      };
+    });
+    return res.json(coupons);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message ?? "Internal error" });
+  }
+});
+
 export default router;

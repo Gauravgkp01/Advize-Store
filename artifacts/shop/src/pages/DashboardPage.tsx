@@ -386,6 +386,8 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
   const [editTerms, setEditTerms] = useState("");
   const [editDeliveryCharge, setEditDeliveryCharge] = useState("");
   const [editAbout, setEditAbout] = useState("");
+  const [bannerImages, setBannerImages] = useState<string[]>([]);
+  const [bannerUploading, setBannerUploading] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -401,6 +403,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
     setEditTerms(store?.terms_and_conditions ?? "");
     setEditDeliveryCharge(store?.delivery_charge != null ? String(store.delivery_charge) : "");
     setEditAbout(store?.about ?? "");
+    setBannerImages(store?.banner_images ?? []);
     setShowSecret(false);
     setEditing(true);
   };
@@ -424,6 +427,7 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
         contact_phone: editContactPhone.trim(),
         terms_and_conditions: editTerms.trim(),
         about: editAbout.trim(),
+        banner_images: bannerImages,
         delivery_charge: (!isNaN(deliveryChargeParsed) && deliveryChargeParsed >= 0)
           ? deliveryChargeParsed
           : 0,
@@ -602,6 +606,60 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
               className="w-full rounded-xl border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
             />
             <p className="text-[11px] text-muted-foreground mt-1 text-right">{editAbout.length}/2000</p>
+          </div>
+
+          {/* ── Store Banner Images ── */}
+          <div className="pt-2 border-t">
+            <div className="flex items-center gap-2 mb-2">
+              <Camera className="h-4 w-4 text-blue-500" />
+              <p className="text-sm font-semibold">Store Banner Images</p>
+              <span className="ml-auto text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 px-2 py-0.5 rounded-full">{bannerImages.length}/5</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Full-width promotional images shown as a swipeable carousel on your storefront. Landscape images (2:1 ratio) look best.
+            </p>
+            {bannerImages.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {bannerImages.map((url, i) => (
+                  <div key={i} className="relative rounded-xl overflow-hidden border bg-muted aspect-video">
+                    <img src={url} alt={`Banner ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setBannerImages(prev => prev.filter((_, j) => j !== i))}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {bannerImages.length < 5 && (
+              <label className={`flex items-center gap-2 w-fit cursor-pointer border rounded-xl px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 transition-colors ${bannerUploading ? "opacity-60 pointer-events-none" : ""}`}>
+                {bannerUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                {bannerUploading ? "Uploading..." : "Add banner image"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={bannerUploading}
+                  onChange={async e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setBannerUploading(true);
+                    try {
+                      const url = await uploadImage(file);
+                      setBannerImages(prev => [...prev, url]);
+                    } catch {
+                      toast({ variant: "destructive", title: "Failed to upload image" });
+                    } finally {
+                      setBannerUploading(false);
+                      e.target.value = "";
+                    }
+                  }}
+                />
+              </label>
+            )}
           </div>
 
           {/* ── Contact & Legal section ── */}

@@ -4,17 +4,17 @@ import {
   Store, Search, Star, MessageSquare, ArrowUpDown, TrendingUp, MapPin, ShoppingCart, Mail, Phone, FileText, ChevronDown, ChevronUp,
   Shirt, Footprints, UserRound, Gem, UtensilsCrossed, Smartphone, Palette, Sparkles,
   Baby, Home, Package, ShoppingBag, Watch, Dumbbell, BookOpen, Flower2, Scissors,
-  Sofa, Glasses, Dog, Car, Bike, Loader2, X, Bell,
+  Sofa, Glasses, Dog, Car, Bike, Loader2, X, Bell, Tag,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link } from "wouter";
 import { useCart } from "@/contexts/CartContext";
 import { ProductCard } from "@/components/ProductCard";
-import { getStorefront, trackClick, waOptin, updateStore } from "@/lib/api";
+import { getStorefront, trackClick, waOptin, updateStore, getPublicCoupons } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStorefrontTheme } from "@/hooks/use-storefront-theme";
 import { populatePdCacheFromStorefront } from "@/lib/product-cache";
-import type { Store as StoreType, Product } from "@/lib/api";
+import type { Store as StoreType, Product, PublicCoupon } from "@/lib/api";
 import type { Review } from "@/lib/api";
 import { setSEO, resetSEO, injectStoreJsonLd, removeStoreJsonLd } from "@/lib/seo";
 
@@ -199,6 +199,53 @@ function ReviewCard({ review }: { review: Review }) {
   );
 }
 
+/* ── Banner image carousel ────────────────────────────── */
+function BannerCarousel({ images, storeName }: { images: string[]; storeName: string }) {
+  const [idx, setIdx] = useState(0);
+  const touchStartX = useRef(0);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % images.length), 4000);
+    return () => clearInterval(t);
+  }, [images.length]);
+
+  const goTo = (n: number) => setIdx((n + images.length) % images.length);
+
+  return (
+    <div
+      className="relative w-full overflow-hidden bg-muted"
+      style={{ aspectRatio: "2/1" }}
+      onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
+      onTouchEnd={e => {
+        const diff = touchStartX.current - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 40) goTo(diff > 0 ? idx + 1 : idx - 1);
+      }}
+    >
+      {images.map((src, i) => (
+        <img
+          key={i}
+          src={src}
+          alt={`${storeName} banner ${i + 1}`}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${i === idx ? "opacity-100" : "opacity-0"}`}
+        />
+      ))}
+      {images.length > 1 && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+          {images.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => goTo(i)}
+              className={`rounded-full transition-all duration-300 ${i === idx ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/50 hover:bg-white/80"}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Trending card: compact horizontal scroll card ─────── */
 function TrendingCard({
   product,
@@ -362,6 +409,7 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reviewsOpen, setReviewsOpen] = useState(false);
+  const [activeCoupons, setActiveCoupons] = useState<PublicCoupon[]>([]);
 
   const [search, setSearch] = useState("");
   const trendingScrollRef = useRef<HTMLDivElement>(null);
@@ -528,6 +576,11 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     return list;
   }, [products, activeCategory, search, priceSort]);
 
+  useEffect(() => {
+    if (!store?.id) return;
+    getPublicCoupons(store.id).then(setActiveCoupons).catch(() => {});
+  }, [store?.id]);
+
   const avgRating = useMemo(() => {
     if (reviews.length === 0) return null;
     return (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1);
@@ -681,66 +734,105 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
 
       <main className="flex-1 container max-w-6xl mx-auto px-0 sm:px-6 pt-4 pb-10">
 
-        {/* ── About This Store ──────────────────────────────────── */}
-        {store?.about && (
-          <section className="mb-8 px-2.5 sm:px-0" aria-label={`About ${store.name}`}>
-            <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                {store.logo_url ? (
-                  <img
-                    src={store.logo_url}
-                    alt={store.name}
-                    className="w-10 h-10 rounded-xl object-cover shrink-0 border"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Store className="h-5 w-5 text-primary" />
+        {/* ── Store Hero: Banner · Offers · About ───────────────── */}
+        {store && ((store.banner_images && store.banner_images.length > 0) || store.about || activeCoupons.length > 0) && (
+          <section className="mb-6" aria-label={`About ${store.name}`}>
+
+            {/* Full-width banner carousel */}
+            {store.banner_images && store.banner_images.length > 0 && (
+              <div className="rounded-2xl overflow-hidden mx-2.5 sm:mx-0 mb-3 shadow-sm">
+                <BannerCarousel images={store.banner_images} storeName={store.name} />
+              </div>
+            )}
+
+            {/* Active offers horizontal strip */}
+            {activeCoupons.length > 0 && (
+              <div className="px-2.5 sm:px-0 mb-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Tag className="h-3.5 w-3.5 text-orange-500" />
+                  <p className="text-xs font-bold text-foreground uppercase tracking-wide">Active Offers</p>
+                </div>
+                <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                  {activeCoupons.map(c => (
+                    <div key={c.code} className="shrink-0 border border-orange-200 dark:border-orange-800 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 px-4 py-3 min-w-[150px]">
+                      <p className="text-xl font-extrabold text-orange-600 dark:text-orange-400 leading-none">
+                        {c.type === "percent" ? `${c.value}% OFF` : `₹${c.value} OFF`}
+                      </p>
+                      {c.description && (
+                        <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{c.description}</p>
+                      )}
+                      <div className="mt-2 flex items-center gap-1 flex-wrap">
+                        <span className="text-[10px] text-muted-foreground">Use code:</span>
+                        <span className="text-xs font-bold text-orange-700 dark:text-orange-300 tracking-wider bg-orange-100 dark:bg-orange-900/50 px-1.5 py-0.5 rounded">
+                          {c.code}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* About text + mini reviews */}
+            {store.about && (
+              <div className="bg-card border rounded-2xl p-5 sm:p-6 shadow-sm mx-2.5 sm:mx-0">
+                <div className="flex items-center gap-3 mb-4">
+                  {store.logo_url ? (
+                    <img
+                      src={store.logo_url}
+                      alt={store.name}
+                      className="w-10 h-10 rounded-xl object-cover shrink-0 border"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Store className="h-5 w-5 text-primary" />
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-base font-bold text-foreground leading-tight">
+                      About {store.name}
+                    </h2>
+                    {store.location && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3 w-3" />
+                        {store.location}
+                      </p>
+                    )}
                   </div>
-                )}
-                <div>
-                  <h2 className="text-base font-bold text-foreground leading-tight">
-                    About {store.name}
-                  </h2>
-                  {store.location && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <MapPin className="h-3 w-3" />
-                      {store.location}
-                    </p>
+                  {avgRating && (
+                    <div className="ml-auto flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-full px-2.5 py-1 shrink-0">
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      <span className="text-xs font-bold text-amber-700 dark:text-amber-400">{avgRating}</span>
+                      <span className="text-[11px] text-muted-foreground">({reviews.length})</span>
+                    </div>
                   )}
                 </div>
-                {avgRating && (
-                  <div className="ml-auto flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-full px-2.5 py-1 shrink-0">
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    <span className="text-xs font-bold text-amber-700 dark:text-amber-400">{avgRating}</span>
-                    <span className="text-[11px] text-muted-foreground">({reviews.length})</span>
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {store.about}
+                </p>
+                {reviews.length > 0 && (
+                  <div className="mt-5 pt-4 border-t">
+                    <div className="flex items-center gap-2 mb-3">
+                      <MessageSquare className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-bold text-foreground">Customer Reviews</span>
+                    </div>
+                    <div className="space-y-3">
+                      {reviews.slice(0, 3).map(review => (
+                        <ReviewCard key={review.id} review={review} />
+                      ))}
+                    </div>
+                    {reviews.length > 3 && (
+                      <button
+                        onClick={() => setReviewsOpen(true)}
+                        className="mt-3 text-xs text-primary font-medium hover:underline"
+                      >
+                        See all {reviews.length} reviews ↓
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {store.about}
-              </p>
-              {reviews.length > 0 && (
-                <div className="mt-5 pt-4 border-t">
-                  <div className="flex items-center gap-2 mb-3">
-                    <MessageSquare className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-bold text-foreground">Customer Reviews</span>
-                  </div>
-                  <div className="space-y-3">
-                    {reviews.slice(0, 3).map(review => (
-                      <ReviewCard key={review.id} review={review} />
-                    ))}
-                  </div>
-                  {reviews.length > 3 && (
-                    <button
-                      onClick={() => setReviewsOpen(true)}
-                      className="mt-3 text-xs text-primary font-medium hover:underline"
-                    >
-                      See all {reviews.length} reviews ↓
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+            )}
           </section>
         )}
 

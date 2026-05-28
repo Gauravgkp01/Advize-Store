@@ -124,6 +124,7 @@ export interface Store {
   storefront_theme?: "dark" | "light";
   whatsapp_ordering_enabled?: boolean;
   owner_id?: string;
+  banner_images?: string[];
 }
 
 export const getStore = (slug: string) =>
@@ -654,6 +655,13 @@ export type Coupon = {
   active: boolean;
 };
 
+export type PublicCoupon = {
+  code: string;
+  type: "percent" | "fixed";
+  value: number;
+  description: string;
+};
+
 export type CouponValidation = {
   valid: boolean;
   code?: string;
@@ -666,6 +674,9 @@ export type CouponValidation = {
 
 export const getCoupons = (storeId: string) =>
   request<Coupon[]>(`/coupons/${storeId}`);
+
+export const getPublicCoupons = (storeId: string) =>
+  request<PublicCoupon[]>(`/coupons/public/${storeId}`);
 
 export const createCoupon = (data: {
   store_id: string; code: string; type: "percent" | "fixed";
