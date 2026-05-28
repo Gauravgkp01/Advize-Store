@@ -50,7 +50,7 @@ export function LoginPage() {
   };
 
   const FEATURES = [
-    { icon: Store,         text: "Set up your store in minutes" },
+    { icon: CheckCircle2,  text: "Set up your store in minutes" },
     { icon: Share2,        text: "Share your link on social media" },
     { icon: MessageCircle, text: "Orders direct to your WhatsApp" },
   ];
