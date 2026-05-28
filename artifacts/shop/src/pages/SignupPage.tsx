@@ -6,7 +6,8 @@ import { sendOtp, verifyOtp } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Eye, EyeOff, ShieldCheck, CheckCircle2, Store, MessageCircle, Share2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, ShieldCheck, CheckCircle2, MessageCircle, Share2 } from "lucide-react";
+import logo from "@assets/icon_1779958600802.png";
 import {
   InputOTP,
   InputOTPGroup,
@@ -95,9 +96,7 @@ export function SignupPage() {
       <div className="hidden lg:flex lg:w-[45%] xl:w-1/2 bg-primary/5 border-r flex-col items-center justify-center p-12">
         <div className="max-w-sm w-full">
           <a href="/" className="flex items-center gap-3 mb-10">
-            <div className="bg-primary/10 p-2.5 rounded-2xl">
-              <Store className="w-7 h-7 text-primary" />
-            </div>
+            <img src={logo} alt="Advize" className="h-10 w-10 object-contain" />
             <span className="text-xl font-bold">Advize Store</span>
           </a>
           <h2 className="text-3xl font-bold mb-3 leading-tight">Sell online in 5 minutes</h2>

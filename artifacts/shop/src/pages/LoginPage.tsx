@@ -6,7 +6,8 @@ import { getStoreByOwnerId } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Eye, EyeOff, Store, CheckCircle2, MessageCircle, Share2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, CheckCircle2, MessageCircle, Share2 } from "lucide-react";
+import logo from "@assets/icon_1779958600802.png";
 
 export function LoginPage() {
   const [, setLocation] = useLocation();
@@ -61,9 +62,7 @@ export function LoginPage() {
       <div className="hidden lg:flex lg:w-[45%] xl:w-1/2 bg-primary/5 border-r flex-col items-center justify-center p-12">
         <div className="max-w-sm w-full">
           <Link href="/" className="flex items-center gap-3 mb-10">
-            <div className="bg-primary/10 p-2.5 rounded-2xl">
-              <Store className="w-7 h-7 text-primary" />
-            </div>
+            <img src={logo} alt="Advize" className="h-10 w-10 object-contain" />
             <span className="text-xl font-bold">Advize Store</span>
           </Link>
           <h2 className="text-3xl font-bold mb-3 leading-tight">Your store, your rules</h2>
@@ -87,8 +86,8 @@ export function LoginPage() {
       <div className="flex-1 flex flex-col items-center justify-center p-6 bg-muted/10 lg:bg-background">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-2xl mb-4 lg:hidden">
-              <Store className="w-8 h-8 text-primary" />
+            <div className="inline-flex items-center justify-center mb-4 lg:hidden">
+              <img src={logo} alt="Advize" className="h-12 w-12 object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
             <p className="text-muted-foreground mt-1 text-sm">Sign in to your store</p>

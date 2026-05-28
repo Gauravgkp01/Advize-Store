@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { Store, Menu, LayoutDashboard, LogIn, LogOut, UserPlus, Tag } from "lucide-react";
+import { Menu, LayoutDashboard, LogIn, LogOut, UserPlus, Tag } from "lucide-react";
+import logo from "@assets/icon_1779958600802.png";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,9 +24,7 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container max-w-5xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 group" data-testid="link-home">
-          <div className="bg-primary/10 p-2 rounded-xl group-hover:bg-primary/20 transition-colors">
-            <Store className="h-5 w-5 text-primary" />
-          </div>
+          <img src={logo} alt="Advize" className="h-9 w-9 object-contain" />
           <span className="text-xl font-bold tracking-tight text-foreground">Advize Store</span>
         </Link>
 
