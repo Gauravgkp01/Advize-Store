@@ -80,10 +80,21 @@ router.post("/reviews", async (req, res) => {
 
   // Invalidate affected caches
   cacheDeleteByPrefix(`reviews:product:${product_id}`);
+  cacheDeleteByPrefix(`product-detail:${product_id}`);
 
-  // Also invalidate store-level review cache by finding the product's store_id
+  // Also invalidate store-level and storefront caches
   db.collection("products").doc(product_id).get()
-    .then(p => { if (p.exists) cacheDeleteByPrefix(`reviews:store:${(p.data() as any).store_id}`); })
+    .then(async p => {
+      if (!p.exists) return;
+      const storeId = (p.data() as any).store_id;
+      cacheDeleteByPrefix(`reviews:store:${storeId}`);
+      // Also bust storefront cache so the rating on the store page updates
+      const storeDoc = await db.collection("stores").doc(storeId).get();
+      if (storeDoc.exists) {
+        const slug = (storeDoc.data() as any).slug as string | undefined;
+        if (slug) cacheDeleteByPrefix(`storefront:${slug}`);
+      }
+    })
     .catch(() => {});
 
   return res.status(201).json(result);

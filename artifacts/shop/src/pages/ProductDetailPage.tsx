@@ -920,6 +920,7 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
       }
       const newReview = await createReview({ product_id: product.id, name: reviewName.trim(), rating: reviewRating, comment: reviewComment.trim(), image_url: imageUrl });
       setLocalReviews(prev => [newReview, ...prev]);
+      pdCache.delete(product.id);
       setReviewName(""); setReviewRating(0); setReviewComment("");
       setReviewImageFile(null); setReviewImagePreview("");
       setShowForm(false);

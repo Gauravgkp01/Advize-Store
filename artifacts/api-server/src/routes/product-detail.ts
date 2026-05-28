@@ -53,18 +53,29 @@ router.get("/product-detail/:id", async (req, res) => {
   const storeId: string = productData["store_id"];
   const category: string = productData["category"] ?? "";
 
-  // ── Step 2: Parallel fetch – variants + store only ──
+  // ── Step 2: Parallel fetch – variants + store + reviews ──
   // Related products are intentionally excluded from this critical path.
   // On a cold start the full catalog query (needed to compute related items)
   // would block the initial render. Instead, the client fires a second
   // deferred request to /product-related/:id after the main content appears.
   // If the catalog is already warm in the server cache the related-products
   // endpoint is essentially free (in-memory filter only).
-  const [variantsSnap, storeDoc] = await Promise.all([
+  const [variantsSnap, storeDoc, reviews] = await Promise.all([
     productDoc.ref.collection("variants").get(),
     (async () => {
       const cachedStore = cacheGet<any>(`store:id:${storeId}`);
       return cachedStore ?? db.collection("stores").doc(storeId).get();
+    })(),
+    (async () => {
+      const cachedReviews = cacheGet<any[]>(`reviews:product:${id}`);
+      if (cachedReviews) return cachedReviews;
+      const snap = await db.collection("reviews").where("product_id", "==", id).get();
+      const list = snap.docs.map(d => serializeReview(d));
+      list.sort((a: any, b: any) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      cacheSet(`reviews:product:${id}`, list, TTL);
+      return list;
     })(),
   ]);
 
@@ -90,7 +101,7 @@ router.get("/product-detail/:id", async (req, res) => {
     store = storeDoc;
   }
 
-  const result = { product, store, relatedProducts: [] };
+  const result = { product, store, reviews, relatedProducts: [] };
   cacheSet(cacheKey, result, TTL);
   return res.json(result);
 });
