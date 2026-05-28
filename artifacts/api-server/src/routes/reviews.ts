@@ -63,7 +63,7 @@ router.get("/reviews", async (req, res) => {
 });
 
 router.post("/reviews", async (req, res) => {
-  const { product_id, name, rating, comment } = req.body;
+  const { product_id, name, rating, comment, image_url } = req.body;
   if (!product_id || !name || !rating || !comment) {
     return res.status(400).json({ error: "product_id, name, rating, and comment are required" });
   }
@@ -72,6 +72,7 @@ router.post("/reviews", async (req, res) => {
   }
   const ref = await db.collection("reviews").add({
     product_id, name, rating, comment,
+    ...(image_url ? { image_url } : {}),
     created_at: FieldValue.serverTimestamp(),
   });
   const doc = await ref.get();

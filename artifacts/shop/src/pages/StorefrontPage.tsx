@@ -192,6 +192,9 @@ function ReviewCard({ review }: { review: Review }) {
       </div>
       <StarRating rating={review.rating} />
       <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
+      {review.image_url && (
+        <img src={review.image_url} alt="Review photo" className="w-full rounded-xl object-cover max-h-40 border mt-1" />
+      )}
     </div>
   );
 }
@@ -705,10 +708,38 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                     </p>
                   )}
                 </div>
+                {avgRating && (
+                  <div className="ml-auto flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-full px-2.5 py-1 shrink-0">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-400">{avgRating}</span>
+                    <span className="text-[11px] text-muted-foreground">({reviews.length})</span>
+                  </div>
+                )}
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                 {store.about}
               </p>
+              {reviews.length > 0 && (
+                <div className="mt-5 pt-4 border-t">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MessageSquare className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-bold text-foreground">Customer Reviews</span>
+                  </div>
+                  <div className="space-y-3">
+                    {reviews.slice(0, 3).map(review => (
+                      <ReviewCard key={review.id} review={review} />
+                    ))}
+                  </div>
+                  {reviews.length > 3 && (
+                    <button
+                      onClick={() => setReviewsOpen(true)}
+                      className="mt-3 text-xs text-primary font-medium hover:underline"
+                    >
+                      See all {reviews.length} reviews ↓
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </section>
         )}

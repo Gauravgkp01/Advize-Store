@@ -4,7 +4,7 @@ import {
   ArrowLeft, MessageCircle, ExternalLink,
   AlertCircle, Star, Loader2, MousePointerClick,
   Package, BarChart2, TrendingUp, ZoomIn, ZoomOut, X, RotateCcw,
-  ShoppingCart, ShoppingBag, ChevronDown, Heart, Share2,
+  ShoppingCart, ShoppingBag, ChevronDown, Heart, Share2, Camera,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DescriptionRenderer } from "@/components/DescriptionRenderer";
 import { useToast } from "@/hooks/use-toast";
 import { useStorefrontTheme } from "@/hooks/use-storefront-theme";
-import { getProduct, getReviews, createReview, getProductAnalytics, getStore, getStoreById, getProducts, getSubdomainSlug, getProductDetail, getRelatedProducts } from "@/lib/api";
+import { getProduct, getReviews, createReview, uploadImage, getProductAnalytics, getStore, getStoreById, getProducts, getSubdomainSlug, getProductDetail, getRelatedProducts } from "@/lib/api";
 import type { Product, Review, MixCartData } from "@/lib/api";
 import type { ProductAnalytics } from "@/lib/api";
 import { pdCache, PD_CACHE_TTL } from "@/lib/product-cache";
@@ -105,7 +105,8 @@ function RelatedProducts({ products }: { products: Product[] }) {
 
 function ReviewsList({ reviews, avgRating, ratingCounts, showForm, setShowForm,
   reviewName, setReviewName, reviewRating, setReviewRating, reviewComment,
-  setReviewComment, submitting, handleSubmitReview }: any) {
+  setReviewComment, submitting, handleSubmitReview,
+  reviewImagePreview, setReviewImageFile, setReviewImagePreview }: any) {
   return (
     <div className="bg-card sm:border sm:rounded-3xl px-5 sm:px-10 py-8 shadow-sm" data-testid="reviews-section">
       <div className="flex items-center justify-between mb-6">
@@ -158,13 +159,46 @@ function ReviewsList({ reviews, avgRating, ratingCounts, showForm, setShowForm,
               className="rounded-xl resize-none min-h-[100px]" value={reviewComment}
               onChange={e => setReviewComment(e.target.value)} data-testid="input-review-comment" />
           </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">
+              Add a photo <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            {reviewImagePreview ? (
+              <div className="relative inline-block">
+                <img src={reviewImagePreview} alt="Preview" className="w-24 h-24 rounded-xl object-cover border" />
+                <button
+                  type="button"
+                  onClick={() => { setReviewImageFile(null); setReviewImagePreview(""); }}
+                  className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 w-fit cursor-pointer border rounded-xl px-3 py-2 text-sm text-muted-foreground hover:bg-muted/30 transition-colors">
+                <Camera className="h-4 w-4" />
+                Upload photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setReviewImageFile(file);
+                    setReviewImagePreview(URL.createObjectURL(file));
+                  }}
+                />
+              </label>
+            )}
+          </div>
           <div className="flex gap-3">
             <Button className="flex-1 h-11 rounded-xl" onClick={handleSubmitReview} disabled={submitting} data-testid="btn-submit-review">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Post Review
             </Button>
             <Button variant="outline" className="h-11 rounded-xl"
-              onClick={() => { setShowForm(false); setReviewRating(0); setReviewName(""); setReviewComment(""); }}>
+              onClick={() => { setShowForm(false); setReviewRating(0); setReviewName(""); setReviewComment(""); setReviewImageFile(null); setReviewImagePreview(""); }}>
               Cancel
             </Button>
           </div>
@@ -189,6 +223,9 @@ function ReviewsList({ reviews, avgRating, ratingCounts, showForm, setShowForm,
                   <span className="text-xs text-muted-foreground ml-auto">{review.date}</span>
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
+                {review.image_url && (
+                  <img src={review.image_url} alt="Review photo" className="mt-2 rounded-xl max-h-48 object-cover border" />
+                )}
               </div>
             </div>
           ))}
@@ -797,6 +834,8 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [localReviews, setLocalReviews] = useState(reviews);
+  const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
+  const [reviewImagePreview, setReviewImagePreview] = useState("");
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [reviewsFetched, setReviewsFetched] = useState(reviews.length > 0);
   const [reviewsFetching, setReviewsFetching] = useState(false);
@@ -875,9 +914,15 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
     if (!reviewComment.trim()) { toast({ variant: "destructive", title: "Please write a short review." }); return; }
     setSubmitting(true);
     try {
-      const newReview = await createReview({ product_id: product.id, name: reviewName.trim(), rating: reviewRating, comment: reviewComment.trim() });
+      let imageUrl: string | undefined;
+      if (reviewImageFile) {
+        imageUrl = await uploadImage(reviewImageFile);
+      }
+      const newReview = await createReview({ product_id: product.id, name: reviewName.trim(), rating: reviewRating, comment: reviewComment.trim(), image_url: imageUrl });
       setLocalReviews(prev => [newReview, ...prev]);
-      setReviewName(""); setReviewRating(0); setReviewComment(""); setShowForm(false);
+      setReviewName(""); setReviewRating(0); setReviewComment("");
+      setReviewImageFile(null); setReviewImagePreview("");
+      setShowForm(false);
       toast({ title: "Review posted!", description: "Thanks for sharing your feedback." });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Failed to post review", description: e.message });
@@ -1497,6 +1542,9 @@ function BuyerView({ product, reviews, storeWhatsapp, storeSlug, storeId, relate
                   setReviewComment={setReviewComment}
                   submitting={submitting}
                   handleSubmitReview={handleSubmitReview}
+                  reviewImagePreview={reviewImagePreview}
+                  setReviewImageFile={setReviewImageFile}
+                  setReviewImagePreview={setReviewImagePreview}
                 />
               </div>
             )}

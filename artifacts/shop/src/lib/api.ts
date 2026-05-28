@@ -48,6 +48,7 @@ export type Review = {
   rating: number;
   comment: string;
   date: string;
+  image_url?: string;
 };
 
 const BASE = `${import.meta.env.BASE_URL}api`;
@@ -293,6 +294,7 @@ export interface ApiReview {
   rating: number;
   comment: string;
   created_at: string;
+  image_url?: string;
 }
 
 function toReview(r: ApiReview): Review {
@@ -302,6 +304,7 @@ function toReview(r: ApiReview): Review {
     name: r.name,
     rating: r.rating,
     comment: r.comment,
+    image_url: r.image_url,
     date: new Date(r.created_at).toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
@@ -325,6 +328,7 @@ export const createReview = (body: {
   name: string;
   rating: number;
   comment: string;
+  image_url?: string;
 }) => request<ApiReview>("/reviews", { method: "POST", body: JSON.stringify(body) }).then(toReview);
 
 // ── Analytics ─────────────────────────────────────────────────
