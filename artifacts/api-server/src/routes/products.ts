@@ -18,6 +18,24 @@ async function getProductWithVariants(doc: FirebaseFirestore.DocumentSnapshot) {
   return { id: doc.id, ...doc.data(), variants };
 }
 
+/**
+ * Invalidate the storefront cache for the given store.
+ * Tries the in-memory store cache first; falls back to a Firestore read.
+ */
+async function bustStorefront(storeId: string) {
+  const storeFromCache = cacheGet<any>(`store:id:${storeId}`);
+  if (storeFromCache?.slug) {
+    cacheDeleteByPrefix(`storefront:${storeFromCache.slug}`);
+    return;
+  }
+  // Fallback: Firestore read (only when store isn't cached)
+  const snap = await db.collection("stores").doc(storeId).get();
+  if (snap.exists) {
+    const slug = (snap.data() as any)?.slug as string | undefined;
+    if (slug) cacheDeleteByPrefix(`storefront:${slug}`);
+  }
+}
+
 router.get("/products", async (req, res) => {
   const { store_id } = req.query as Record<string, string>;
   const cacheKey = `products:list:${store_id ?? "__all__"}`;
@@ -97,6 +115,7 @@ router.post("/products", async (req, res) => {
 
   cacheDeleteByPrefix(`products:list:${store_id}`);
   cacheDeleteByPrefix("products:list:__all__");
+  await bustStorefront(store_id);
 
   const doc = await ref.get();
   const variantsSnap = await ref.collection("variants").get();
@@ -126,7 +145,10 @@ router.patch("/products/:id", async (req, res) => {
   // Invalidate caches
   cacheDeleteByPrefix(`products:detail:${req.params.id}`);
   const storeId = (snap.data() as any)?.store_id;
-  if (storeId) cacheDeleteByPrefix(`products:list:${storeId}`);
+  if (storeId) {
+    cacheDeleteByPrefix(`products:list:${storeId}`);
+    await bustStorefront(storeId);
+  }
   cacheDeleteByPrefix("products:list:__all__");
 
   const updated = await ref.get();
@@ -147,7 +169,10 @@ router.delete("/products/:id", async (req, res) => {
   await batch.commit();
 
   cacheDeleteByPrefix(`products:detail:${req.params.id}`);
-  if (storeId) cacheDeleteByPrefix(`products:list:${storeId}`);
+  if (storeId) {
+    cacheDeleteByPrefix(`products:list:${storeId}`);
+    await bustStorefront(storeId);
+  }
   cacheDeleteByPrefix("products:list:__all__");
 
   return res.status(204).send();
