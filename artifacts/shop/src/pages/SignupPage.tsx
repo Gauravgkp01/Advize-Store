@@ -84,7 +84,7 @@ export function SignupPage() {
   };
 
   const FEATURES = [
-    { icon: Store,         text: "Your own branded storefront link" },
+    { icon: ShieldCheck,   text: "Your own branded storefront link" },
     { icon: MessageCircle, text: "WhatsApp-powered customer orders" },
     { icon: Share2,        text: "Share anywhere — no app needed" },
   ];
