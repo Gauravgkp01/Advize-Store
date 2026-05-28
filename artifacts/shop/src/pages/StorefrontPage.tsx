@@ -925,44 +925,58 @@ export function StorefrontPage({ forcedSlug }: { forcedSlug?: string } = {}) {
           )}
         </div>
 
-        {/* ── Reviews Section ──────────────────────────────────── */}
-        <div className="border-t mt-2 px-2.5 sm:px-0">
-          <button
-            onClick={() => setReviewsOpen(o => !o)}
-            className="w-full flex items-center justify-between py-5 text-left"
-          >
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              <h2 className="text-base font-bold text-foreground">Customer Reviews</h2>
-              {reviews.length > 0 && avgRating && (
-                <span className="text-xs text-muted-foreground font-normal">
-                  · {avgRating}★ ({reviews.length})
-                </span>
-              )}
-            </div>
-            {reviewsOpen
-              ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-              : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-          </button>
-
-          {reviewsOpen && (
-            reviews.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-2xl mb-5">
-                <Star className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                <p className="font-medium text-sm">No reviews yet</p>
-                <p className="text-xs mt-1">Be the first to leave a review after ordering!</p>
-              </div>
-            ) : (
-              <div className="space-y-3 pb-6">
-                {reviews.map(review => (
-                  <ReviewCard key={review.id} review={review} />
-                ))}
-              </div>
-            )
-          )}
-        </div>
 
       </main>
+
+      {/* ── Reviews bottom sheet popup ────────────────────────── */}
+      {reviewsOpen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-end"
+          onClick={() => setReviewsOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/50" />
+          <div
+            className="relative bg-background rounded-t-3xl max-h-[85dvh] flex flex-col shadow-2xl border-t"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-muted-foreground/25" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b shrink-0">
+              <div className="flex items-center gap-2">
+                <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+                <span className="text-base font-bold text-foreground">{avgRating}</span>
+                <span className="text-sm text-muted-foreground">· {reviews.length} reviews</span>
+              </div>
+              <button
+                onClick={() => setReviewsOpen(false)}
+                className="rounded-full p-1.5 hover:bg-muted transition-colors"
+                aria-label="Close reviews"
+              >
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+            {/* Scrollable review list */}
+            <div className="overflow-y-auto flex-1 px-5 py-4">
+              {reviews.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Star className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                  <p className="font-medium text-sm">No reviews yet</p>
+                  <p className="text-xs mt-1">Be the first to leave a review after ordering!</p>
+                </div>
+              ) : (
+                <div className="space-y-4 pb-6">
+                  {reviews.map(review => (
+                    <ReviewCard key={review.id} review={review} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <WaOptinBanner store={store} />
 
