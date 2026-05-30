@@ -27,6 +27,7 @@ interface BuyerInfo {
   state: string;
   pincode: string;
   instagram?: string;
+  notes?: string;
 }
 
 function itemPrice(item: CartItem) {
@@ -54,7 +55,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [screen, setScreen] = useState<Screen>("cart");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [buyer, setBuyer] = useState<BuyerInfo>({
-    name: "", phone: "", email: "", addressLine: "", city: "", state: "", pincode: "", instagram: "",
+    name: "", phone: "", email: "", addressLine: "", city: "", state: "", pincode: "", instagram: "", notes: "",
   });
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
@@ -132,7 +133,8 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
     const deliveryLine = deliveryCharge > 0
       ? `\n🚚 Delivery: ₹${deliveryCharge.toLocaleString("en-IN")}`
       : "\n🚚 Delivery: Free";
-    const message = `Hello 👋,\n\nI'd like to order the following:\n\n${lines.join("\n")}\n\n🛒 Subtotal: ₹${totalPrice.toLocaleString("en-IN")}${deliveryLine}\n💰 Total: ₹${grandTotal.toLocaleString("en-IN")}${info}\n\nPlease confirm availability and delivery details. Thank you!`;
+    const notesLine = buyer.notes?.trim() ? `\n\n📝 Notes: ${buyer.notes.trim()}` : "";
+    const message = `Hello 👋,\n\nI'd like to order the following:\n\n${lines.join("\n")}\n\n🛒 Subtotal: ₹${totalPrice.toLocaleString("en-IN")}${deliveryLine}\n💰 Total: ₹${grandTotal.toLocaleString("en-IN")}${notesLine}${info}\n\nPlease confirm availability and delivery details. Thank you!`;
     const number = store.whatsapp.replace(/[^0-9]/g, "");
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank");
   };
@@ -441,6 +443,18 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 : <span className="font-semibold text-green-600 dark:text-green-400">Free</span>
               }
             </div>
+            {(store?.delivery_days_min || store?.delivery_days_max) && (
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span className="flex items-center gap-1.5"><Truck className="h-3.5 w-3.5 opacity-0" /> Est. delivery</span>
+                <span className="font-semibold">
+                  {store.delivery_days_min && store.delivery_days_max
+                    ? `${store.delivery_days_min}–${store.delivery_days_max} days`
+                    : store.delivery_days_min
+                    ? `From ${store.delivery_days_min} days`
+                    : `Up to ${store.delivery_days_max} days`}
+                </span>
+              </div>
+            )}
             {couponDiscount > 0 && (
               <div className="flex items-center justify-between text-sm text-green-600 dark:text-green-400">
                 <span className="flex items-center gap-1.5"><Tag className="h-3.5 w-3.5" /> {couponData?.code}</span>
@@ -529,7 +543,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
               <Label htmlFor="buyer-name">Full Name</Label>
               <Input
                 id="buyer-name"
-                placeholder="Priya Sharma"
+                placeholder=""
                 value={buyer.name}
                 onChange={e => setBuyer(b => ({ ...b, name: e.target.value }))}
                 className="h-11 rounded-xl"
@@ -538,18 +552,15 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="buyer-phone">Phone Number</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">+91</span>
-                <Input
-                  id="buyer-phone"
-                  placeholder="9876543210"
-                  value={buyer.phone}
-                  onChange={e => setBuyer(b => ({ ...b, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
-                  className="h-11 rounded-xl pl-12"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                />
-              </div>
+              <Input
+                id="buyer-phone"
+                placeholder=""
+                value={buyer.phone}
+                onChange={e => setBuyer(b => ({ ...b, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+                className="h-11 rounded-xl"
+                inputMode="numeric"
+                autoComplete="tel"
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="buyer-email">
@@ -560,7 +571,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 <Input
                   id="buyer-email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder=""
                   value={buyer.email ?? ""}
                   onChange={e => setBuyer(b => ({ ...b, email: e.target.value }))}
                   className="h-11 rounded-xl pl-9"
@@ -613,7 +624,7 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                 </Label>
                 <Input
                   id="pincode"
-                  placeholder="6-digit pincode"
+                  placeholder=""
                   value={buyer.pincode}
                   onChange={e => setBuyer(b => ({ ...b, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))}
                   className={`h-11 rounded-xl ${buyer.pincode.length > 0 && buyer.pincode.length !== 6 ? "border-red-400 focus-visible:ring-red-400" : ""}`}
@@ -657,6 +668,21 @@ export function CartPage({ forcedSlug }: { forcedSlug?: string } = {}) {
                   autoCapitalize="none"
                 />
               </div>
+            </div>
+
+            {/* Order notes (optional) */}
+            <div className="space-y-1.5">
+              <Label htmlFor="order-notes">
+                Order Notes <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <textarea
+                id="order-notes"
+                rows={3}
+                placeholder=""
+                value={buyer.notes ?? ""}
+                onChange={e => setBuyer(b => ({ ...b, notes: e.target.value }))}
+                className="w-full rounded-xl border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
+              />
             </div>
           </div>
 

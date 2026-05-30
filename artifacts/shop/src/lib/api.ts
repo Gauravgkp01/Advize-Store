@@ -108,6 +108,8 @@ export interface Store {
   advize_payment_enabled?: boolean;
   upi_id?: string;
   delivery_charge?: number;
+  delivery_days_min?: number;
+  delivery_days_max?: number;
   ig_user_id?: string;
   ig_username?: string;
   description?: string;

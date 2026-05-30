@@ -385,6 +385,8 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
   const [editContactPhone, setEditContactPhone] = useState("");
   const [editTerms, setEditTerms] = useState("");
   const [editDeliveryCharge, setEditDeliveryCharge] = useState("");
+  const [editDeliveryDaysMin, setEditDeliveryDaysMin] = useState("");
+  const [editDeliveryDaysMax, setEditDeliveryDaysMax] = useState("");
   const [editAbout, setEditAbout] = useState("");
   const [bannerImages, setBannerImages] = useState<string[]>([]);
   const [bannerUploading, setBannerUploading] = useState(false);
@@ -402,6 +404,8 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
     setEditContactPhone(store?.contact_phone ?? "");
     setEditTerms(store?.terms_and_conditions ?? "");
     setEditDeliveryCharge(store?.delivery_charge != null ? String(store.delivery_charge) : "");
+    setEditDeliveryDaysMin(store?.delivery_days_min != null ? String(store.delivery_days_min) : "");
+    setEditDeliveryDaysMax(store?.delivery_days_max != null ? String(store.delivery_days_max) : "");
     setEditAbout(store?.about ?? "");
     setBannerImages(store?.banner_images ?? []);
     setShowSecret(false);
@@ -431,6 +435,10 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
         delivery_charge: (!isNaN(deliveryChargeParsed) && deliveryChargeParsed >= 0)
           ? deliveryChargeParsed
           : 0,
+        delivery_days_min: editDeliveryDaysMin.trim() !== "" && !isNaN(parseInt(editDeliveryDaysMin))
+          ? parseInt(editDeliveryDaysMin) : null,
+        delivery_days_max: editDeliveryDaysMax.trim() !== "" && !isNaN(parseInt(editDeliveryDaysMax))
+          ? parseInt(editDeliveryDaysMax) : null,
       };
       if (editRazorpayKeyId.trim()) payload.razorpay_key_id = editRazorpayKeyId.trim();
       if (editRazorpaySecret.trim()) payload.razorpay_key_secret = editRazorpaySecret.trim();
@@ -585,6 +593,34 @@ function MyStorePanel({ store, products, onLogoChange, onStoreChange, editTrigge
               />
             </div>
             <p className="text-[11px] text-muted-foreground">Set to 0 for free delivery. Shown to customers at checkout.</p>
+          </div>
+
+          {/* ── Expected Delivery Time ── */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+              <Truck className="h-3.5 w-3.5" /> Expected Delivery Time (days)
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={editDeliveryDaysMin}
+                onChange={e => setEditDeliveryDaysMin(e.target.value.replace(/\D/g, ""))}
+                placeholder="Min"
+                className="h-11 rounded-xl"
+                inputMode="numeric"
+                maxLength={3}
+              />
+              <span className="text-sm text-muted-foreground shrink-0">to</span>
+              <Input
+                value={editDeliveryDaysMax}
+                onChange={e => setEditDeliveryDaysMax(e.target.value.replace(/\D/g, ""))}
+                placeholder="Max"
+                className="h-11 rounded-xl"
+                inputMode="numeric"
+                maxLength={3}
+              />
+              <span className="text-sm text-muted-foreground shrink-0">days</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Shown to customers on the checkout page as an estimated delivery window.</p>
           </div>
 
           {/* ── About Your Store ── */}
