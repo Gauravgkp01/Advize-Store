@@ -8,7 +8,7 @@ npm install -g pnpm
 pnpm approve-builds --all
 
 # Install all workspace dependencies (API server needs shared libs from lib/*)
-pnpm install --frozen-lockfile
+pnpm install
 
 # Build only the API server (esbuild → dist/index.mjs)
 pnpm --filter @workspace/api-server run build
