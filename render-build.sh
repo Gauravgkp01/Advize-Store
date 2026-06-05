@@ -6,7 +6,7 @@ npm install -g pnpm
 
 # Install all workspace dependencies
 # Build scripts are allowed via .npmrc (onlyBuiltDependencies=*)
-pnpm install --frozen-lockfile
+pnpm install
 
 # Build only the API server (esbuild → dist/index.mjs)
 pnpm --filter @workspace/api-server run build

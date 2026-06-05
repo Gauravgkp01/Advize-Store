@@ -4,6 +4,15 @@ settings:
   autoInstallPeers: false
   excludeLinksFromLockfile: false
 
+onlyBuiltDependencies:
+  - '@firebase/util'
+  - '@swc/core'
+  - esbuild
+  - msw
+  - protobufjs
+  - sharp
+  - unrs-resolver
+
 catalogs:
   default:
     '@replit/vite-plugin-cartographer':
