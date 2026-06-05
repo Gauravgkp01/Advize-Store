@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install pnpm (Render uses npm by default)
+echo "Using Node $(node -v)"
+echo "Using npm $(npm -v)"
+
+# Install pnpm
 npm install -g pnpm
 
-# Install all workspace dependencies
-# Build scripts are allowed via .npmrc (onlyBuiltDependencies=*)
-pnpm install
+echo "Using pnpm $(pnpm -v)"
 
-# Build only the API server (esbuild → dist/index.mjs)
+# Allow dependency build scripts (sharp/esbuild/etc.)
+pnpm config set ignore-scripts false
+
+# Install workspace dependencies
+pnpm install --no-frozen-lockfile
+
+# Build API server
 pnpm --filter @workspace/api-server run build
+
+echo "Build completed successfully"
