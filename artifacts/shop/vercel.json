@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://advize-store-1.onrender.com/api/:path*" },
+    { "source": "/store/:slug", "destination": "https://advize-store-1.onrender.com/store/:slug" },
+    { "source": "/product/:id", "destination": "https://advize-store-1.onrender.com/product/:id" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
