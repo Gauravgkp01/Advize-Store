@@ -69,7 +69,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error((body as any).error ?? `Request failed: ${res.status}`);
+    // Always include status code so callers can detect 404 vs 502/504 reliably
+    throw new Error((body as any).error ?? `Request failed: ${res.status} ${res.statusText || ""}`.trim());
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
