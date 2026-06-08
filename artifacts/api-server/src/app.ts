@@ -27,7 +27,29 @@ app.use(
     },
   }),
 );
-app.use(cors());
+const ALLOWED_ORIGINS = [
+  "https://store.advize.in",
+  "https://advize-store.vercel.app",
+  /https:\/\/advize-store[a-z0-9-]*\.vercel\.app$/,
+  // allow all localhost ports for local dev
+  /^http:\/\/localhost(:\d+)?$/,
+  /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow requests with no origin (curl, mobile apps, same-origin)
+      if (!origin) return callback(null, true);
+      const allowed = ALLOWED_ORIGINS.some((o) =>
+        typeof o === "string" ? o === origin : o.test(origin),
+      );
+      callback(allowed ? null : new Error("CORS: origin not allowed"), allowed);
+    },
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

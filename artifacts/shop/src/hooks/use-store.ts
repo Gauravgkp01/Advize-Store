@@ -54,8 +54,16 @@ export function useStore() {
               } catch {}
             }
             return;
-          } catch {
-            // No store found for this user — fall through to legacy lookup
+          } catch (err: any) {
+            const msg: string = err?.message ?? "";
+            const is404 = msg.includes("404") || msg.toLowerCase().includes("not found");
+            if (!is404) {
+              // Transient error (network, cold-start, 5xx) — keep cached store
+              // and don't fall through to legacy lookup which would clear localStorage
+              if (!cancelled) setLoading(false);
+              return;
+            }
+            // Confirmed 404: no store for this user — fall through to legacy lookup
           }
         } else {
           // Signed out — clear cache

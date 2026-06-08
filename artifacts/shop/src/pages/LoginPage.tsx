@@ -9,6 +9,26 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff, CheckCircle2, MessageCircle, Share2 } from "lucide-react";
 import logo from "@assets/icon_1779958600802.png";
 
+/** Fetch store with a timeout; retries once on timeout/5xx (Render cold-start). */
+async function fetchStoreWithRetry(uid: string, maxAttempts = 2): Promise<{ store: Awaited<ReturnType<typeof getStoreByOwnerId>> | null; notFound: boolean }> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const store = await getStoreByOwnerId(uid);
+      return { store, notFound: false };
+    } catch (err: any) {
+      const msg: string = err?.message ?? "";
+      const is404 = msg.includes("404") || msg.toLowerCase().includes("not found");
+      if (is404) return { store: null, notFound: true };
+      // On last attempt, re-throw so the caller can handle it
+      if (attempt === maxAttempts) throw err;
+      // Otherwise wait 2 seconds and retry (server likely cold-starting)
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+  // Should never reach here
+  return { store: null, notFound: false };
+}
+
 export function LoginPage() {
   const [, setLocation] = useLocation();
   const { signIn } = useAuth();
@@ -30,14 +50,42 @@ export function LoginPage() {
     try {
       const user = await signIn(email.trim(), password);
 
-      const store = await getStoreByOwnerId(user.uid).catch(() => null);
+      let store = null;
+      try {
+        const result = await fetchStoreWithRetry(user.uid);
+        if (result.notFound) {
+          // Confirmed 404: user has no store yet
+          // But double-check localStorage cache before sending to onboarding
+          // (handles edge-case where store exists but owner_id lookup fails)
+          const cachedSlug = localStorage.getItem("shop_store_slug");
+          if (cachedSlug) {
+            // A slug exists in cache → trust it and go to dashboard
+            setLocation("/dashboard");
+            return;
+          }
+          setLocation("/onboarding");
+          return;
+        }
+        store = result.store;
+      } catch (apiErr: any) {
+        // All retries failed — likely server still cold-starting or CORS error
+        toast({
+          variant: "destructive",
+          title: "Could not reach the server",
+          description: "The API server may be starting up (can take ~30s on free tier). Please try again in a moment.",
+        });
+        setLoading(false);
+        return;
+      }
 
       if (store) {
         localStorage.setItem("shop_store_id", store.id);
         localStorage.setItem("shop_store_slug", store.slug);
+        try { localStorage.setItem("shop_store_obj_v1", JSON.stringify(store)); } catch {}
         setLocation("/dashboard");
       } else {
-        setLocation("/onboarding");
+        // Shouldn't happen but guard anyway
+        setLocation("/dashboard");
       }
     } catch (e: any) {
       const msg = e.code === "auth/invalid-credential"
